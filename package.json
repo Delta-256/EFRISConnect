@@ -1,11 +1,14 @@
 {
   "name": "goods-services-configurator",
   "version": "1.0.0",
-  "description": "Goods/Services Configurator — URA EFRIS aligned Manager.io extension",
+  "description": "Goods/Services Configurator - URA EFRIS aligned",
+  "main": "backend/server.js",
   "scripts": {
-    "start": "node backend/server.js",
-    "dev": "cd backend && nodemon server.js",
-    "install-deps": "cd backend && npm install"
+    "start": "node backend/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
   },
   "engines": {
     "node": ">=18.0.0"
