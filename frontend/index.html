@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Goods/Services Configurator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fff;--bg2:#f8f8f6;--bg3:#f1efe8;
+  --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;
+  --border:#e0ddd4;--border2:#c8c5bb;
+  --blue:#2563eb;--blue-lt:#eff6ff;--blue-dk:#1e40af;
+  --green:#059669;--green-lt:#ecfdf5;--green-dk:#065f46;
+  --red:#dc2626;--red-lt:#fef2f2;
+  --amber:#d97706;--amber-lt:#fffbeb;
+  --r:6px;--rl:10px;
+  --shadow:0 1px 3px rgba(0,0,0,.07);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:var(--text);background:var(--bg3);min-height:100vh}
+.app{max-width:980px;margin:0 auto;padding:16px 12px}
+
+/* Header */
+.hdr{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:14px 18px;margin-bottom:14px;box-shadow:var(--shadow)}
+.hdr-l{display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:var(--r);background:linear-gradient(135deg,#1d4ed8,#2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;flex-shrink:0}
+.hdr-title{font-size:15px;font-weight:600}
+.hdr-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;border:1px solid}
+.badge-efris{background:var(--amber-lt);color:var(--amber);border-color:#fcd34d}
+
+/* Setup guide */
+.setup{background:var(--blue-lt);border:1px solid #bfdbfe;border-radius:var(--rl);padding:16px 20px;margin-bottom:14px}
+.setup h3{font-size:14px;font-weight:600;color:var(--blue-dk);margin-bottom:10px}
+.setup ol{padding-left:18px;font-size:13px;color:var(--blue-dk);line-height:2}
+.setup ol li{margin-bottom:2px}
+.setup code{background:#dbeafe;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:12px}
+.setup .credit{margin-top:12px;padding-top:10px;border-top:1px solid #bfdbfe;font-size:12px;color:var(--blue-dk)}
+.setup .credit a{color:var(--blue-dk);font-weight:600}
+
+/* Tabs */
+.tbar{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow)}
+.tab{flex:1;padding:10px 6px;text-align:center;font-size:11px;font-weight:500;color:var(--text3);cursor:pointer;border-right:1px solid var(--border);transition:all .12s}
+.tab:last-child{border-right:none}
+.tab:hover{background:var(--bg2)}
+.tab.active{background:var(--bg);color:var(--blue);font-weight:600}
+.tab-icon{display:block;font-size:17px;margin-bottom:3px}
+.tab-cnt{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:1px 6px;font-size:10px;margin-left:3px}
+
+/* Wizard steps */
+.wiz{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow)}
+.ws{flex:1;padding:9px 4px;text-align:center;font-size:10px;font-weight:500;color:var(--text3);border-right:1px solid var(--border)}
+.ws:last-child{border-right:none}
+.ws.active{background:var(--bg);color:var(--blue);font-weight:600}
+.ws.done{color:var(--green)}
+.wsn{display:block;font-size:16px;font-weight:700;margin-bottom:2px}
+.ws.active .wsn{color:var(--blue)}
+.ws.done .wsn{color:var(--green)}
+
+/* Card */
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:18px 20px;box-shadow:var(--shadow);margin-bottom:14px}
+
+/* Labels */
+.slbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+
+/* Info box */
+.info{background:var(--blue-lt);border:1px solid #bfdbfe;border-radius:var(--r);padding:8px 12px;font-size:12px;color:var(--blue-dk);margin-bottom:10px;line-height:1.5}
+
+/* Search input */
+.sw{position:relative;margin-bottom:8px}
+.sw input{width:100%;padding:9px 12px 9px 34px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);outline:none}
+.sw input:focus{border-color:var(--blue);background:var(--bg);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.sw-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;font-size:15px}
+
+/* Suggestion list */
+.sug-box{border:1px solid var(--border2);border-radius:var(--r);max-height:220px;overflow-y:auto;background:var(--bg);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.sug-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;display:flex;align-items:baseline;gap:8px}
+.sug-item:last-child{border-bottom:none}
+.sug-item:hover{background:var(--bg2)}
+.sug-code{font-size:10px;color:var(--text3);font-family:monospace;flex-shrink:0}
+.empty-msg{padding:14px 12px;color:var(--text3);font-size:12px;text-align:center}
+.loading-msg{padding:14px 12px;color:var(--text3);font-size:12px;text-align:center;font-style:italic}
+
+/* Selected badge */
+.sel-badge{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:7px 12px;font-size:12px;margin-bottom:10px}
+.sel-badge .sc{font-size:10px;color:var(--text3);font-family:monospace;flex-shrink:0}
+.sel-badge .sn{color:var(--text);font-weight:500;flex:1}
+.sel-badge .clr{color:var(--text3);cursor:pointer;font-size:18px;line-height:1;border:none;background:none;padding:0 2px}
+.sel-badge .clr:hover{color:var(--red)}
+
+/* Form fields */
+.fld{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.fld label{font-size:11px;font-weight:600;color:var(--text2)}
+.req{color:var(--red)}
+.fld select,.fld input[type=text],.fld input[type=number],.fld input[type=password]{padding:8px 11px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);outline:none;width:100%}
+.fld select:focus,.fld input:focus{border-color:var(--blue);background:var(--bg);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.fld select:disabled{opacity:.4;cursor:not-allowed}
+.fld input[readonly]{background:var(--bg3);color:var(--text3);font-family:monospace;cursor:default}
+.fld textarea{padding:8px 11px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);outline:none;width:100%;resize:vertical;min-height:56px;font-family:inherit}
+.fld textarea:focus{border-color:var(--blue);background:var(--bg);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+
+/* Grid */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:560px){.g2{grid-template-columns:1fr}}
+
+/* Type toggle */
+.type-row{display:flex;gap:8px;margin-bottom:10px}
+.type-btn{flex:1;padding:9px 8px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;cursor:pointer;background:var(--bg2);color:var(--text2);text-align:center;font-weight:500;transition:all .12s;line-height:1.4}
+.type-btn:hover{background:var(--bg3)}
+.type-btn.active{border-color:var(--blue);background:var(--blue-lt);color:var(--blue-dk);font-weight:600}
+.type-note{display:block;font-size:10px;font-weight:400;margin-top:2px;opacity:.8}
+
+/* Buttons */
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.btn{padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--bg2);color:var(--text);transition:all .12s}
+.btn:hover{background:var(--bg3)}
+.btn-pr{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-pr:hover{background:var(--blue-dk)}
+.btn-su{background:var(--green);border-color:var(--green);color:#fff}
+.btn-su:hover{background:var(--green-dk)}
+.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+
+/* Table */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--text3);border-bottom:1px solid var(--border2);background:var(--bg2);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg2)}
+.mono{font-family:monospace;font-size:11px}
+.small{font-size:11px;color:var(--text3)}
+
+/* Pills */
+.pill{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;border:1px solid}
+.pill-svc{background:var(--green-lt);color:var(--green-dk);border-color:#6ee7b7}
+.pill-gds{background:var(--blue-lt);color:var(--blue-dk);border-color:#93c5fd}
+.pill-ok{background:var(--green-lt);color:var(--green-dk);border-color:#6ee7b7}
+.pill-pend{background:var(--bg2);color:var(--text3);border-color:var(--border)}
+.pill-err{background:var(--red-lt);color:var(--red);border-color:#fca5a5}
+
+/* Icon buttons */
+.icn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:3px 5px;border-radius:4px;transition:all .1s}
+.icn:hover{background:var(--bg2);color:var(--text)}
+.icn-del:hover{background:var(--red-lt);color:var(--red)}
+
+/* Modal */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:16px}
+.modal-ov.open{display:flex}
+.modal{background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:20px 22px;width:min(660px,100%);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.modal-hdr h3{font-size:15px;font-weight:600}
+.modal-cls{background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer;line-height:1;padding:0 3px}
+.modal-cls:hover{color:var(--text)}
+
+/* Sync metrics */
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center}
+.metric-val{font-size:24px;font-weight:700;color:var(--text)}
+.metric-val.blue{color:var(--blue)}
+.metric-val.green{color:var(--green)}
+.metric-lbl{font-size:10px;color:var(--text3);margin-top:3px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+
+/* Progress bar */
+.pbar-wrap{margin-bottom:12px;display:none}
+.pbar-lbl{font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:500}
+.pbar-track{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.pbar-fill{height:100%;background:var(--blue);border-radius:3px;transition:width .3s;width:0%}
+
+/* Sync preview row */
+.sync-row{display:flex;align-items:center;justify-content:space-between;padding:7px 11px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px;gap:10px;font-size:12px}
+.sync-row .sr-l{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.sync-row .sr-code{font-family:monospace;font-size:10px;color:var(--text3);flex-shrink:0}
+.sync-row .sr-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Connection bar */
+.conn-bar{display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:8px 13px;font-size:12px;align-items:center;gap:8px;margin-top:8px}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-ok{background:var(--green)}
+.dot-er{background:var(--red)}
+.dot-ld{background:var(--amber)}
+
+/* Path trail */
+.trail{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:11px;color:var(--text3);margin-bottom:10px}
+.trail span{color:var(--text2)}
+.trail-sep{color:var(--border2)}
+
+/* Footer */
+.footer{text-align:center;font-size:11px;color:var(--text3);margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
+.footer a{color:var(--blue);text-decoration:none}
+.footer a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="logo">GS</div>
+    <div>
+      <div class="hdr-title">Goods/Services Configurator</div>
+      <div class="hdr-sub">URA EFRIS-aligned commodity configuration for Manager.io</div>
+    </div>
+  </div>
+  <span class="badge badge-efris">URA EFRIS</span>
+</div>
+
+<!-- Setup guide -->
+<div class="setup" id="setup-guide">
+  <h3>⚙️ How to add this to Manager.io</h3>
+  <ol>
+    <li>Open <strong>Manager.io</strong> and log into your business</li>
+    <li>Go to <strong>Settings → Custom Buttons → New Custom Button</strong></li>
+    <li>Set <strong>Label</strong>: <code>Goods/Services Configurator</code></li>
+    <li>Set <strong>Endpoint</strong>: <em>(the URL for this app — to be provided after testing)</em></li>
+    <li>Set <strong>Placements</strong>: <code>/inventory-items</code> &nbsp;<code>/non-inventory-items</code> &nbsp;<code>/inventory-item-form</code> &nbsp;<code>/non-inventory-item-form</code></li>
+    <li>Click <strong>Create</strong> — the button now appears on those pages</li>
+  </ol>
+  <div class="credit">
+    Developed with support from <a href="https://tukeihopeinitiative.org/" target="_blank" rel="noopener">The Tukei Hope Initiative ↗</a>
+  </div>
+</div>
+
+<!-- Main tabs -->
+<div class="tbar">
+  <div class="tab active" id="tab-cfg" onclick="sw('cfg')">
+    <span class="tab-icon">📝</span>Configure
+  </div>
+  <div class="tab" id="tab-lst" onclick="sw('lst')">
+    <span class="tab-icon">📋</span>Items<span class="tab-cnt" id="cnt">0</span>
+  </div>
+  <div class="tab" id="tab-syn" onclick="sw('syn')">
+    <span class="tab-icon">☁️</span>Sync<span class="tab-cnt" id="syn-cnt">—</span>
+  </div>
+  <div class="tab" id="tab-set" onclick="sw('set')">
+    <span class="tab-icon">🔌</span>Connection
+  </div>
+</div>
+
+<!-- ═══ VIEW: CONFIGURE ═══ -->
+<div id="vw-cfg">
+  <div class="wiz">
+    <div class="ws active" id="ws1"><span class="wsn">1</span>Segment</div>
+    <div class="ws" id="ws2"><span class="wsn">2</span>Family</div>
+    <div class="ws" id="ws3"><span class="wsn">3</span>Class</div>
+    <div class="ws" id="ws4"><span class="wsn">4</span>Commodity</div>
+    <div class="ws" id="ws5"><span class="wsn">5</span>Details</div>
+  </div>
+  <div class="card">
+
+    <!-- Step 1 -->
+    <div id="s1">
+      <div class="slbl">Step 1 — Search industry segment</div>
+      <div class="info">💡 Type at least 3 characters — e.g. <strong>"Tra"</strong> for Travel, <strong>"Hea"</strong> for Healthcare, <strong>"Foo"</strong> for Food &amp; Beverages, <strong>"Bui"</strong> for Building</div>
+      <div class="sw">
+        <span class="sw-ico">🔍</span>
+        <input type="text" id="seg-inp" placeholder="Search industry segments from URA list..." oninput="onSegInput(this.value)" autocomplete="off"/>
+      </div>
+      <div id="seg-results"></div>
+      <div id="seg-sel" class="sel-badge" style="display:none"></div>
+      <div class="btn-row"><button class="btn btn-pr" id="b12" disabled onclick="goStep(2)">Next: Family →</button></div>
+    </div>
+
+    <!-- Step 2 -->
+    <div id="s2" style="display:none">
+      <div class="slbl">Step 2 — Select family</div>
+      <div id="trail2" class="trail"></div>
+      <div class="fld">
+        <label>Family within segment <span class="req">*</span></label>
+        <select id="fam-sel" onchange="onFam()"><option value="">Loading families...</option></select>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="goStep(1)">← Back</button>
+        <button class="btn btn-pr" id="b23" disabled onclick="goStep(3)">Next: Class →</button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div id="s3" style="display:none">
+      <div class="slbl">Step 3 — Select class</div>
+      <div id="trail3" class="trail"></div>
+      <div class="fld">
+        <label>Class within family <span class="req">*</span></label>
+        <select id="cls-sel" onchange="onCls()"><option value="">Loading classes...</option></select>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="goStep(2)">← Back</button>
+        <button class="btn btn-pr" id="b34" disabled onclick="goStep(4)">Next: Commodity →</button>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div id="s4" style="display:none">
+      <div class="slbl">Step 4 — Select commodity</div>
+      <div id="trail4" class="trail"></div>
+      <div class="fld">
+        <label>Commodity name <span class="req">*</span></label>
+        <select id="com-sel" onchange="onCom()"><option value="">Loading commodities...</option></select>
+      </div>
+      <div id="com-code-wrap" style="display:none">
+        <div class="fld">
+          <label>Commodity code (UNSPSC — auto-filled)</label>
+          <input type="text" id="com-code-val" readonly/>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="goStep(3)">← Back</button>
+        <button class="btn btn-pr" id="b45" disabled onclick="goStep(5)">Next: Details →</button>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div id="s5" style="display:none">
+      <div class="slbl">Step 5 — Product / service details</div>
+      <div id="com-sum" class="sel-badge" style="margin-bottom:12px"></div>
+      <div class="g2">
+        <div class="fld"><label>My product code <span class="req">*</span></label><input type="text" id="f-code" placeholder="e.g. TSTS001"/></div>
+        <div class="fld"><label>Goods/Services name <span class="req">*</span></label><input type="text" id="f-name" placeholder="e.g. End of Year Trip to Kalangala"/></div>
+        <div class="fld"><label>Currency <span class="req">*</span></label>
+          <select id="f-cur">
+            <option value="">Please select</option>
+            <option value="UGX">UGX — Ugandan Shilling</option>
+            <option value="USD">USD — US Dollar</option>
+            <option value="EUR">EUR — Euro</option>
+            <option value="GBP">GBP — British Pound</option>
+            <option value="KES">KES — Kenyan Shilling</option>
+            <option value="TZS">TZS — Tanzanian Shilling</option>
+            <option value="RWF">RWF — Rwandan Franc</option>
+          </select>
+        </div>
+        <div class="fld"><label>Unit price <span class="req">*</span> (tax inclusive)</label><input type="number" id="f-price" placeholder="0" min="0" step="any"/></div>
+        <div class="fld"><label>Package / measure unit <span class="req">*</span></label>
+          <select id="f-uom"><option value="">Loading units...</option></select>
+        </div>
+        <div class="fld"><label>Low stock alert</label><input type="text" id="f-stock" placeholder="N/A for services"/></div>
+      </div>
+      <div class="slbl" style="margin-bottom:6px">Item type <span class="req">*</span></div>
+      <div class="type-row">
+        <div class="type-btn active" id="tt-svc" onclick="setType('Service')">⚙️ Service<span class="type-note">→ Non-inventory item in Manager</span></div>
+        <div class="type-btn" id="tt-gds" onclick="setType('Goods')">📦 Goods<span class="type-note">→ Inventory item in Manager</span></div>
+      </div>
+      <div class="g2">
+        <div class="fld"><label>Excise tax</label><select id="f-excise"><option value="No">No</option><option value="Yes">Yes</option></select></div>
+        <div class="fld"><label>VAT treatment</label><select id="f-vat"><option value="Standard">Standard rated</option><option value="Exempt">Exempt</option><option value="Zero">Zero rated</option></select></div>
+      </div>
+      <div class="fld"><label>Remarks</label><textarea id="f-remarks" placeholder="Optional notes..."></textarea></div>
+      <div class="btn-row">
+        <button class="btn" onclick="goStep(4)">← Back</button>
+        <button class="btn btn-su" onclick="addAnother()">➕ Save &amp; add similar</button>
+        <button class="btn btn-pr" id="main-save" onclick="saveItem()">✓ Confirm &amp; save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VIEW: ITEMS LIST ═══ -->
+<div id="vw-lst" style="display:none">
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:600">📋 Configured Items <span id="lst-lbl" style="font-size:12px;font-weight:400;color:var(--text3)">0 items</span></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="exportCSV()">⬇ Export CSV</button>
+        <button class="btn btn-pr" onclick="sw('cfg');fullReset()">➕ Add new item</button>
+      </div>
+    </div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Code</th><th>Name</th><th>Commodity (UNSPSC)</th>
+          <th>UOM</th><th>Price</th><th>Cur</th><th>Type</th><th>VAT</th><th>Sync</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="lst-body">
+          <tr><td colspan="11" style="text-align:center;color:var(--text3);padding:32px">No items yet. Use the Configure tab to add your first item.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VIEW: SYNC ═══ -->
+<div id="vw-syn" style="display:none">
+  <div class="card">
+    <div style="font-size:14px;font-weight:600;margin-bottom:14px">☁️ Sync to Manager.io</div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-val blue" id="m-pend">0</div><div class="metric-lbl">Pending sync</div></div>
+      <div class="metric"><div class="metric-val green" id="m-done">0</div><div class="metric-lbl">Synced</div></div>
+      <div class="metric"><div class="metric-val" id="m-total">0</div><div class="metric-lbl">Total items</div></div>
+    </div>
+    <div class="pbar-wrap" id="pbar-wrap"><div class="pbar-lbl" id="pbar-lbl">Syncing…</div><div class="pbar-track"><div class="pbar-fill" id="pbar"></div></div></div>
+    <div id="sync-preview" style="margin-bottom:12px"></div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--text2);margin-bottom:12px">
+      <strong style="color:var(--text)">Manager.io placements after sync:</strong><br>
+      Services → <code style="font-family:monospace;background:var(--bg3);padding:1px 4px;border-radius:3px">/non-inventory-items</code> (Non-Inventory Items tab)<br>
+      Goods → <code style="font-family:monospace;background:var(--bg3);padding:1px 4px;border-radius:3px">/inventory-items</code> (Inventory Items tab)
+    </div>
+    <div class="btn-row" style="border:none;padding:0;margin:0">
+      <button class="btn" onclick="buildSyncPreview()">↻ Refresh</button>
+      <button class="btn btn-pr" id="sync-btn" onclick="doSync()" disabled>☁ Sync pending to Manager.io</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VIEW: CONNECTION ═══ -->
+<div id="vw-set" style="display:none">
+  <div class="card">
+    <div style="font-size:14px;font-weight:600;margin-bottom:14px">🔌 Manager.io API Connection</div>
+    <div class="info">When loaded inside Manager.io as a Custom Button, connection details are provided automatically. Fill these in only for standalone testing.</div>
+    <div class="g2">
+      <div class="fld"><label>Server URL</label><input type="text" id="api-url" placeholder="http://localhost:8080" value="http://localhost:8080"/></div>
+      <div class="fld"><label>API Key / Token</label><input type="password" id="api-key" placeholder="Your Manager.io API key"/></div>
+    </div>
+    <div class="btn-row" style="border:none;padding:0;margin:0 0 8px">
+      <button class="btn" onclick="testConn()">🔌 Test connection</button>
+      <button class="btn btn-pr" onclick="loadBiz()">↻ Load businesses</button>
+    </div>
+    <div class="conn-bar" id="conn-bar"></div>
+  </div>
+  <div class="card">
+    <div style="font-size:14px;font-weight:600;margin-bottom:14px">🏢 Select Business</div>
+    <div class="fld"><label>Business</label><select id="biz-sel" onchange="onBiz()"><option value="">— Load businesses first —</option></select></div>
+  </div>
+  <div class="card">
+    <div style="font-size:14px;font-weight:600;margin-bottom:10px">ℹ️ About</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.7">
+      <p>The <strong>Goods/Services Configurator</strong> implements the full URA EFRIS UNSPSC commodity taxonomy (58 segments, 547 families, 7,904 classes, 148,000+ commodities) directly inside Manager.io.</p><br>
+      <p>Configure items once → sync to Manager.io as Inventory (Goods) or Non-Inventory (Services) items, with full UNSPSC commodity codes stored in custom fields for URA EFRIS compliance.</p><br>
+      <p style="color:var(--text3)">Developed with support from <a href="https://tukeihopeinitiative.org/" target="_blank" style="color:var(--blue)">The Tukei Hope Initiative ↗</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-ov" id="edit-modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3>✏️ Edit Item</h3>
+      <button class="modal-cls" onclick="closeEdit()">×</button>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;font-size:11px;color:var(--text3);margin-bottom:14px">
+      <strong style="color:var(--text2)">Commodity:</strong> <span id="e-commodity"></span><br>
+      <strong style="color:var(--text2)">Segment:</strong> <span id="e-segment"></span>
+    </div>
+    <div class="g2">
+      <div class="fld"><label>Product code <span class="req">*</span></label><input type="text" id="e-code"/></div>
+      <div class="fld"><label>Goods/Services name <span class="req">*</span></label><input type="text" id="e-name"/></div>
+      <div class="fld"><label>Currency <span class="req">*</span></label>
+        <select id="e-cur"><option value="">Select</option><option>UGX</option><option>USD</option><option>EUR</option><option>GBP</option><option>KES</option><option>TZS</option><option>RWF</option></select>
+      </div>
+      <div class="fld"><label>Unit price <span class="req">*</span></label><input type="number" id="e-price" min="0" step="any"/></div>
+      <div class="fld"><label>Measure unit <span class="req">*</span></label><select id="e-uom"><option value="">Select</option></select></div>
+      <div class="fld"><label>Low stock alert</label><input type="text" id="e-stock"/></div>
+    </div>
+    <div class="slbl" style="margin-bottom:6px">Item type</div>
+    <div class="type-row" style="margin-bottom:10px">
+      <div class="type-btn" id="et-svc" onclick="setEditType('Service')">⚙️ Service</div>
+      <div class="type-btn" id="et-gds" onclick="setEditType('Goods')">📦 Goods</div>
+    </div>
+    <div class="g2">
+      <div class="fld"><label>Excise tax</label><select id="e-excise"><option value="No">No</option><option value="Yes">Yes</option></select></div>
+      <div class="fld"><label>VAT treatment</label><select id="e-vat"><option value="Standard">Standard rated</option><option value="Exempt">Exempt</option><option value="Zero">Zero rated</option></select></div>
+    </div>
+    <div class="fld"><label>Remarks</label><textarea id="e-remarks"></textarea></div>
+    <div class="btn-row">
+      <button class="btn" onclick="closeEdit()">Cancel</button>
+      <button class="btn btn-pr" onclick="saveEdit()">✓ Save changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Goods/Services Configurator &nbsp;·&nbsp; URA EFRIS UNSPSC taxonomy — 58 segments, 148,000+ commodities &nbsp;·&nbsp;
+  Developed with support from <a href="https://tukeihopeinitiative.org/" target="_blank">The Tukei Hope Initiative ↗</a>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ── API base URL (auto-detect: same origin in production, localhost in dev) ──
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? `http://${window.location.hostname}:${window.location.port || 3000}/api`
+  : '/api';
+
+// ── State ─────────────────────────────────────────────────────────
+let SEG=null, FAM=null, CLS=null, COM=null;
+let itemType='Service', items=[], editIdx=-1, editType='Service', bizId=null;
+let UOM_LIST=[];
+
+// ── Manager.io context via postMessage ────────────────────────────
+window.addEventListener('message', e => {
+  if(!e.data || e.data.type !== 'manager-context') return;
+  const ctx = e.data.payload;
+  if(ctx.baseUrl) document.getElementById('api-url').value = ctx.baseUrl;
+  if(ctx.token)   document.getElementById('api-key').value = ctx.token;
+  if(ctx.businessKey) { bizId = ctx.businessKey; buildSyncPreview(); }
+  document.getElementById('setup-guide').style.display = 'none';
+});
+
+// ── Load UOM on page load ─────────────────────────────────────────
+async function loadUOM() {
+  try {
+    const r = await fetch(`${API}/units`);
+    UOM_LIST = await r.json();
+    populateUOMSelects();
+  } catch(e) { console.warn('Could not load units:', e); }
+}
+
+function populateUOMSelects() {
+  const opts = '<option value="">Please select</option>' +
+    UOM_LIST.map(u => `<option value="${u.code}">${u.desc} (${u.code})</option>`).join('');
+  document.getElementById('f-uom').innerHTML = opts;
+  document.getElementById('e-uom').innerHTML = opts;
+}
+
+// ── Tab navigation ────────────────────────────────────────────────
+function sw(t) {
+  ['cfg','lst','syn','set'].forEach(id => {
+    document.getElementById('vw-'+id).style.display = id===t?'':'none';
+    document.getElementById('tab-'+id).classList.toggle('active', id===t);
+  });
+  if(t==='syn') buildSyncPreview();
+}
+
+// ── Wizard navigation ─────────────────────────────────────────────
+function goStep(n) {
+  [1,2,3,4,5].forEach(i => {
+    document.getElementById('s'+i).style.display = i===n?'':'none';
+    const el = document.getElementById('ws'+i);
+    el.className = 'ws'+(i===n?' active':i<n?' done':'');
+  });
+  if(n===2) loadFamilies();
+  if(n===3) loadClasses();
+  if(n===4) loadCommodities();
+  if(n===5) buildDetailsSummary();
+}
+
+// ── Step 1: Segment search (calls API) ───────────────────────────
+let segTimer = null;
+function onSegInput(v) {
+  const res = document.getElementById('seg-results');
+  if(SEG) return;
+  clearTimeout(segTimer);
+  if(v.trim().length < 3) {
+    res.innerHTML = v.trim().length > 0
+      ? '<div class="empty-msg">Type at least 3 characters to search…</div>'
+      : '';
+    return;
+  }
+  res.innerHTML = '<div class="loading-msg">Searching…</div>';
+  segTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`${API}/segments?q=${encodeURIComponent(v.trim())}`);
+      const data = await r.json();
+      if(!data.length) { res.innerHTML = `<div class="empty-msg">No segments match "${v}"</div>`; return; }
+      res.innerHTML = '<div class="sug-box">' +
+        data.map(s => `<div class="sug-item" onclick="pickSeg('${s.code}','${esc(s.name)}')">
+          <span class="sug-code">(${s.code})</span><span>${esc(s.name)}</span></div>`).join('') + '</div>';
+    } catch(e) { res.innerHTML = '<div class="empty-msg">Search failed — check backend connection</div>'; }
+  }, 280);
+}
+
+function pickSeg(code, name) {
+  SEG = {code, name};
+  document.getElementById('seg-results').innerHTML = '';
+  document.getElementById('seg-inp').value = '';
+  const el = document.getElementById('seg-sel');
+  el.innerHTML = `<span class="sc">(${code})</span><span class="sn">${name}</span><button class="clr" onclick="clearSeg()">×</button>`;
+  el.style.display='flex';
+  document.getElementById('b12').disabled=false;
+}
+
+function clearSeg() {
+  SEG=FAM=CLS=COM=null;
+  document.getElementById('seg-sel').style.display='none';
+  document.getElementById('seg-results').innerHTML='';
+  document.getElementById('seg-inp').value='';
+  document.getElementById('b12').disabled=true;
+}
+
+// ── Step 2: Families ──────────────────────────────────────────────
+async function loadFamilies() {
+  document.getElementById('b23').disabled=true;
+  document.getElementById('trail2').innerHTML=`<span>${esc(SEG.name)}</span>`;
+  const sel = document.getElementById('fam-sel');
+  sel.innerHTML='<option value="">Loading…</option>';
+  try {
+    const r = await fetch(`${API}/segments/${SEG.code}/families`);
+    const data = await r.json();
+    sel.innerHTML='<option value="">— Select family —</option>'+data.map(f=>`<option value="${f.code}">(${f.code}) ${esc(f.name)}</option>`).join('');
+  } catch(e) { sel.innerHTML='<option value="">Failed to load</option>'; }
+}
+
+function onFam() {
+  const sel = document.getElementById('fam-sel');
+  const code = sel.value;
+  document.getElementById('b23').disabled=!code;
+  if(code) FAM={code, name: sel.options[sel.selectedIndex].text.replace(/^\(\d+\) /,'')};
+}
+
+// ── Step 3: Classes ───────────────────────────────────────────────
+async function loadClasses() {
+  document.getElementById('b34').disabled=true;
+  document.getElementById('trail3').innerHTML=`<span>${esc(SEG.name)}</span><span class="trail-sep"> › </span><span>${esc(FAM.name)}</span>`;
+  const sel = document.getElementById('cls-sel');
+  sel.innerHTML='<option value="">Loading…</option>';
+  try {
+    const r = await fetch(`${API}/segments/${SEG.code}/families/${FAM.code}/classes`);
+    const data = await r.json();
+    sel.innerHTML='<option value="">— Select class —</option>'+data.map(c=>`<option value="${c.code}">(${c.code}) ${esc(c.name)}</option>`).join('');
+  } catch(e) { sel.innerHTML='<option value="">Failed to load</option>'; }
+}
+
+function onCls() {
+  const sel = document.getElementById('cls-sel');
+  const code = sel.value;
+  document.getElementById('b34').disabled=!code;
+  if(code) CLS={code, name: sel.options[sel.selectedIndex].text.replace(/^\(\d+\) /,'')};
+}
+
+// ── Step 4: Commodities ───────────────────────────────────────────
+async function loadCommodities() {
+  document.getElementById('b45').disabled=true;
+  document.getElementById('com-code-wrap').style.display='none';
+  document.getElementById('trail4').innerHTML=`<span>${esc(SEG.name)}</span><span class="trail-sep"> › </span><span>${esc(FAM.name)}</span><span class="trail-sep"> › </span><span>${esc(CLS.name)}</span>`;
+  const sel = document.getElementById('com-sel');
+  sel.innerHTML='<option value="">Loading…</option>';
+  try {
+    const r = await fetch(`${API}/segments/${SEG.code}/families/${FAM.code}/classes/${CLS.code}/commodities`);
+    const data = await r.json();
+    sel.innerHTML='<option value="">— Select commodity —</option>'+data.map(c=>`<option value="${c.code}" data-svc="${c.isService}">${esc(c.name)}</option>`).join('');
+  } catch(e) { sel.innerHTML='<option value="">Failed to load</option>'; }
+}
+
+function onCom() {
+  const sel = document.getElementById('com-sel');
+  const code = sel.value;
+  if(!code) { document.getElementById('b45').disabled=true; document.getElementById('com-code-wrap').style.display='none'; return; }
+  const opt = sel.options[sel.selectedIndex];
+  COM = {code, name: opt.text, isService: opt.dataset.svc === 'true'};
+  document.getElementById('com-code-val').value = code;
+  document.getElementById('com-code-wrap').style.display='';
+  document.getElementById('b45').disabled=false;
+  // Auto-set type based on commodity's isService flag
+  setType(COM.isService ? 'Service' : 'Goods');
+}
+
+// ── Step 5: Details ───────────────────────────────────────────────
+function buildDetailsSummary() {
+  document.getElementById('com-sum').innerHTML =
+    `<span class="sc">(${COM.code})</span><span class="sn">${esc(COM.name)}</span><span style="color:var(--text3);font-size:10px;margin-left:4px">— ${esc(SEG.name)}</span>`;
+}
+
+function setType(t) {
+  itemType=t;
+  document.getElementById('tt-svc').classList.toggle('active', t==='Service');
+  document.getElementById('tt-gds').classList.toggle('active', t==='Goods');
+}
+
+function gv(id) { return document.getElementById(id).value.trim(); }
+
+function validate5() {
+  const missing=[];
+  if(!gv('f-code')) missing.push('Product code');
+  if(!gv('f-name')) missing.push('Name');
+  if(!gv('f-cur'))  missing.push('Currency');
+  if(!gv('f-price')) missing.push('Unit price');
+  if(!gv('f-uom'))  missing.push('Measure unit');
+  if(missing.length){alert('Please fill required fields: '+missing.join(', '));return false;}
+  return true;
+}
+
+function mkItem() {
+  return {
+    id: Date.now()+'_'+Math.random().toString(36).slice(2),
+    no: items.length+1,
+    code:    gv('f-code'),  name: gv('f-name'),
+    comCode: COM.code,      comName: COM.name,
+    commodity: `(${COM.code}) ${COM.name}`,
+    segment: SEG.name,  segCode: SEG.code,
+    family:  FAM.name,  famCode: FAM.code,
+    cls:     CLS.name,  clsCode: CLS.code,
+    uom:     gv('f-uom'),
+    uomDesc: document.getElementById('f-uom').options[document.getElementById('f-uom').selectedIndex]?.text || gv('f-uom'),
+    price:   parseFloat(gv('f-price')||0),
+    cur:     gv('f-cur'),   type: itemType,
+    excise:  gv('f-excise'), vat: gv('f-vat'),
+    stock:   gv('f-stock'),
+    remarks: document.getElementById('f-remarks').value.trim(),
+    synced:  false, syncedAt: null, managerId: null, syncErr: null
+  };
+}
+
+function saveItem() {
+  if(!validate5()) return;
+  items.push(mkItem());
+  refreshList();
+  alert('✓ Item saved!');
+  sw('lst');
+}
+
+function addAnother() {
+  if(!validate5()) return;
+  items.push(mkItem());
+  ['f-code','f-name','f-price','f-stock'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-remarks').value='';
+  document.getElementById('f-cur').value='';
+  document.getElementById('f-uom').value='';
+  document.getElementById('f-excise').value='No';
+  document.getElementById('f-vat').value='Standard';
+  setType(COM.isService?'Service':'Goods');
+  refreshList();
+  document.getElementById('f-code').focus();
+}
+
+function fullReset() {
+  SEG=FAM=CLS=COM=null; itemType='Service';
+  document.getElementById('seg-inp').value='';
+  document.getElementById('seg-results').innerHTML='';
+  document.getElementById('seg-sel').style.display='none';
+  document.getElementById('b12').disabled=true;
+  goStep(1);
+}
+
+// ── Items list ────────────────────────────────────────────────────
+function refreshList() {
+  const n=items.length;
+  const synced=items.filter(x=>x.synced).length;
+  document.getElementById('cnt').textContent=n;
+  document.getElementById('syn-cnt').textContent=synced+'/'+n;
+  document.getElementById('lst-lbl').textContent=n+' item'+(n!==1?'s':'')+' configured';
+  const tb=document.getElementById('lst-body');
+  if(!n){tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--text3);padding:32px">No items yet.</td></tr>';return;}
+  tb.innerHTML=items.map((it,i)=>`<tr>
+    <td style="color:var(--text3)">${it.no}</td>
+    <td class="mono">${esc(it.code)}</td>
+    <td><strong>${esc(it.name)}</strong><div class="small">${esc(it.commodity)}</div></td>
+    <td class="small">${esc(it.cls)}</td>
+    <td class="small">${esc(it.uomDesc||it.uom)}</td>
+    <td style="font-weight:600">${it.price.toLocaleString()}</td>
+    <td>${it.cur}</td>
+    <td><span class="pill ${it.type==='Service'?'pill-svc':'pill-gds'}">${it.type}</span></td>
+    <td class="small">${it.vat}</td>
+    <td>${it.synced?'<span class="pill pill-ok">✓ Synced</span>':it.syncErr?`<span class="pill pill-err" title="${esc(it.syncErr)}">Error</span>`:'<span class="pill pill-pend">Pending</span>'}</td>
+    <td style="white-space:nowrap">
+      <button class="icn" onclick="openEdit(${i})" title="Edit">✏️</button>
+      <button class="icn icn-del" onclick="delItem(${i})" title="Delete">🗑</button>
+    </td>
+  </tr>`).join('');
+}
+
+function delItem(i) {
+  if(!confirm('Delete "'+items[i].name+'"?')) return;
+  items.splice(i,1);
+  items.forEach((it,j)=>it.no=j+1);
+  refreshList();
+}
+
+// ── Edit modal ────────────────────────────────────────────────────
+function openEdit(i) {
+  editIdx=i; const it=items[i];
+  document.getElementById('e-code').value=it.code;
+  document.getElementById('e-name').value=it.name;
+  document.getElementById('e-cur').value=it.cur;
+  document.getElementById('e-price').value=it.price;
+  document.getElementById('e-uom').value=it.uom;
+  document.getElementById('e-stock').value=it.stock||'';
+  document.getElementById('e-excise').value=it.excise;
+  document.getElementById('e-vat').value=it.vat||'Standard';
+  document.getElementById('e-remarks').value=it.remarks||'';
+  document.getElementById('e-commodity').textContent=it.commodity;
+  document.getElementById('e-segment').textContent=it.segment;
+  editType=it.type; setEditType(editType);
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeEdit(){document.getElementById('edit-modal').classList.remove('open');}
+function setEditType(t){editType=t;document.getElementById('et-svc').classList.toggle('active',t==='Service');document.getElementById('et-gds').classList.toggle('active',t==='Goods');}
+function saveEdit() {
+  const code=document.getElementById('e-code').value.trim(),name=document.getElementById('e-name').value.trim(),
+    cur=document.getElementById('e-cur').value,price=document.getElementById('e-price').value,uom=document.getElementById('e-uom').value;
+  if(!code||!name||!cur||!price||!uom){alert('Please fill all required fields.');return;}
+  const uomSel=document.getElementById('e-uom');
+  items[editIdx]={...items[editIdx],code,name,cur,uom,
+    uomDesc:uomSel.options[uomSel.selectedIndex]?.text||uom,
+    price:parseFloat(price),stock:document.getElementById('e-stock').value.trim(),
+    excise:document.getElementById('e-excise').value,vat:document.getElementById('e-vat').value,
+    remarks:document.getElementById('e-remarks').value.trim(),
+    type:editType,synced:false,managerId:null,syncErr:null};
+  closeEdit(); refreshList();
+}
+
+// ── CSV Export ────────────────────────────────────────────────────
+function exportCSV() {
+  if(!items.length){alert('No items to export.');return;}
+  const hdr='#,Product Code,Name,Commodity Code,Commodity Name,Segment,Family,Class,UOM,Unit Price,Currency,Type,VAT,Excise,Synced,Manager ID,Remarks\n';
+  const rows=items.map(it=>[it.no,it.code,`"${it.name}"`,it.comCode,`"${it.comName}"`,`"${it.segment}"`,`"${it.family}"`,`"${it.cls}"`,it.uom,it.price,it.cur,it.type,it.vat,it.excise,it.synced?'Yes':'No',it.managerId||'',`"${it.remarks||''}"`].join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(hdr+rows);
+  a.download='goods-services-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+// ── Sync preview ──────────────────────────────────────────────────
+function buildSyncPreview() {
+  const pending=items.filter(x=>!x.synced), synced=items.filter(x=>x.synced);
+  document.getElementById('m-pend').textContent=pending.length;
+  document.getElementById('m-done').textContent=synced.length;
+  document.getElementById('m-total').textContent=items.length;
+  document.getElementById('sync-btn').disabled=!bizId||!pending.length;
+  const el=document.getElementById('sync-preview');
+  if(!items.length){el.innerHTML='<div style="font-size:12px;color:var(--text3)">No items configured yet.</div>';return;}
+  if(!pending.length){el.innerHTML='<div style="color:var(--green);font-size:13px;font-weight:500">✓ All items are synced to Manager.io!</div>';return;}
+  el.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">'+pending.length+' item(s) pending</div>'+
+    pending.map(it=>`<div class="sync-row"><div class="sr-l"><span class="sr-code">${esc(it.code)}</span><span class="sr-name">${esc(it.name)}</span></div><span class="pill ${it.type==='Service'?'pill-svc':'pill-gds'}" style="flex-shrink:0;font-size:10px">${it.type==='Service'?'→ /non-inventory':'→ /inventory'}</span></div>`).join('');
+}
+
+// ── Sync to Manager.io ────────────────────────────────────────────
+async function doSync() {
+  const url=document.getElementById('api-url').value.trim(), key=document.getElementById('api-key').value.trim();
+  if(!bizId){alert('Select a business in the Connection tab first.');return;}
+  if(!url||!key){alert('Enter server URL and API key in the Connection tab.');return;}
+  const pending=items.filter(x=>!x.synced);
+  if(!pending.length){alert('Nothing to sync.');return;}
+  document.getElementById('sync-btn').disabled=true;
+  const pw=document.getElementById('pbar-wrap'),pb=document.getElementById('pbar'),pl=document.getElementById('pbar-lbl');
+  pw.style.display='';
+  let done=0;
+  for(const it of pending) {
+    pl.textContent=`Syncing "${it.name}"…`;
+    const isService=it.type==='Service';
+    const endpoint=isService?'/non-inventory-items':'/inventory-items';
+    const payload={Code:it.code,Name:it.name,UnitPrice:it.price,UnitName:it.uomDesc||it.uom,
+      CustomFields:{'URA Commodity Code':it.comCode,'URA Commodity Name':it.comName,
+        'Industry Segment':it.segment,'Family':it.family,'Class':it.cls,
+        'Is Service':isService?'Yes':'No','Excise Tax':it.excise,'VAT':it.vat}};
+    if(it.remarks) payload.CustomFields['Remarks']=it.remarks;
+    try {
+      const r=await fetch(`${url}/api/${bizId}${endpoint}`,{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      if(r.ok){const d=await r.json();it.synced=true;it.syncedAt=new Date().toISOString();it.managerId=d.Key||d.key||null;}
+      else{it.syncErr='HTTP '+r.status;}
+    } catch(e){it.syncErr=e.message;}
+    done++; pb.style.width=Math.round(done/pending.length*100)+'%';
+    await new Promise(r=>setTimeout(r,250));
+  }
+  document.getElementById('sync-btn').disabled=false;
+  pl.textContent='Sync complete!';
+  refreshList(); buildSyncPreview();
+  const failed=pending.filter(x=>!x.synced);
+  setTimeout(()=>{pw.style.display='none';pb.style.width='0%';},2500);
+  alert(failed.length?`Done: ${done-failed.length} succeeded, ${failed.length} failed.`:`✓ All ${done} item(s) synced successfully!`);
+}
+
+// ── Connection ────────────────────────────────────────────────────
+async function testConn() {
+  const url=document.getElementById('api-url').value.trim(), key=document.getElementById('api-key').value.trim();
+  if(!url||!key){alert('Enter server URL and API key.');return;}
+  const bar=document.getElementById('conn-bar');
+  bar.style.display='flex'; bar.innerHTML='<div class="dot dot-ld"></div> Testing…';
+  try{const r=await fetch(url+'/api/businesses',{headers:{'Authorization':'Bearer '+key}});
+    bar.innerHTML=r.ok?'<div class="dot dot-ok"></div> Connected successfully':'<div class="dot dot-er"></div> Error '+r.status;}
+  catch(e){bar.innerHTML='<div class="dot dot-er"></div> Cannot reach '+url;}
+}
+
+async function loadBiz() {
+  const url=document.getElementById('api-url').value.trim(), key=document.getElementById('api-key').value.trim();
+  if(!url||!key){alert('Enter server URL and API key.');return;}
+  const sel=document.getElementById('biz-sel'),bar=document.getElementById('conn-bar');
+  sel.innerHTML='<option value="">Loading…</option>';
+  bar.style.display='flex'; bar.innerHTML='<div class="dot dot-ld"></div> Loading businesses…';
+  try{
+    const r=await fetch(url+'/api/businesses',{headers:{'Authorization':'Bearer '+key}});
+    if(!r.ok){sel.innerHTML='<option value="">Failed</option>';return;}
+    const d=await r.json(); const bz=Array.isArray(d)?d:(d.Data||d.data||[]);
+    sel.innerHTML='<option value="">— Select —</option>'+bz.map(b=>`<option value="${b.Key||b.key||b.id}">${b.Name||b.name||b.Key}</option>`).join('');
+    bar.innerHTML='<div class="dot dot-ok"></div> Loaded '+bz.length+' business(es)';
+  }catch(e){sel.innerHTML='<option value="">Failed</option>';bar.innerHTML='<div class="dot dot-er"></div> '+e.message;}
+}
+
+function onBiz(){bizId=document.getElementById('biz-sel').value;buildSyncPreview();}
+
+// ── Utils ─────────────────────────────────────────────────────────
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── Init ──────────────────────────────────────────────────────────
+loadUOM();
+</script>
+</body>
+</html>
