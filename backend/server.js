@@ -10,72 +10,94 @@ app.use(cors());
 app.use(express.json());
 
 const DATA_DIR = path.join(__dirname, 'data');
-let TREE = {};
-let UNITS = [];
 
-try {
-  TREE = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'goods_tree.json'), 'utf8'));
-  console.log(`Loaded goods tree: ${Object.keys(TREE).length} segments`);
-} catch (e) { console.error('Failed to load goods_tree.json:', e.message); }
+let TREE = null;
+let UNITS = null;
 
-try {
-  UNITS = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'units.json'), 'utf8'));
-  console.log(`Loaded units: ${UNITS.length} entries`);
-} catch (e) { console.error('Failed to load units.json:', e.message); }
+function getTree() {
+  if (!TREE) {
+    console.log('Loading goods_tree.json...');
+    TREE = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'goods_tree.json'), 'utf8'));
+    console.log(`Loaded: ${Object.keys(TREE).length} segments`);
+  }
+  return TREE;
+}
+
+function getUnits() {
+  if (!UNITS) {
+    UNITS = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'units.json'), 'utf8'));
+  }
+  return UNITS;
+}
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', segments: Object.keys(TREE).length, units: UNITS.length, uptime: process.uptime() });
+  res.json({ status: 'ok', uptime: process.uptime() });
 });
 
 app.get('/api/segments', (req, res) => {
-  const { q } = req.query;
-  let segs = Object.entries(TREE).map(([code, seg]) => ({ code, name: seg.n }));
-  if (q && q.length >= 2) {
-    const ql = q.toLowerCase();
-    segs = segs.filter(s => s.name.toLowerCase().includes(ql) || s.code.includes(ql));
-  }
-  res.json(segs);
+  try {
+    const { q } = req.query;
+    let segs = Object.entries(getTree()).map(([code, seg]) => ({ code, name: seg.n }));
+    if (q && q.length >= 2) {
+      const ql = q.toLowerCase();
+      segs = segs.filter(s => s.name.toLowerCase().includes(ql) || s.code.includes(ql));
+    }
+    res.json(segs);
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/segments/:segCode/families', (req, res) => {
-  const seg = TREE[req.params.segCode];
-  if (!seg) return res.status(404).json({ error: 'Segment not found' });
-  res.json(Object.entries(seg.f).map(([code, fam]) => ({ code, name: fam.n })));
+  try {
+    const seg = getTree()[req.params.segCode];
+    if (!seg) return res.status(404).json({ error: 'Segment not found' });
+    res.json(Object.entries(seg.f).map(([code, fam]) => ({ code, name: fam.n })));
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/segments/:segCode/families/:famCode/classes', (req, res) => {
-  const seg = TREE[req.params.segCode];
-  if (!seg) return res.status(404).json({ error: 'Segment not found' });
-  const fam = seg.f[req.params.famCode];
-  if (!fam) return res.status(404).json({ error: 'Family not found' });
-  res.json(Object.entries(fam.c).map(([code, cls]) => ({ code, name: cls.n })));
+  try {
+    const seg = getTree()[req.params.segCode];
+    if (!seg) return res.status(404).json({ error: 'Segment not found' });
+    const fam = seg.f[req.params.famCode];
+    if (!fam) return res.status(404).json({ error: 'Family not found' });
+    res.json(Object.entries(fam.c).map(([code, cls]) => ({ code, name: cls.n })));
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 app.get('/api/segments/:segCode/families/:famCode/classes/:clsCode/commodities', (req, res) => {
-  const seg = TREE[req.params.segCode];
-  if (!seg) return res.status(404).json({ error: 'Segment not found' });
-  const fam = seg.f[req.params.famCode];
-  if (!fam) return res.status(404).json({ error: 'Family not found' });
-  const cls = fam.c[req.params.clsCode];
-  if (!cls) return res.status(404).json({ error: 'Class not found' });
-  res.json(Object.entries(cls.d).map(([code, com]) => ({ code, name: com.n, isService: com.s })));
+  try {
+    const seg = getTree()[req.params.segCode];
+    if (!seg) return res.status(404).json({ error: 'Segment not found' });
+    const fam = seg.f[req.params.famCode];
+    if (!fam) return res.status(404).json({ error: 'Family not found' });
+    const cls = fam.c[req.params.clsCode];
+    if (!cls) return res.status(404).json({ error: 'Class not found' });
+    res.json(Object.entries(cls.d).map(([code, com]) => ({ code, name: com.n, isService: com.s })));
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/units', (req, res) => res.json(UNITS));
+app.get('/api/units', (req, res) => {
+  try { res.json(getUnits()); }
+  catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 app.get('/api/commodity/:code', (req, res) => {
-  const target = req.params.code.padStart(8, '0');
-  for (const [sc, seg] of Object.entries(TREE)) {
-    for (const [fc, fam] of Object.entries(seg.f)) {
-      for (const [cc, cls] of Object.entries(fam.c)) {
-        if (cls.d[target]) {
-          return res.json({ commodityCode: target, commodityName: cls.d[target].n, isService: cls.d[target].s,
-            classCode: cc, className: cls.n, familyCode: fc, familyName: fam.n, segmentCode: sc, segmentName: seg.n });
+  try {
+    const target = req.params.code.padStart(8, '0');
+    const tree = getTree();
+    for (const [sc, seg] of Object.entries(tree)) {
+      for (const [fc, fam] of Object.entries(seg.f)) {
+        for (const [cc, cls] of Object.entries(fam.c)) {
+          if (cls.d[target]) {
+            return res.json({ commodityCode: target, commodityName: cls.d[target].n,
+              isService: cls.d[target].s, classCode: cc, className: cls.n,
+              familyCode: fc, familyName: fam.n, segmentCode: sc, segmentName: seg.n });
+          }
         }
       }
     }
-  }
-  res.status(404).json({ error: 'Commodity not found' });
+    res.status(404).json({ error: 'Commodity not found' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 const FRONTEND = path.join(__dirname, '..', 'frontend');
@@ -84,4 +106,6 @@ app.get('*', (req, res) => {
   if (!req.path.startsWith('/api/')) res.sendFile(path.join(FRONTEND, 'index.html'));
 });
 
-app.listen(PORT, () => console.log(`Goods/Services Configurator running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Goods/Services Configurator running on port ${PORT}`);
+});
