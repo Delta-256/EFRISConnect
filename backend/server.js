@@ -1,3 +1,7 @@
+process.on('uncaughtException', err => { console.error('UNCAUGHT:', err); process.exit(1); });
+process.on('unhandledRejection', err => { console.error('UNHANDLED:', err); process.exit(1); });
+console.log('Starting server, PORT=', process.env.PORT);
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
