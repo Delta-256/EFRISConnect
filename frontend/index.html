@@ -878,6 +878,10 @@ function onBiz(){bizId=document.getElementById('biz-sel').value;buildSyncPreview
 
 // ── Utils ─────────────────────────────────────────────────────────
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+// Hide setup guide if loaded inside an iframe
+if (window.self !== window.top) {
+  document.getElementById('setup-guide').style.display = 'none';
+}
 
 // ── Init ──────────────────────────────────────────────────────────
 loadUOM();
