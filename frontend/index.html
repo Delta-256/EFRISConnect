@@ -110,7 +110,7 @@
   .g-tbl tr:last-child td{border-bottom:none;}.g-tbl tr:hover td{background:#fafff8;}
   .pill{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700;border:1px solid;}
   .pill-svc{background:#e8f5e9;color:var(--gd);border-color:#a5d6a7;}
-  .pill-gds{background:#e3f2fd;color:#0d47a1;border-color:#90caf9;}
+  .pill-gds{background:#e8f5e9;color:var(--gd);border-color:#a5d6a7;}
   .pill-ok{background:#e8f5e9;color:var(--gd);border-color:#a5d6a7;}
   .pill-pend{background:#f5f5f5;color:var(--gray);border-color:#e0e0e0;}
   .pill-err{background:#ffebee;color:var(--red);border-color:#ef9a9a;}
@@ -633,7 +633,12 @@ function openVerify(){
 //  GOODS TAB
 // ══════════════════════════════════════════════════════════════
 let gItems=[], gSEG=null, gFAM=null, gCLS=null, gCOM=null;
-let gUnits=[], gUnitsLoaded=false;
+// Default priority UOMs — shown immediately before API data loads
+let gUnits=['Per Person','Per Pax','Per Adult','Per Child','Per Couple','Per Group',
+  'Per Family','Per Student','Per Participant','Per Guest','Per Infant',
+  'Per Night','Per Day','Per Hour','Per Week','Per Month','Per Year',
+  'Per Trip','Per Session','Per Event','Per Service',
+  'Each','Unit','Piece','Kilogram','Gram','Litre','Metre','Pack','Box','Pair'], gUnitsLoaded=false;
 
 function gSwSub(t){
   $('gv-cfg').style.display=t==='cfg'?'':'none';
@@ -649,8 +654,12 @@ async function gLoadUnits(){
     const r=await fetch(RELAY+'/api/units');
     if(r.ok){
       const d=await r.json();
-      if(Array.isArray(d)) gUnits=d.map(u=>typeof u==='string'?u:(u.name||u.Name||String(u)));
-      else if(d&&typeof d==='object') gUnits=Object.values(d).map(v=>String(v));
+      let apiUnits=[];
+      if(Array.isArray(d)) apiUnits=d.map(u=>typeof u==='string'?u:(u.name||u.Name||String(u))).filter(Boolean);
+      else if(d&&typeof d==='object') apiUnits=Object.values(d).map(v=>String(v));
+      // Merge: keep priority units at top, add any new ones from API
+      const existing=new Set(gUnits.map(u=>u.toLowerCase()));
+      gUnits=[...gUnits,...apiUnits.filter(u=>!existing.has(u.toLowerCase()))];
       gUnitsLoaded=true;
     }
   }catch(e){}
@@ -890,6 +899,7 @@ function init(){
   }
 }
 init();
+gLoadUnits(); // preload UOM list in background
 </script>
 </body>
 </html>
