@@ -452,6 +452,7 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
   const isService = (item.type || 'Service') !== 'Goods';
   const listPath = isService ? '/non-inventory-items' : '/inventory-items';
   const listKey  = isService ? 'nonInventoryItems' : 'inventoryItems';
+  const formBase = isService ? '/non-inventory-item-form' : '/inventory-item-form';
 
   try {
     // Look up custom field GUIDs for "EFRIS Commodity Code" and "EFRIS Category Path"
@@ -462,31 +463,14 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
       catPathFieldKey = cf.byName['EFRIS Category Path'] || cf.byName['EFRIS Segment'] || null;
     } catch(_) {}
 
-    // Build the category path from segment >> family >> class
     const catPath = [item.segment, item.family, item.cls].filter(Boolean).join(' >> ');
-
-    const payload = {
-      Code:              item.code,
-      Name:              item.name,
-      UnitName:          item.uom,
-      Description:       item.remarks || '',
-      HasSalesUnitPrice: parseFloat(item.price) > 0,
-      SalesUnitPrice:    parseFloat(item.price) || 0,
-    };
-    const cfStrings = {};
-    if (comCodeFieldKey && item.comCode) cfStrings[comCodeFieldKey] = item.comCode;
-    if (catPathFieldKey && catPath)      cfStrings[catPathFieldKey] = catPath;
-    if (Object.keys(cfStrings).length)   payload.CustomFields2 = { Strings: cfStrings };
-
-    // Strategy: GET list first, find existing item by code then name, then PUT or POST.
-    // This is reliable: we know exactly whether we are creating or updating before writing.
-    console.log(`\n🔗 Syncing to Manager.io: ${ep}${listPath} — ${item.code} ${item.name}`);
-    const listR = await managerCall(ep, accessToken, 'GET', listPath, null);
-    const existingList = (listR.status === 200 && listR.data && listR.data[listKey]) || [];
-
-    // Match by code first (exact, case-insensitive), then by name as fallback
     const codeLower = (item.code || '').toLowerCase();
     const nameLower = (item.name || '').toLowerCase();
+
+    // Step 1: Find existing item key by fetching the list
+    console.log(`\n🔗 Syncing to Manager.io: ${ep} — ${item.code} ${item.name}`);
+    const listR = await managerCall(ep, accessToken, 'GET', listPath, null);
+    const existingList = (listR.status === 200 && listR.data && listR.data[listKey]) || [];
     const match = existingList.find(i => {
       const cd = (i.code || i.Code || '').toLowerCase();
       return codeLower && cd && cd === codeLower;
@@ -496,16 +480,57 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
     });
 
     let r, action, existingKey = null;
+
     if (match) {
+      // Step 2a: UPDATE — GET the full form, merge our fields, POST back to form endpoint
       existingKey = match.key || match.Key;
-      console.log(`   Existing item found (key ${existingKey}) — applying PUT`);
-      r = await managerCall(ep, accessToken, 'PUT', `${listPath}/${existingKey}`, payload);
+      console.log(`   Existing item (key ${existingKey}) — GET form → mutate → POST form`);
+      const formR = await managerCall(ep, accessToken, 'GET', `${formBase}/${existingKey}`, null);
+      if (formR.status !== 200) {
+        return res.json({ success: false, error: `Could not fetch item form: HTTP ${formR.status}` });
+      }
+      // Merge our fields into the form (preserving all other Manager fields)
+      const form = Object.assign({}, formR.data || {});
+      form.Code              = item.code;
+      form.Name              = item.name;
+      form.UnitName          = item.uom;
+      form.HasSalesUnitPrice = parseFloat(item.price) > 0;
+      form.SalesUnitPrice    = parseFloat(item.price) || 0;
+      if (item.remarks) form.DefaultLineDescription = item.remarks;
+      // Merge custom fields — preserve existing, add/overwrite ours
+      const cfStrings = Object.assign({}, (form.CustomFields2 && form.CustomFields2.Strings) || {});
+      if (comCodeFieldKey && item.comCode) cfStrings[comCodeFieldKey] = item.comCode;
+      if (catPathFieldKey && catPath)      cfStrings[catPathFieldKey] = catPath;
+      if (Object.keys(cfStrings).length)   form.CustomFields2 = { Strings: cfStrings };
+      r = await managerCall(ep, accessToken, 'POST', `${formBase}/${existingKey}`, form);
       action = 'updated';
+      const written = Object.keys(cfStrings).length;
+      console.log(`   Manager form POST: HTTP ${r.status}`);
+      if (comCodeFieldKey) console.log(`   EFRIS Commodity Code → ${item.comCode}`);
+      if (catPathFieldKey) console.log(`   EFRIS Category Path  → ${catPath}`);
+      const ok = r.status >= 200 && r.status < 300;
+      return res.json(ok
+        ? { success: true, action, managerId: existingKey, comCodeWritten: !!(comCodeFieldKey && item.comCode), fieldsWritten: written }
+        : { success: false, error: `Manager form POST returned HTTP ${r.status}: ${JSON.stringify(r.data||'').slice(0,200)}` });
+
     } else {
-      console.log(`   No existing item found — creating via POST`);
+      // Step 2b: CREATE — POST to the list endpoint (standard creation path)
+      console.log(`   No existing item found — creating via POST ${listPath}`);
+      const cfStrings = {};
+      if (comCodeFieldKey && item.comCode) cfStrings[comCodeFieldKey] = item.comCode;
+      if (catPathFieldKey && catPath)      cfStrings[catPathFieldKey] = catPath;
+      const payload = {
+        Code:              item.code,
+        Name:              item.name,
+        UnitName:          item.uom,
+        DefaultLineDescription: item.remarks || '',
+        HasSalesUnitPrice: parseFloat(item.price) > 0,
+        SalesUnitPrice:    parseFloat(item.price) || 0,
+      };
+      if (Object.keys(cfStrings).length) payload.CustomFields2 = { Strings: cfStrings };
       r = await managerCall(ep, accessToken, 'POST', listPath, payload);
       action = 'created';
-      // POST returns the full list; try to find the newly created item's key by code
+      // POST returns the full list; find the new item's key
       if (r.status === 200 && r.data && r.data[listKey]) {
         const created = r.data[listKey].find(i => {
           const cd = (i.code || i.Code || '').toLowerCase();
@@ -514,15 +539,17 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
         });
         if (created) existingKey = created.key || created.Key;
       }
+      console.log(`   Manager POST: HTTP ${r.status}`, JSON.stringify(r.data || '').slice(0, 200));
+      const ok = r.status >= 200 && r.status < 300;
+      const written = Object.keys(cfStrings).length;
+      return res.json(ok
+        ? { success: true, action, managerId: existingKey || null, comCodeWritten: !!(comCodeFieldKey && item.comCode), fieldsWritten: written }
+        : { success: false, error: `Manager returned HTTP ${r.status}: ${JSON.stringify(r.data||'').slice(0,200)}` });
     }
-
-    console.log(`   Manager response: HTTP ${r.status}`, JSON.stringify(r.data || '').slice(0, 200));
-    if (comCodeFieldKey) console.log(`   EFRIS Commodity Code → ${item.comCode}`);
-    if (catPathFieldKey) console.log(`   EFRIS Category Path  → ${catPath}`);
-
-    const ok = r.status >= 200 && r.status < 300;
-    const managerId = ok ? (existingKey || null) : null;
-    const fieldsWritten = Object.keys(cfStrings).length;
+  } catch(e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
     res.json(ok
       ? { success: true, action, managerId, comCodeWritten: !!(comCodeFieldKey && item.comCode), fieldsWritten }
       : { success: false, error: `Manager returned HTTP ${r.status}: ${JSON.stringify(r.data||'').slice(0,200)}` });
@@ -564,7 +591,7 @@ app.get('/api/goods/manager-item-detail', async (req, res) => {
   const key = req.query.key || '';
   const type = req.query.type || 'Service';
   if (!ep || !tk || !key) return res.status(400).json({ success: false, error: 'ep, tk and key are required' });
-  const itemPath = type === 'Goods' ? `/inventory-items/${key}` : `/non-inventory-items/${key}`;
+  const itemPath = type === 'Goods' ? `/inventory-item-form/${key}` : `/non-inventory-item-form/${key}`;
   try {
     const r = await managerCall(ep, tk, 'GET', itemPath, null);
     if (r.status !== 200) return res.json({ success: false, error: `Manager returned HTTP ${r.status}` });
