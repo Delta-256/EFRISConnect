@@ -1,931 +1,886 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Goods/Services Configurator</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Uganda EFRIS Connect</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#fff;--bg2:#f8f8f6;--bg3:#f1efe8;
-  --text:#1a1a18;--text2:#5f5e5a;--text3:#888780;
-  --border:#e0ddd4;--border2:#c8c5bb;
-  --blue:#2563eb;--blue-lt:#eff6ff;--blue-dk:#1e40af;
-  --green:#059669;--green-lt:#ecfdf5;--green-dk:#065f46;
-  --red:#dc2626;--red-lt:#fef2f2;
-  --amber:#d97706;--amber-lt:#fffbeb;
-  --r:6px;--rl:10px;
-  --shadow:0 1px 3px rgba(0,0,0,.07);
-}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:var(--text);background:var(--bg3);min-height:100vh}
-.app{max-width:980px;margin:0 auto;padding:16px 12px}
-.hdr{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:14px 18px;margin-bottom:14px;box-shadow:var(--shadow)}
-.hdr-l{display:flex;align-items:center;gap:12px}
-.logo{width:40px;height:40px;border-radius:var(--r);background:linear-gradient(135deg,#1d4ed8,#2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;flex-shrink:0}
-.hdr-title{font-size:15px;font-weight:600}
-.hdr-sub{font-size:11px;color:var(--text3);margin-top:2px}
-.badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;border:1px solid}
-.badge-efris{background:var(--amber-lt);color:var(--amber);border-color:#fcd34d}
-.setup{background:var(--blue-lt);border:1px solid #bfdbfe;border-radius:var(--rl);padding:16px 20px;margin-bottom:14px}
-.setup h3{font-size:14px;font-weight:600;color:var(--blue-dk);margin-bottom:10px}
-.setup ol{padding-left:18px;font-size:13px;color:var(--blue-dk);line-height:2.2}
-.setup code{background:#dbeafe;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:12px}
-.setup .credit{margin-top:12px;padding-top:10px;border-top:1px solid #bfdbfe;font-size:12px;color:var(--blue-dk)}
-.setup .credit a{color:var(--blue-dk);font-weight:600}
-.tbar{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow)}
-.tab{flex:1;padding:10px 6px;text-align:center;font-size:11px;font-weight:500;color:var(--text3);cursor:pointer;border-right:1px solid var(--border);transition:all .12s}
-.tab:last-child{border-right:none}
-.tab:hover{background:var(--bg2)}
-.tab.active{background:var(--bg);color:var(--blue);font-weight:600}
-.tab-icon{display:block;font-size:17px;margin-bottom:3px}
-.tab-cnt{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:1px 6px;font-size:10px;margin-left:3px}
-.wiz{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:14px;box-shadow:var(--shadow)}
-.ws{flex:1;padding:9px 4px;text-align:center;font-size:10px;font-weight:500;color:var(--text3);border-right:1px solid var(--border)}
-.ws:last-child{border-right:none}
-.ws.active{background:var(--bg);color:var(--blue);font-weight:600}
-.ws.done{color:var(--green)}
-.wsn{display:block;font-size:16px;font-weight:700;margin-bottom:2px}
-.ws.active .wsn{color:var(--blue)}
-.ws.done .wsn{color:var(--green)}
-.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:18px 20px;box-shadow:var(--shadow);margin-bottom:14px}
-.slbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
-.info{background:var(--blue-lt);border:1px solid #bfdbfe;border-radius:var(--r);padding:8px 12px;font-size:12px;color:var(--blue-dk);margin-bottom:10px;line-height:1.5}
-.sw{position:relative;margin-bottom:8px}
-.sw input{width:100%;padding:9px 12px 9px 34px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);outline:none}
-.sw input:focus{border-color:var(--blue);background:var(--bg);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
-.sw-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;font-size:15px}
-.sug-box{border:1px solid var(--border2);border-radius:var(--r);max-height:220px;overflow-y:auto;background:var(--bg);box-shadow:0 4px 12px rgba(0,0,0,.08)}
-.sug-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;display:flex;align-items:baseline;gap:8px}
-.sug-item:last-child{border-bottom:none}
-.sug-item:hover{background:var(--bg2)}
-.sug-code{font-size:10px;color:var(--text3);font-family:monospace;flex-shrink:0}
-.empty-msg{padding:14px 12px;color:var(--text3);font-size:12px;text-align:center}
-.loading-msg{padding:14px 12px;color:var(--text3);font-size:12px;text-align:center;font-style:italic}
-.sel-badge{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:7px 12px;font-size:12px;margin-bottom:10px}
-.sel-badge .sc{font-size:10px;color:var(--text3);font-family:monospace;flex-shrink:0}
-.sel-badge .sn{color:var(--text);font-weight:500;flex:1}
-.sel-badge .clr{color:var(--text3);cursor:pointer;font-size:18px;line-height:1;border:none;background:none;padding:0 2px}
-.sel-badge .clr:hover{color:var(--red)}
-.fld{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
-.fld label{font-size:11px;font-weight:600;color:var(--text2)}
-.req{color:var(--red)}
-.fld select,.fld input[type=text],.fld input[type=number],.fld input[type=password]{padding:8px 11px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);outline:none;width:100%}
-.fld select:focus,.fld input:focus{border-color:var(--blue);background:var(--bg);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
-.fld select:disabled{opacity:.4;cursor:not-allowed}
-.fld input[readonly]{background:var(--bg3);color:var(--text3);font-family:monospace;cursor:default}
-.fld textarea{padding:8px 11px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);outline:none;width:100%;resize:vertical;min-height:56px;font-family:inherit}
-.fld textarea:focus{border-color:var(--blue);background:var(--bg);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:560px){.g2{grid-template-columns:1fr}}
-.type-row{display:flex;gap:8px;margin-bottom:10px}
-.type-btn{flex:1;padding:9px 8px;border:1px solid var(--border2);border-radius:var(--r);font-size:12px;cursor:pointer;background:var(--bg2);color:var(--text2);text-align:center;font-weight:500;transition:all .12s;line-height:1.4}
-.type-btn:hover{background:var(--bg3)}
-.type-btn.active{border-color:var(--blue);background:var(--blue-lt);color:var(--blue-dk);font-weight:600}
-.type-note{display:block;font-size:10px;font-weight:400;margin-top:2px;opacity:.8}
-.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
-.btn{padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--bg2);color:var(--text);transition:all .12s}
-.btn:hover{background:var(--bg3)}
-.btn-pr{background:var(--blue);border-color:var(--blue);color:#fff}
-.btn-pr:hover{background:var(--blue-dk)}
-.btn-su{background:var(--green);border-color:var(--green);color:#fff}
-.btn-su:hover{background:var(--green-dk)}
-.btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
-.tw{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;padding:8px 10px;font-size:10px;font-weight:700;color:var(--text3);border-bottom:1px solid var(--border2);background:var(--bg2);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
-td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:var(--bg2)}
-.mono{font-family:monospace;font-size:11px}
-.small{font-size:11px;color:var(--text3)}
-.pill{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;border:1px solid}
-.pill-svc{background:var(--green-lt);color:var(--green-dk);border-color:#6ee7b7}
-.pill-gds{background:var(--blue-lt);color:var(--blue-dk);border-color:#93c5fd}
-.pill-ok{background:var(--green-lt);color:var(--green-dk);border-color:#6ee7b7}
-.pill-pend{background:var(--bg2);color:var(--text3);border-color:var(--border)}
-.pill-err{background:var(--red-lt);color:var(--red);border-color:#fca5a5}
-.icn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:3px 5px;border-radius:4px;transition:all .1s}
-.icn:hover{background:var(--bg2);color:var(--text)}
-.icn-del:hover{background:var(--red-lt);color:var(--red)}
-.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:16px}
-.modal-ov.open{display:flex}
-.modal{background:var(--bg);border:1px solid var(--border);border-radius:var(--rl);padding:20px 22px;width:min(660px,100%);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
-.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.modal-hdr h3{font-size:15px;font-weight:600}
-.modal-cls{background:none;border:none;font-size:22px;color:var(--text3);cursor:pointer;line-height:1;padding:0 3px}
-.modal-cls:hover{color:var(--text)}
-.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center}
-.metric-val{font-size:24px;font-weight:700;color:var(--text)}
-.metric-val.blue{color:var(--blue)}
-.metric-val.green{color:var(--green)}
-.metric-lbl{font-size:10px;color:var(--text3);margin-top:3px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
-.pbar-wrap{margin-bottom:12px;display:none}
-.pbar-lbl{font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:500}
-.pbar-track{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
-.pbar-fill{height:100%;background:var(--blue);border-radius:3px;transition:width .3s;width:0%}
-.sync-row{display:flex;align-items:center;justify-content:space-between;padding:7px 11px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px;gap:10px;font-size:12px}
-.sync-row .sr-l{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
-.sync-row .sr-code{font-family:monospace;font-size:10px;color:var(--text3);flex-shrink:0}
-.sync-row .sr-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.conn-bar{display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:8px 13px;font-size:12px;align-items:center;gap:8px;margin-top:8px}
-.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.dot-ok{background:var(--green)}
-.dot-er{background:var(--red)}
-.dot-ld{background:var(--amber)}
-.trail{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:11px;color:var(--text3);margin-bottom:10px}
-.trail span{color:var(--text2)}
-.trail-sep{color:var(--border2)}
-.footer{text-align:center;font-size:11px;color:var(--text3);margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
-.footer a{color:var(--blue);text-decoration:none}
-.footer a:hover{text-decoration:underline}
-/* UOM search */
-.uom-wrap{position:relative}
-.uom-wrap input[type=text]{width:100%;padding:8px 11px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);outline:none}
-.uom-wrap input[type=text]:focus{border-color:var(--blue);background:var(--bg);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
-.uom-results{position:absolute;top:100%;left:0;right:0;z-index:50;border:1px solid var(--border2);border-radius:var(--r);max-height:200px;overflow-y:auto;background:var(--bg);box-shadow:0 4px 12px rgba(0,0,0,.1);display:none}
-.uom-results .sug-item{padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px}
-.uom-results .sug-item:last-child{border-bottom:none}
-.uom-results .sug-item:hover{background:var(--bg2)}
-.uom-results .add-custom{color:var(--blue);font-style:italic}
-.uom-selected{display:none;margin-top:5px}
+  :root{--g:#2e7d32;--gl:#43a047;--gd:#1b5e20;--gold:#f9a825;--red:#c62828;--blue:#1565c0;--gray:#546e7a;--bg:#f1f8e9;--bdr:#c8e6c9;--txt:#1a2e1a;--txtl:#4a6741;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:13px;line-height:1.5;}
+  .hdr{background:linear-gradient(135deg,var(--gd),var(--g),var(--gl));color:white;padding:11px 14px;display:flex;align-items:center;gap:9px;border-bottom:3px solid var(--gold);}
+  .hdr h1{font-size:14px;font-weight:700;}.hdr .sub{font-size:10px;opacity:.85;}
+  .badge{margin-left:auto;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;}
+  .bsb{background:var(--gold);color:#4a3000;}.bprd{background:#ef5350;color:white;}
+  .wrap{padding:11px 13px;}
+  .card{background:white;border:1px solid var(--bdr);border-radius:7px;padding:11px;margin-bottom:9px;box-shadow:0 2px 6px rgba(46,125,50,.1);}
+  .ct{font-size:11px;font-weight:700;color:var(--gd);margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid var(--bdr);}
+  .al{padding:8px 11px;border-radius:5px;margin:6px 0;font-size:11px;line-height:1.5;}
+  .ai{background:#e3f2fd;border-left:3px solid var(--blue);color:#0d47a1;}
+  .aw{background:#fff8e1;border-left:3px solid var(--gold);color:#5d4037;}
+  .as{background:#e8f5e9;border-left:3px solid var(--g);color:var(--gd);}
+  .ae{background:#ffebee;border-left:3px solid var(--red);color:#b71c1c;}
+  .st{display:flex;align-items:center;gap:6px;padding:8px 11px;border-radius:5px;margin:6px 0;font-size:12px;font-weight:500;border:1px solid;}
+  .si{background:#e3f2fd;color:#0d47a1;border-color:#90caf9;}
+  .ss{background:#e8f5e9;color:var(--gd);border-color:#a5d6a7;}
+  .se{background:#ffebee;color:#b71c1c;border-color:#ef9a9a;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .sp{animation:spin 1s linear infinite;display:inline-block;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:8px 14px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;width:100%;margin-bottom:5px;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .bg{background:var(--g);color:white;}.bg:hover:not(:disabled){background:var(--gd);}
+  .bo{background:white;color:var(--g);border:2px solid var(--g);}.bo:hover:not(:disabled){background:var(--bg);}
+  .bgld{background:var(--gold);color:#4a3000;}
+  .br{background:var(--red);color:white;}
+  .bsm{padding:4px 10px;font-size:11px;width:auto;margin-bottom:0;}
+  .row{display:flex;gap:6px;}.row .btn{flex:1;}
+  .fg{margin-bottom:8px;}
+  .fg label{display:block;font-size:10px;font-weight:700;color:var(--txtl);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}
+  .fg input,.fg select,.fg textarea{width:100%;padding:6px 8px;border:1px solid var(--bdr);border-radius:4px;font-size:12px;color:var(--txt);}
+  .fg textarea{resize:vertical;min-height:56px;font-family:inherit;}
+  .fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--g);box-shadow:0 0 0 2px rgba(46,125,50,.1);}
+  .fg input[readonly]{background:#f5f5f5;color:var(--gray);font-family:'Courier New',monospace;}
+  .fg .hint{font-size:10px;color:var(--gray);margin-top:2px;}
+  .tabs{display:flex;border-bottom:2px solid var(--bdr);margin-bottom:11px;gap:2px;flex-wrap:wrap;}
+  .tab{padding:5px 11px;border:none;background:transparent;color:var(--txtl);font-size:11px;font-weight:600;cursor:pointer;border-radius:4px 4px 0 0;transition:all .2s;}
+  .tab.on{background:var(--g);color:white;}
+  .tab:hover:not(.on){background:var(--bg);}
+  .ig{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:9px;}
+  .if .lb{font-size:10px;color:var(--txtl);text-transform:uppercase;letter-spacing:.4px;font-weight:600;}
+  .if .vl{font-size:13px;font-weight:600;}.if.full{grid-column:1/-1;}.vg{color:var(--gd);}
+  .itbl{border:1px solid var(--bdr);border-radius:4px;overflow:hidden;font-size:11px;margin-top:7px;}
+  .irow{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:4px;padding:4px 7px;border-bottom:1px solid #f0f0f0;}
+  .irow:last-child{border-bottom:none;}
+  .irow.hdr{background:var(--bg);font-weight:700;color:var(--txtl);text-transform:uppercase;font-size:10px;}
+  .fdn{font-family:'Courier New',monospace;font-size:16px;font-weight:700;color:var(--gd);background:white;padding:7px 10px;border-radius:4px;border:1px solid var(--g);margin:6px 0;word-break:break-all;}
+  .rcard{background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:2px solid var(--g);border-radius:7px;padding:12px;margin-top:9px;}
+  .rcard h4{color:var(--gd);font-size:12px;margin-bottom:8px;}
+  .trow{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bdr);}
+  .trow:last-child{border-bottom:none;}
+  .tlbl{font-size:11px;font-weight:600;}.tdsc{font-size:10px;color:var(--gray);}
+  .tog{position:relative;width:40px;height:21px;background:#ccc;border-radius:11px;cursor:pointer;transition:background .3s;flex-shrink:0;}
+  .tog.on{background:var(--g);}.tog::after{content:'';position:absolute;left:2px;top:2px;width:17px;height:17px;background:white;border-radius:50%;transition:transform .3s;}
+  .tog.on::after{transform:translateX(19px);}
+  .pl{margin:7px 0;}
+  .ps{display:flex;align-items:flex-start;gap:7px;margin-bottom:5px;font-size:11px;}
+  .pd{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;margin-top:1px;}
+  .ps.pnd{opacity:.45;}.ps.pnd .pd{background:#e0e0e0;}
+  .ps.act .pd{background:var(--blue);color:white;}.ps.act{color:var(--blue);font-weight:600;}
+  .ps.don .pd{background:var(--g);color:white;}.ps.don{color:var(--gd);}
+  .ps.err .pd{background:var(--red);color:white;}.ps.err{color:var(--red);}
+  .ob{display:none;}.ob.on{display:block;}
+  .dots{display:flex;gap:5px;justify-content:center;margin-bottom:11px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--bdr);}
+  .dot.on{background:var(--g);}.dot.dn{background:var(--gl);}
+  .scr{display:none;}.scr.on{display:block;}
+  .gs{display:flex;gap:8px;margin-bottom:10px;align-items:flex-start;}
+  .gn{width:19px;height:19px;background:var(--g);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+  .gb h4{font-size:11px;color:var(--gd);margin-bottom:1px;}.gb p{font-size:11px;color:var(--gray);}
+  code{background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:'Courier New',monospace;font-size:10px;color:#c62828;}
+  .ftr{background:var(--gd);color:rgba(255,255,255,.85);padding:9px 13px;font-size:10px;text-align:center;line-height:1.7;}
+  .ftr a{color:var(--gold);text-decoration:none;}.reg{color:rgba(255,255,255,.5);font-size:9px;}
+  .hidden{display:none!important;}.mt{margin-top:7px;}hr{border:none;border-top:1px solid var(--bdr);margin:8px 0;}
+  .g-steps{display:flex;gap:0;margin-bottom:10px;border:1px solid var(--bdr);border-radius:6px;overflow:hidden;}
+  .g-step{flex:1;padding:6px 3px;text-align:center;font-size:10px;color:var(--gray);background:#f9f9f9;border-right:1px solid var(--bdr);cursor:default;}
+  .g-step:last-child{border-right:none;}
+  .g-step.act{background:var(--g);color:white;font-weight:700;}
+  .g-step.dn{background:#e8f5e9;color:var(--gd);}
+  .g-step-n{display:block;font-size:14px;font-weight:700;margin-bottom:1px;}
+  .g-sug{border:1px solid var(--bdr);border-radius:4px;max-height:200px;overflow-y:auto;background:white;box-shadow:0 3px 8px rgba(0,0,0,.1);margin-top:3px;}
+  .g-sug-item{padding:7px 10px;cursor:pointer;border-bottom:1px solid #f0f0f0;font-size:12px;display:flex;gap:7px;align-items:baseline;}
+  .g-sug-item:last-child{border-bottom:none;}.g-sug-item:hover{background:var(--bg);}
+  .g-sug-code{font-size:10px;color:var(--gray);font-family:'Courier New',monospace;flex-shrink:0;}
+  .g-sel-badge{display:flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--bdr);border-radius:4px;padding:6px 10px;font-size:12px;margin-bottom:8px;}
+  .g-sel-code{font-size:10px;color:var(--gray);font-family:'Courier New',monospace;flex-shrink:0;}
+  .g-sel-name{color:var(--txt);font-weight:500;flex:1;}
+  .g-sel-clr{color:var(--gray);cursor:pointer;font-size:17px;border:none;background:none;padding:0 2px;}
+  .g-sel-clr:hover{color:var(--red);}
+  .g-uom-wrap{position:relative;}
+  .g-uom-dd{position:absolute;top:100%;left:0;right:0;z-index:100;border:1px solid var(--bdr);border-radius:4px;background:white;box-shadow:0 3px 8px rgba(0,0,0,.1);max-height:160px;overflow-y:auto;}
+  .g-uom-opt{padding:6px 10px;cursor:pointer;font-size:12px;border-bottom:1px solid #f0f0f0;}
+  .g-uom-opt:last-child{border-bottom:none;}.g-uom-opt:hover{background:var(--bg);}
+  .g-uom-cust{color:var(--g);font-weight:600;}
+  .g-subtabs{display:flex;gap:4px;margin-bottom:10px;}
+  .g-stab{padding:5px 12px;border:1px solid var(--bdr);border-radius:4px;background:white;font-size:11px;font-weight:600;color:var(--gray);cursor:pointer;}
+  .g-stab.on{background:var(--g);color:white;border-color:var(--g);}
+  .g-tbl{border:1px solid var(--bdr);border-radius:4px;overflow:auto;font-size:11px;}
+  .g-tbl table{width:100%;border-collapse:collapse;}
+  .g-tbl th{background:var(--bg);font-size:10px;font-weight:700;color:var(--txtl);text-transform:uppercase;padding:5px 7px;border-bottom:1px solid var(--bdr);white-space:nowrap;}
+  .g-tbl td{padding:6px 7px;border-bottom:1px solid #f5f5f5;vertical-align:middle;}
+  .g-tbl tr:last-child td{border-bottom:none;}.g-tbl tr:hover td{background:#fafff8;}
+  .pill{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:700;border:1px solid;}
+  .pill-svc{background:#e8f5e9;color:var(--gd);border-color:#a5d6a7;}
+  .pill-gds{background:#e3f2fd;color:#0d47a1;border-color:#90caf9;}
+  .pill-ok{background:#e8f5e9;color:var(--gd);border-color:#a5d6a7;}
+  .pill-pend{background:#f5f5f5;color:var(--gray);border-color:#e0e0e0;}
+  .pill-err{background:#ffebee;color:var(--red);border-color:#ef9a9a;}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 </style>
 </head>
 <body>
-<div class="app">
-
 <div class="hdr">
-  <div class="hdr-l">
-    <div class="logo">GS</div>
-    <div>
-      <div class="hdr-title">Goods/Services Configurator</div>
-      <div class="hdr-sub">URA EFRIS-aligned commodity configuration for Manager.io</div>
-    </div>
-  </div>
-  <span class="badge badge-efris">URA EFRIS</span>
+  <span style="font-size:19px;">&#127482;&#127468;</span>
+  <div><h1>Uganda EFRIS Connect</h1><div class="sub">URA Electronic Fiscal Receipting &amp; Invoicing</div></div>
+  <span class="badge bsb" id="mBadge">SANDBOX</span>
+</div>
+<div class="wrap">
+
+<div class="scr on" id="sLoad">
+  <div class="st si"><span class="sp">&#9203;</span> Starting up&hellip;</div>
 </div>
 
-<div class="setup" id="setup-guide">
-  <h3>⚙️ How to add this to Manager.io</h3>
-  <ol>
-    <li>Open <strong>Manager.io</strong> and log into your business</li>
-    <li>Go to <strong>Settings → Custom Buttons → New Custom Button</strong></li>
-    <li>Set <strong>Label</strong>: <code>Goods/Services Configurator</code></li>
-    <li>Set <strong>Endpoint</strong>: <em>(the URL for this app — to be provided after testing)</em></li>
-    <li>Set <strong>Placements</strong>: <code>/inventory-items</code> &nbsp;<code>/non-inventory-items</code> &nbsp;<code>/inventory-item-form</code> &nbsp;<code>/non-inventory-item-form</code></li>
-    <li>Click <strong>Create</strong></li>
-  </ol>
-  <div class="credit">Developed with support from <a href="https://tukeihopeinitiative.org/" target="_blank" rel="noopener">The Tukei Hope Initiative ↗</a></div>
-</div>
-
-<div class="tbar">
-  <div class="tab active" id="tab-cfg" onclick="sw('cfg')"><span class="tab-icon">📝</span>Configure</div>
-  <div class="tab" id="tab-lst" onclick="sw('lst')"><span class="tab-icon">📋</span>Items<span class="tab-cnt" id="cnt">0</span></div>
-  <div class="tab" id="tab-syn" onclick="sw('syn')"><span class="tab-icon">☁️</span>Sync<span class="tab-cnt" id="syn-cnt">—</span></div>
-  <div class="tab" id="tab-set" onclick="sw('set')"><span class="tab-icon">🔌</span>Connection</div>
-</div>
-
-<!-- CONFIGURE -->
-<div id="vw-cfg">
-  <div class="wiz">
-    <div class="ws active" id="ws1"><span class="wsn">1</span>Segment</div>
-    <div class="ws" id="ws2"><span class="wsn">2</span>Family</div>
-    <div class="ws" id="ws3"><span class="wsn">3</span>Class</div>
-    <div class="ws" id="ws4"><span class="wsn">4</span>Commodity</div>
-    <div class="ws" id="ws5"><span class="wsn">5</span>Details</div>
-  </div>
+<div class="scr" id="sOB">
   <div class="card">
-    <!-- Step 1 -->
-    <div id="s1">
-      <div class="slbl">Step 1 — Search industry segment</div>
-      <div class="info">💡 Type at least 3 characters — e.g. <strong>"Tra"</strong> for Travel, <strong>"Hea"</strong> for Healthcare, <strong>"Foo"</strong> for Food &amp; Beverages, <strong>"Bui"</strong> for Building &amp; Construction</div>
-      <div class="sw">
-        <span class="sw-ico">🔍</span>
-        <input type="text" id="seg-inp" placeholder="Search industry segments..." oninput="onSegInput(this.value)" autocomplete="off"/>
-      </div>
-      <div id="seg-results"></div>
-      <div id="seg-sel" class="sel-badge" style="display:none"></div>
-      <div class="btn-row"><button class="btn btn-pr" id="b12" disabled onclick="goStep(2)">Next: Family →</button></div>
+    <div class="ct">&#128075; First-Time Setup</div>
+    <p style="font-size:11px;color:var(--gray);margin-bottom:9px;">Complete once &mdash; settings are saved automatically.</p>
+    <div class="dots" id="sDots"></div>
+    <div class="ob on" id="ob1">
+      <div class="al ai"><strong>Step 1 of 4 &mdash; Business Details</strong></div>
+      <div class="fg"><label>Legal Business Name *</label><input id="o1a" placeholder="e.g. Two Servants Tours &amp; Safaris Ltd"/><div class="hint">As registered with URSB</div></div>
+      <div class="fg"><label>Trade / Receipt Name</label><input id="o1b" placeholder="Name shown on receipts (if different)"/></div>
+      <div class="fg"><label>Business Address *</label><input id="o1c" placeholder="e.g. Plot 14 Kimaka Road, Entebbe"/></div>
+      <div class="fg"><label>Phone</label><input id="o1d" placeholder="+256"/></div>
+      <div class="fg"><label>Email</label><input id="o1e" type="email" placeholder="accounts@business.ug"/></div>
+      <button class="btn bg" onclick="obn(1)">Next &rarr;</button>
     </div>
-    <!-- Step 2 -->
-    <div id="s2" style="display:none">
-      <div class="slbl">Step 2 — Select family</div>
-      <div id="trail2" class="trail"></div>
-      <div class="fld">
-        <label>Family within segment <span class="req">*</span></label>
-        <select id="fam-sel" onchange="onFam()"><option value="">Loading families...</option></select>
-      </div>
-      <div class="btn-row">
-        <button class="btn" onclick="goStep(1)">← Back</button>
-        <button class="btn btn-pr" id="b23" disabled onclick="goStep(3)">Next: Class →</button>
-      </div>
+    <div class="ob" id="ob2">
+      <div class="al aw"><strong>Step 2 of 4 &mdash; EFRIS Credentials (from URA)</strong></div>
+      <div class="fg"><label>TIN *</label><input id="o2a" placeholder="e.g. 1015292010"/><div class="hint">Your 10-digit URA number</div></div>
+      <div class="fg"><label>Device Number (DSN) *</label><input id="o2b" placeholder="e.g. 1015292010_01"/><div class="hint">EFRIS portal &rarr; Device Management</div></div>
+      <div class="fg"><label>EFRIS Password *</label><input id="o2c" type="password" placeholder="Your URA EFRIS portal password"/></div>
+      <div class="fg"><label>BRN (optional)</label><input id="o2d" placeholder="Business Registration Number"/></div>
+      <div class="row"><button class="btn bo" onclick="obb(2)">&larr; Back</button><button class="btn bg" onclick="obn(2)">Next &rarr;</button></div>
     </div>
-    <!-- Step 3 -->
-    <div id="s3" style="display:none">
-      <div class="slbl">Step 3 — Select class</div>
-      <div id="trail3" class="trail"></div>
-      <div class="fld">
-        <label>Class within family <span class="req">*</span></label>
-        <select id="cls-sel" onchange="onCls()"><option value="">Loading classes...</option></select>
-      </div>
-      <div class="btn-row">
-        <button class="btn" onclick="goStep(2)">← Back</button>
-        <button class="btn btn-pr" id="b34" disabled onclick="goStep(4)">Next: Commodity →</button>
-      </div>
+    <div class="ob" id="ob3">
+      <div class="al ai"><strong>Step 3 of 4 &mdash; Tax &amp; Mode</strong></div>
+      <div class="trow"><div><div class="tlbl">VAT Registered</div><div class="tdsc">Business charges 18% VAT</div></div><div class="tog" id="t3v" onclick="tg('t3v','vatReg')"></div></div>
+      <div class="trow"><div><div class="tlbl">Sandbox / Test Mode</div><div class="tdsc">Recommended until you go live</div></div><div class="tog on" id="t3s" onclick="tg('t3s','sandbox')"></div></div>
+      <div class="al aw mt">&#9888; Keep Sandbox ON until you have tested 3+ invoices.</div>
+      <div class="row mt"><button class="btn bo" onclick="obb(3)">&larr; Back</button><button class="btn bg" onclick="obn(3)">Next &rarr;</button></div>
     </div>
-    <!-- Step 4 -->
-    <div id="s4" style="display:none">
-      <div class="slbl">Step 4 — Select commodity</div>
-      <div id="trail4" class="trail"></div>
-      <div class="fld">
-        <label>Commodity name <span class="req">*</span></label>
-        <select id="com-sel" onchange="onCom()"><option value="">Loading commodities...</option></select>
+    <div class="ob" id="ob4">
+      <div class="al ai"><strong>Step 4 of 4 &mdash; Manager.io Connection</strong></div>
+      <div class="al as">&#10003; Relay server is running &mdash; this page is served by it.</div>
+      <div class="fg"><label>Manager.io API Endpoint *</label><input id="o4a" value="http://localhost:8090/api2"/><div class="hint">Docker/Server: <code>http://localhost:8090/api2</code></div></div>
+      <div class="fg"><label>Access Token *</label><input id="o4b" placeholder="Paste your Manager access token"/><div class="hint">Manager &rarr; Settings &rarr; API Keys &rarr; New Key</div></div>
+      <button class="btn bgld" onclick="testMgr('o4a','o4b','mgrR')">&#128279; Test Manager Connection</button>
+      <div id="mgrR"></div>
+      <div class="row mt"><button class="btn bo" onclick="obb(4)">&larr; Back</button><button class="btn bg" onclick="finOB()">&#10003; Save &amp; Start</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="scr" id="sMain">
+  <div class="tabs">
+    <button class="tab on" onclick="showT('tSub',this)">&#128228; Submit</button>
+    <button class="tab" onclick="showT('tStat',this)">&#128203; Status</button>
+    <button class="tab" onclick="showT('tGds',this)">&#128230; Goods</button>
+    <button class="tab" onclick="showT('tGd',this)">&#10067; Guide</button>
+    <button class="tab" onclick="showT('tSet',this)">&#9881;&#65039; Settings</button>
+  </div>
+
+  <div id="tSub">
+    <div class="card">
+      <div class="ct">&#129534; Invoice Details</div>
+      <div class="ig">
+        <div class="if"><div class="lb">Invoice No.</div><div class="vl" id="dNo">&mdash;</div></div>
+        <div class="if"><div class="lb">Date</div><div class="vl" id="dDt">&mdash;</div></div>
+        <div class="if full"><div class="lb">Customer</div><div class="vl" id="dCust">&mdash;</div></div>
+        <div class="if"><div class="lb">Currency</div><div class="vl" id="dCurr">&mdash;</div></div>
+        <div class="if"><div class="lb">Total</div><div class="vl vg" id="dTot">&mdash;</div></div>
       </div>
-      <div id="com-code-wrap" style="display:none">
-        <div class="fld">
-          <label>Commodity code (UNSPSC — auto-filled)</label>
-          <input type="text" id="com-code-val" readonly/>
+      <div id="dItems"></div>
+      <div id="fxRow" class="hidden mt">
+        <div class="al aw">&#128177; Non-UGX detected. Enter today's exchange rate:</div>
+        <div class="fg"><label>1 <span id="fxLbl">USD</span> = ? UGX</label><input type="number" id="fxVal" placeholder="e.g. 3650"/></div>
+      </div>
+      <div class="fg mt">
+        <label>Customer TIN <span style="font-weight:400;color:var(--gray)">(B2B only &mdash; blank for walk-in/tourists)</span></label>
+        <input id="cTIN" placeholder="Leave blank for B2C receipts"/>
+      </div>
+      <div id="subDone" class="hidden"><div class="al as">&#10003; Already submitted &mdash; FDN: <strong id="exFDN"></strong></div></div>
+      <div id="subProg"></div>
+      <button class="btn bg" id="btnSub" onclick="doSubmit()">&#128228; Submit to URA EFRIS</button>
+    </div>
+    <div class="rcard hidden" id="rCard">
+      <h4>&#10003; Successfully submitted to URA EFRIS</h4>
+      <div style="font-size:10px;text-transform:uppercase;color:var(--txtl);letter-spacing:.4px;">Fiscal Document Number (FDN)</div>
+      <div class="fdn" id="rFDN"></div>
+      <div style="font-size:11px;margin-top:4px;">Antifake Code: <strong id="rAF">&mdash;</strong></div>
+      <hr><div id="mgrSave"></div>
+    </div>
+    <div class="card hidden" id="errCard">
+      <div class="ct">&#10060; Submission Failed</div>
+      <div class="st se" id="errMsg"></div>
+      <div id="errHint"></div>
+      <button class="btn bo bsm mt" onclick="retry()">&#128260; Try Again</button>
+    </div>
+  </div>
+
+  <div id="tStat" class="hidden">
+    <div class="card"><div class="ct">&#128203; EFRIS Status</div><div id="statCont"><div style="color:var(--gray);font-size:11px;text-align:center;padding:14px;">Open an invoice to see its status</div></div></div>
+    <div class="card">
+      <div class="ct">&#128269; Verify on URA Portal</div>
+      <div class="fg"><label>FDN to verify</label><input id="fdnQ" placeholder="Paste FDN here"/></div>
+      <button class="btn bo" onclick="openVerify()">&#128279; Open URA Verification Page</button>
+    </div>
+  </div>
+
+  <div id="tGds" class="hidden">
+    <div class="al aw">&#127760; <strong>Global Integration Mode:</strong> Instantly configure items for Manager.io. For unique pricing categories (like <em>Per Person</em>, <em>Per Couple</em>, or <em>Per Adult</em>), type your custom text in the Package Unit box and select the green custom option row.</div>
+    <div class="g-subtabs">
+      <button class="g-stab on" id="gst-cfg" onclick="gSwSub('cfg')">&#10133; Configure</button>
+      <button class="g-stab" id="gst-lst" onclick="gSwSub('lst')">&#128203; My Items</button>
+    </div>
+
+    <div id="gv-cfg">
+      <div class="g-steps">
+        <div class="g-step act" id="gws1"><span class="g-step-n">1</span>Segment</div>
+        <div class="g-step" id="gws2"><span class="g-step-n">2</span>Family</div>
+        <div class="g-step" id="gws3"><span class="g-step-n">3</span>Class</div>
+        <div class="g-step" id="gws4"><span class="g-step-n">4</span>Commodity</div>
+        <div class="g-step" id="gws5"><span class="g-step-n">5</span>Details</div>
+      </div>
+      <div class="card">
+        <div id="gstep1">
+          <div class="ct">Step 1 &mdash; Industry Segment</div>
+          <div class="al ai">&#128161; Type at least 3 characters to search &mdash; e.g. <strong>"Tra"</strong> for Travel, <strong>"Hea"</strong> for Healthcare, <strong>"Fin"</strong> for Financial Services</div>
+          <div class="fg"><label>Search segments</label><input type="text" id="gSegInp" placeholder="Search industry segments..." oninput="gOnSegInput(this.value)" autocomplete="off"/></div>
+          <div id="gSegResults"></div>
+          <div id="gSegSel" class="g-sel-badge" style="display:none"></div>
+          <div class="row mt"><button class="btn bg" id="gBtnS1" disabled onclick="gGoStep(2)">Next: Family &rarr;</button></div>
         </div>
-      </div>
-      <div class="btn-row">
-        <button class="btn" onclick="goStep(3)">← Back</button>
-        <button class="btn btn-pr" id="b45" disabled onclick="goStep(5)">Next: Details →</button>
-      </div>
-    </div>
-    <!-- Step 5 -->
-    <div id="s5" style="display:none">
-      <div class="slbl">Step 5 — Product / service details</div>
-      <div id="com-sum" class="sel-badge" style="margin-bottom:12px"></div>
-      <div class="g2">
-        <div class="fld"><label>My product code <span class="req">*</span></label><input type="text" id="f-code" placeholder="e.g. TSTS001"/></div>
-        <div class="fld"><label>Goods/Services name <span class="req">*</span></label><input type="text" id="f-name" placeholder="e.g. End of Year Trip to Kalangala"/></div>
-        <div class="fld"><label>Currency <span class="req">*</span></label>
-          <select id="f-cur">
-            <option value="">Please select</option>
-            <option value="UGX">UGX — Ugandan Shilling</option>
-            <option value="USD">USD — US Dollar</option>
-            <option value="EUR">EUR — Euro</option>
-            <option value="GBP">GBP — British Pound</option>
-            <option value="KES">KES — Kenyan Shilling</option>
-            <option value="TZS">TZS — Tanzanian Shilling</option>
-            <option value="RWF">RWF — Rwandan Franc</option>
-          </select>
+        <div id="gstep2" style="display:none">
+          <div class="ct">Step 2 &mdash; Family</div>
+          <div id="gTrail2" style="font-size:11px;color:var(--gray);margin-bottom:7px;"></div>
+          <div class="fg"><label>Family within selected segment *</label><select id="gFamSel" onchange="gOnFamChange()"><option value="">— Select family —</option></select></div>
+          <div class="row"><button class="btn bo" onclick="gGoStep(1)">&larr; Back</button><button class="btn bg" id="gBtnS2" disabled onclick="gGoStep(3)">Next: Class &rarr;</button></div>
         </div>
-        <div class="fld"><label>Unit price <span class="req">*</span> (tax inclusive)</label><input type="number" id="f-price" placeholder="0" min="0" step="any"/></div>
-        <div class="fld">
-          <label>Package / measure unit <span class="req">*</span></label>
-          <div class="uom-wrap">
-            <input type="text" id="f-uom-search" placeholder="Type to search or add custom unit (e.g. Per Person)..." oninput="onUOMSearch(this.value,'f')" autocomplete="off"/>
-            <div class="uom-results" id="f-uom-results"></div>
-            <input type="hidden" id="f-uom"/>
-            <div class="uom-selected" id="f-uom-selected">
-              <div class="sel-badge" style="margin-bottom:0">
-                <span class="sn" id="f-uom-label"></span>
-                <button class="clr" onclick="clearUOM('f')">×</button>
-              </div>
+        <div id="gstep3" style="display:none">
+          <div class="ct">Step 3 &mdash; Class</div>
+          <div id="gTrail3" style="font-size:11px;color:var(--gray);margin-bottom:7px;"></div>
+          <div class="fg"><label>Class within selected family *</label><select id="gClsSel" onchange="gOnClsChange()"><option value="">— Select class —</option></select></div>
+          <div class="row"><button class="btn bo" onclick="gGoStep(2)">&larr; Back</button><button class="btn bg" id="gBtnS3" disabled onclick="gGoStep(4)">Next: Commodity &rarr;</button></div>
+        </div>
+        <div id="gstep4" style="display:none">
+          <div class="ct">Step 4 &mdash; Commodity</div>
+          <div id="gTrail4" style="font-size:11px;color:var(--gray);margin-bottom:7px;"></div>
+          <div class="fg"><label>Commodity *</label><select id="gComSel" onchange="gOnComChange()"><option value="">— Select commodity —</option></select></div>
+          <div id="gComCodeWrap" style="display:none"><div class="fg"><label>Commodity Code (UNSPSC &mdash; auto-filled)</label><input type="text" id="gComCodeVal" readonly/></div></div>
+          <div class="row"><button class="btn bo" onclick="gGoStep(3)">&larr; Back</button><button class="btn bg" id="gBtnS4" disabled onclick="gGoStep(5)">Next: Details &rarr;</button></div>
+        </div>
+        <div id="gstep5" style="display:none">
+          <div class="ct">Step 5 &mdash; Product / Service Details</div>
+          <div id="gComSummary" class="g-sel-badge" style="margin-bottom:10px"></div>
+          <div class="fg"><label>EFRIS Segment / Class Grouping</label><input type="text" id="gFldGrouping" readonly/></div>
+          <div class="fg"><label>Target URA Commodity Code *</label><input type="text" id="gFldComCode" readonly/></div>
+          <div class="fg"><label>My Product Code (Internal Code) *</label><input type="text" id="gFldCode" placeholder="e.g. Test 002"/></div>
+          <div class="fg"><label>Item Description Name (Invoice Display Value) *</label><input type="text" id="gFldName" placeholder="e.g. Sipi Falls Easter Excursion"/></div>
+          <div class="g2">
+            <div class="fg"><label>Currency *</label>
+              <select id="gFldCur">
+                <option value="">Select</option>
+                <option value="UGX">UGX</option><option value="USD">USD</option>
+                <option value="EUR">EUR</option><option value="GBP">GBP</option>
+                <option value="KES">KES</option><option value="TZS">TZS</option><option value="RWF">RWF</option>
+              </select>
+            </div>
+            <div class="fg"><label>Unit Price Rate (Tax Inclusive) *</label><input type="number" id="gFldPrice" placeholder="0" min="0" step="any"/></div>
+          </div>
+          <div class="fg"><label>Package Measure Unit *</label>
+            <div class="g-uom-wrap">
+              <input type="text" id="gFldUom" placeholder="e.g. Per Person, Each, Kilogram" autocomplete="off" oninput="gUomInput(this.value)" onfocus="gUomInput(this.value)"/>
+              <div class="g-uom-dd" id="gUomDd" style="display:none"></div>
             </div>
           </div>
-        </div>
-        <div class="fld"><label>Low stock alert</label><input type="text" id="f-stock" placeholder="N/A for services"/></div>
-      </div>
-      <div class="slbl" style="margin-bottom:6px">Item type <span class="req">*</span></div>
-      <div class="type-row">
-        <div class="type-btn active" id="tt-svc" onclick="setType('Service')">⚙️ Service<span class="type-note">→ Non-inventory item in Manager</span></div>
-        <div class="type-btn" id="tt-gds" onclick="setType('Goods')">📦 Goods<span class="type-note">→ Inventory item in Manager</span></div>
-      </div>
-      <div class="g2">
-        <div class="fld"><label>Excise tax</label><select id="f-excise"><option value="No">No</option><option value="Yes">Yes</option></select></div>
-        <div class="fld"><label>VAT treatment</label><select id="f-vat"><option value="Standard">Standard rated</option><option value="Exempt">Exempt</option><option value="Zero">Zero rated</option></select></div>
-      </div>
-      <div class="fld"><label>Remarks</label><textarea id="f-remarks" placeholder="Optional notes..."></textarea></div>
-      <div class="btn-row">
-        <button class="btn" onclick="goStep(4)">← Back</button>
-        <button class="btn btn-su" onclick="addAnother()">➕ Save &amp; add similar</button>
-        <button class="btn btn-pr" onclick="saveItem()">✓ Confirm &amp; save</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ITEMS LIST -->
-<div id="vw-lst" style="display:none">
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div style="font-size:14px;font-weight:600">📋 Configured Items <span id="lst-lbl" style="font-size:12px;font-weight:400;color:var(--text3)">0 items</span></div>
-      <div style="display:flex;gap:8px">
-        <button class="btn" onclick="exportCSV()">⬇ Export CSV</button>
-        <button class="btn btn-pr" onclick="sw('cfg');fullReset()">➕ Add new item</button>
-      </div>
-    </div>
-    <div class="tw">
-      <table>
-        <thead><tr>
-          <th>#</th><th>Code</th><th>Name</th><th>Commodity (UNSPSC)</th>
-          <th>UOM</th><th>Price</th><th>Cur</th><th>Type</th><th>VAT</th><th>Sync</th><th>Actions</th>
-        </tr></thead>
-        <tbody id="lst-body">
-          <tr><td colspan="11" style="text-align:center;color:var(--text3);padding:32px">No items yet. Use the Configure tab to add your first item.</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- SYNC -->
-<div id="vw-syn" style="display:none">
-  <div class="card">
-    <div style="font-size:14px;font-weight:600;margin-bottom:14px">☁️ Sync to Manager.io</div>
-    <div class="metrics">
-      <div class="metric"><div class="metric-val blue" id="m-pend">0</div><div class="metric-lbl">Pending sync</div></div>
-      <div class="metric"><div class="metric-val green" id="m-done">0</div><div class="metric-lbl">Synced</div></div>
-      <div class="metric"><div class="metric-val" id="m-total">0</div><div class="metric-lbl">Total items</div></div>
-    </div>
-    <div class="pbar-wrap" id="pbar-wrap"><div class="pbar-lbl" id="pbar-lbl">Syncing…</div><div class="pbar-track"><div class="pbar-fill" id="pbar"></div></div></div>
-    <div id="sync-preview" style="margin-bottom:12px"></div>
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--text2);margin-bottom:12px">
-      <strong style="color:var(--text)">Manager.io placements after sync:</strong><br>
-      Services → <code style="font-family:monospace;background:var(--bg3);padding:1px 4px;border-radius:3px">/non-inventory-items</code> (Non-Inventory Items tab)<br>
-      Goods → <code style="font-family:monospace;background:var(--bg3);padding:1px 4px;border-radius:3px">/inventory-items</code> (Inventory Items tab)
-    </div>
-    <div class="btn-row" style="border:none;padding:0;margin:0">
-      <button class="btn" onclick="buildSyncPreview()">↻ Refresh</button>
-      <button class="btn btn-pr" id="sync-btn" onclick="doSync()" disabled>☁ Sync pending to Manager.io</button>
-    </div>
-  </div>
-</div>
-
-<!-- CONNECTION -->
-<div id="vw-set" style="display:none">
-  <div class="card">
-    <div style="font-size:14px;font-weight:600;margin-bottom:14px">🔌 Manager.io API Connection</div>
-    <div class="info">Enter your Manager.io server URL and API key below. Get your API key from <strong>Manager.io → Settings → API Keys</strong>.</div>
-    <div class="g2">
-      <div class="fld"><label>Server URL</label><input type="text" id="api-url" placeholder="https://manager.yourdomain.com"/></div>
-      <div class="fld"><label>API Key / Token</label><input type="password" id="api-key" placeholder="Your Manager.io API key"/></div>
-    </div>
-    <div class="btn-row" style="border:none;padding:0;margin:0 0 8px">
-      <button class="btn" onclick="testConn()">🔌 Test connection</button>
-      <button class="btn btn-pr" onclick="loadBiz()">↻ Load businesses</button>
-    </div>
-    <div class="conn-bar" id="conn-bar"></div>
-  </div>
-  <div class="card">
-    <div style="font-size:14px;font-weight:600;margin-bottom:14px">🏢 Select Business</div>
-    <div class="fld"><label>Business</label><select id="biz-sel" onchange="onBiz()"><option value="">— Load businesses first —</option></select></div>
-  </div>
-  <div class="card">
-    <div style="font-size:14px;font-weight:600;margin-bottom:10px">ℹ️ About</div>
-    <div style="font-size:12px;color:var(--text2);line-height:1.7">
-      <p>The <strong>Goods/Services Configurator</strong> implements the full URA EFRIS UNSPSC commodity taxonomy (58 segments, 547 families, 7,904 classes, 148,000+ commodities) directly inside Manager.io.</p><br>
-      <p>Configure items once → sync to Manager.io as Inventory (Goods) or Non-Inventory (Services) items, with full UNSPSC commodity codes stored in custom fields for URA EFRIS compliance.</p><br>
-      <p style="color:var(--text3)">Developed with support from <a href="https://tukeihopeinitiative.org/" target="_blank" style="color:var(--blue)">The Tukei Hope Initiative ↗</a></p>
-    </div>
-  </div>
-</div>
-
-<!-- Edit Modal -->
-<div class="modal-ov" id="edit-modal">
-  <div class="modal">
-    <div class="modal-hdr">
-      <h3>✏️ Edit Item</h3>
-      <button class="modal-cls" onclick="closeEdit()">×</button>
-    </div>
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;font-size:11px;color:var(--text3);margin-bottom:14px">
-      <strong style="color:var(--text2)">Commodity:</strong> <span id="e-commodity"></span><br>
-      <strong style="color:var(--text2)">Segment:</strong> <span id="e-segment"></span>
-    </div>
-    <div class="g2">
-      <div class="fld"><label>Product code <span class="req">*</span></label><input type="text" id="e-code"/></div>
-      <div class="fld"><label>Goods/Services name <span class="req">*</span></label><input type="text" id="e-name"/></div>
-      <div class="fld"><label>Currency <span class="req">*</span></label>
-        <select id="e-cur"><option value="">Select</option><option>UGX</option><option>USD</option><option>EUR</option><option>GBP</option><option>KES</option><option>TZS</option><option>RWF</option></select>
-      </div>
-      <div class="fld"><label>Unit price <span class="req">*</span></label><input type="number" id="e-price" min="0" step="any"/></div>
-      <div class="fld">
-        <label>Measure unit <span class="req">*</span></label>
-        <div class="uom-wrap">
-          <input type="text" id="e-uom-search" placeholder="Type to search or add custom unit..." oninput="onUOMSearch(this.value,'e')" autocomplete="off"/>
-          <div class="uom-results" id="e-uom-results"></div>
-          <input type="hidden" id="e-uom"/>
-          <div class="uom-selected" id="e-uom-selected">
-            <div class="sel-badge" style="margin-bottom:0">
-              <span class="sn" id="e-uom-label"></span>
-              <button class="clr" onclick="clearUOM('e')">×</button>
+          <div class="fg"><label>&#9881; Item Profile Category</label>
+            <select id="gFldType">
+              <option value="Service">Service (Non-inventory item)</option>
+              <option value="Goods">Goods (Inventory item)</option>
+            </select>
+          </div>
+          <div class="g2">
+            <div class="fg"><label>EFRIS Tax Designation</label>
+              <select id="gFldVat">
+                <option value="Standard">Standard Rate (18%)</option>
+                <option value="Exempt">Exempt</option>
+                <option value="Zero">Zero Rated</option>
+              </select>
             </div>
+            <div class="fg"><label>Excise Tax Regime</label>
+              <select id="gFldExcise"><option value="No">No</option><option value="Yes">Yes</option></select>
+            </div>
+          </div>
+          <div class="fg"><label>Remarks</label><textarea id="gFldRemarks" placeholder="Optional notes..."></textarea></div>
+          <div id="gSyncStatus"></div>
+          <div class="row mt">
+            <button class="btn bo" style="width:auto;flex:0 0 auto;" onclick="gGoStep(4)">&larr; Back</button>
+            <button class="btn bg" onclick="gSyncItem()">&#128228; Sync Item Profile to Manager.io Workspace</button>
           </div>
         </div>
       </div>
-      <div class="fld"><label>Low stock alert</label><input type="text" id="e-stock"/></div>
     </div>
-    <div class="slbl" style="margin-bottom:6px">Item type</div>
-    <div class="type-row" style="margin-bottom:10px">
-      <div class="type-btn" id="et-svc" onclick="setEditType('Service')">⚙️ Service</div>
-      <div class="type-btn" id="et-gds" onclick="setEditType('Goods')">📦 Goods</div>
+
+    <div id="gv-lst" style="display:none">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div class="ct" style="margin:0;border:none;padding:0;">&#128203; My Items <span id="gItemCount" style="font-size:10px;font-weight:400;color:var(--gray)">0 items</span></div>
+          <button class="btn bg bsm" onclick="gSwSub('cfg');gGoStep(1)">&#10133; Add New</button>
+        </div>
+        <div class="g-tbl">
+          <table>
+            <thead><tr><th>Code</th><th>Name</th><th>Commodity</th><th>UOM</th><th>Price</th><th>Cur</th><th>Type</th><th>VAT</th><th>Mgr</th><th>EFRIS</th><th>Del</th></tr></thead>
+            <tbody id="gItemsTbody"><tr><td colspan="11" style="text-align:center;color:var(--gray);padding:20px;">No items yet. Use Configure tab.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
     </div>
-    <div class="g2">
-      <div class="fld"><label>Excise tax</label><select id="e-excise"><option value="No">No</option><option value="Yes">Yes</option></select></div>
-      <div class="fld"><label>VAT treatment</label><select id="e-vat"><option value="Standard">Standard rated</option><option value="Exempt">Exempt</option><option value="Zero">Zero rated</option></select></div>
+  </div>
+
+  <div id="tGd" class="hidden">
+    <div class="card">
+      <div class="ct">&#128214; How to Use</div>
+      <div class="gs"><div class="gn">1</div><div class="gb"><h4>Open a Sales Invoice in Manager.io</h4><p>Click your EFRIS custom button &mdash; invoice details load automatically.</p></div></div>
+      <div class="gs"><div class="gn">2</div><div class="gb"><h4>Review the details shown</h4><p>Check customer name, amount and items.</p></div></div>
+      <div class="gs"><div class="gn">3</div><div class="gb"><h4>Click "Submit to URA EFRIS"</h4><p>Allow 10&ndash;20 seconds for URA to respond.</p></div></div>
+      <div class="gs"><div class="gn">4</div><div class="gb"><h4>FDN saved automatically</h4><p>Written to the EFRIS FDN field on your Manager invoice.</p></div></div>
+      <div class="gs"><div class="gn">5</div><div class="gb"><h4>Use Goods tab to configure items</h4><p>Browse URA commodity tree and sync items to Manager.io as inventory or non-inventory items.</p></div></div>
+      <hr>
+      <div class="al aw mt"><strong>Sad face in Manager?</strong> Use HTTPS URL: <code>https://localhost:5443/extension</code></div>
+      <div class="al aw"><strong>Auth failed?</strong> Check TIN, Device No. and EFRIS Password in Settings.</div>
     </div>
-    <div class="fld"><label>Remarks</label><textarea id="e-remarks"></textarea></div>
-    <div class="btn-row">
-      <button class="btn" onclick="closeEdit()">Cancel</button>
-      <button class="btn btn-pr" onclick="saveEdit()">✓ Save changes</button>
+  </div>
+
+  <div id="tSet" class="hidden">
+    <div class="card"><div class="ct">&#127970; Business</div>
+      <div class="fg"><label>Legal Name</label><input id="sLeg"/></div>
+      <div class="fg"><label>Trade Name</label><input id="sTrd"/></div>
+      <div class="fg"><label>Address</label><input id="sAdr"/></div>
+      <div class="fg"><label>Phone</label><input id="sPh"/></div>
+      <div class="fg"><label>Email</label><input id="sEm"/></div>
     </div>
+    <div class="card"><div class="ct">&#128272; EFRIS Credentials</div>
+      <div class="fg"><label>TIN</label><input id="sTin"/></div>
+      <div class="fg"><label>Device Number (DSN)</label><input id="sDsn"/></div>
+      <div class="fg"><label>EFRIS Password</label><input id="sPas" type="password"/></div>
+      <div class="fg"><label>BRN (optional)</label><input id="sBrn"/></div>
+    </div>
+    <div class="card"><div class="ct">&#128279; System</div>
+      <div class="fg"><label>Manager.io Endpoint</label><input id="sMgr"/></div>
+      <div class="fg"><label>Access Token</label><input id="sTok"/></div>
+      <div class="al ai"><strong>Extension URLs:</strong><br>HTTP: <code>http://localhost:3000/extension</code><br>HTTPS: <code>https://localhost:5443/extension</code></div>
+      <div class="trow mt"><div><div class="tlbl">VAT Registered</div><div class="tdsc">18% VAT on sales</div></div><div class="tog" id="sTV" onclick="tg('sTV','vatReg')"></div></div>
+      <div class="trow"><div><div class="tlbl">Sandbox Mode</div><div class="tdsc">EFRIS test environment</div></div><div class="tog on" id="sTS" onclick="tg('sTS','sandbox')"></div></div>
+    </div>
+    <button class="btn bg" onclick="saveSt()">&#128190; Save Settings</button>
+    <button class="btn bo" onclick="testMgr('sMgr','sTok','sMgrR')">&#128279; Test Manager Connection</button>
+    <div id="sMgrR"></div>
+    <button class="btn br mt" onclick="resetAll()">&#128465; Reset All Settings</button>
+    <div id="saveR" class="mt"></div>
   </div>
 </div>
 
-<div class="footer">
-  Goods/Services Configurator &nbsp;·&nbsp; URA EFRIS UNSPSC taxonomy — 58 segments, 148,000+ commodities &nbsp;·&nbsp;
-  Developed with support from <a href="https://tukeihopeinitiative.org/" target="_blank">The Tukei Hope Initiative ↗</a>
+<div class="scr" id="sNone">
+  <div class="card">
+    <div class="ct">&#128203; Select an Invoice to Submit</div>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:8px;">Tap an invoice below to load it, then submit to EFRIS.</p>
+    <button onclick="loadList()" style="width:100%;padding:9px;border:1px solid var(--bdr);background:white;border-radius:6px;cursor:pointer;font-weight:600;color:var(--gd);margin-bottom:8px;">&#128260; Refresh invoice list</button>
+    <div id="pickList"></div>
+    <div id="ctxDbg" style="font-size:10px;color:#8a6d00;background:#fffbe6;border:1px solid #ffe58f;border-radius:5px;padding:5px 8px;margin:8px 0;word-break:break-all;"></div>
+    <div class="al as">&#10003; Server is online</div>
+    <div class="al ai mt"><strong>Use in Manager custom button:</strong><br><code>https://localhost:5443/extension</code></div>
+    <button class="btn bgld mt" onclick="showT('tSet',null);showScr('sMain')">&#9881; Go to Settings</button>
+  </div>
 </div>
+
+</div>
+<div class="ftr">
+  <div>&#127482;&#127468; Uganda EFRIS Connect &mdash; Free &amp; Open Source</div>
+  <div>Supported by <a href="https://tukeihopeinitiative.org/" target="_blank">The Tukei Hope Initiative &nearr;</a> &mdash; Community Based Organisation, Entebbe, Uganda</div>
+  <div class="reg">Registration No. EMC/CBO/025 | Your Hope, Our Mission</div>
 </div>
 
 <script>
-const API = '/api';
+'use strict';
+const RELAY = window.location.protocol + '//' + window.location.host;
+const SKEY = 'efris_v3';
+let CFG={}, INV=null, DKEY=null, MGR_EP=null, MGR_TK=null;
+const TG={vatReg:false,sandbox:true};
+let obStep=1;
 
-// ── State ─────────────────────────────────────────────────────────
-let SEG=null,FAM=null,CLS=null,COM=null;
-let itemType='Service',items=[],editIdx=-1,editType='Service',bizId=null;
-let UOM_LIST=[];
-let customUserUOMs=[];
+function ld(){ try{ const r=localStorage.getItem(SKEY); return r?JSON.parse(r):null; }catch(e){return null;} }
+function sv2(d){ try{ localStorage.setItem(SKEY,JSON.stringify(d)); }catch(e){} }
+function $(i){ return document.getElementById(i); }
+function gvi(i){ const e=$(i); return e?e.value.trim():''; }
+function sv(i,v){ const e=$(i); if(e) e.value=v||''; }
+function ht(i,h){ const e=$(i); if(e){e.innerHTML=h;e.classList.remove('hidden');} }
+function tx(i,t){ const e=$(i); if(e) e.textContent=t; }
+function sh(i){ const e=$(i); if(e) e.classList.remove('hidden'); }
+function hd(i){ const e=$(i); if(e) e.classList.add('hidden'); }
+function tr(s,n){ return s&&s.length>n?s.slice(0,n)+'…':(s||''); }
+function fn(n){ return parseFloat(n||0).toLocaleString('en-UG',{maximumFractionDigits:0}); }
+function fd(d){ if(!d)return'—'; try{return new Date(d).toLocaleDateString('en-UG',{year:'numeric',month:'short',day:'numeric'});}catch(e){return d;} }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// Tourism & common custom units shown first
-const PRIORITY_UOMS=[
-  'Per Person','Per Pax','Per Adult','Per Child','Per Couple','Per Group',
-  'Per Family','Per Student','Per Participant','Per Guest','Per Infant',
-  'Per Night','Per Day','Per Hour','Per Week','Per Month','Per Year',
-  'Per Trip','Per Session','Per Visit','Per Event','Per Package','Per Tour',
-  'Per Piece','Per Unit','Per Set','Per Pair','Per Box','Per Carton',
-  'Per Bag','Per Kilogram','Per Gram','Per Tonne','Per Litre','Per Millilitre',
-  'Per Metre','Per Square Metre','Per Cubic Metre'
-];
+function showScr(id){ document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on')); const e=$(id);if(e)e.classList.add('on'); }
+function showT(id,btn){
+  ['tSub','tStat','tGds','tGd','tSet'].forEach(t=>{const e=$(t);if(e)e.classList.add('hidden');});
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  const e=$(id);if(e)e.classList.remove('hidden');
+  if(btn)btn.classList.add('on');
+  if(id==='tGds') gOnGoodsTabOpen();
+}
+function tg(id,k){ TG[k]=!TG[k]; utg(id,TG[k]); }
+function utg(id,s){ const e=$(id);if(e)e.className='tog'+(s?' on':''); }
 
-// ── Hide setup guide when inside iframe ───────────────────────────
-if(window.self !== window.top){
-  document.getElementById('setup-guide').style.display='none';
+function rDots(){ const c=$('sDots');if(!c)return;c.innerHTML='';for(let i=1;i<=4;i++){const d=document.createElement('div');d.className='dot'+(i===obStep?' on':i<obStep?' dn':'');c.appendChild(d);} }
+function obSh(n){ document.querySelectorAll('.ob').forEach(e=>e.classList.remove('on')); const e=$('ob'+n);if(e)e.classList.add('on'); obStep=n;rDots(); }
+function obn(from){
+  if(from===1&&(!gvi('o1a')||!gvi('o1c'))){alert('Legal Name and Address are required');return;}
+  if(from===2&&(!gvi('o2a')||!gvi('o2b')||!gvi('o2c'))){alert('TIN, Device No. and Password are required');return;}
+  obSh(from+1);
+}
+function obb(from){ obSh(from-1); }
+function finOB(){
+  if(!gvi('o4a')||!gvi('o4b')){alert('Manager endpoint and access token are required');return;}
+  CFG={ legalName:gvi('o1a'), tradeName:gvi('o1b')||gvi('o1a'), address:gvi('o1c'), phone:gvi('o1d'), email:gvi('o1e'), tin:gvi('o2a'), deviceNo:gvi('o2b'), efrisPassword:gvi('o2c'), brn:gvi('o2d'), managerEndpoint:gvi('o4a').replace(/\/+$/,''), accessToken:gvi('o4b'), vatReg:TG.vatReg, sandbox:TG.sandbox };
+  sv2(CFG); apCFG();
+  if(INV){renderInv(INV);showScr('sMain');} else showScr('sNone');
+}
+function apCFG(){
+  const b=$('mBadge');
+  if(b){b.textContent=CFG.sandbox?'SANDBOX':'PRODUCTION';b.className='badge '+(CFG.sandbox?'bsb':'bprd');}
+  sv('sLeg',CFG.legalName);sv('sTrd',CFG.tradeName);sv('sAdr',CFG.address);sv('sPh',CFG.phone);sv('sEm',CFG.email);
+  sv('sTin',CFG.tin);sv('sDsn',CFG.deviceNo);sv('sPas',CFG.efrisPassword);sv('sBrn',CFG.brn);
+  sv('sMgr',CFG.managerEndpoint);sv('sTok',CFG.accessToken);
+  TG.vatReg=!!CFG.vatReg;TG.sandbox=CFG.sandbox!==false;
+  ['sTV','t3v'].forEach(id=>utg(id,TG.vatReg));
+  ['sTS','t3s'].forEach(id=>utg(id,TG.sandbox));
+}
+function saveSt(){
+  CFG.legalName=gvi('sLeg');CFG.tradeName=gvi('sTrd');CFG.address=gvi('sAdr');CFG.phone=gvi('sPh');CFG.email=gvi('sEm');
+  CFG.tin=gvi('sTin');CFG.deviceNo=gvi('sDsn');CFG.efrisPassword=gvi('sPas');CFG.brn=gvi('sBrn');
+  CFG.managerEndpoint=gvi('sMgr').replace(/\/+$/,'');CFG.accessToken=gvi('sTok');
+  CFG.vatReg=TG.vatReg;CFG.sandbox=TG.sandbox;
+  sv2(CFG);apCFG();
+  ht('saveR','<div class="st ss">✅ Settings saved</div>');
+  setTimeout(()=>hd('saveR'),3000);
+}
+function resetAll(){ if(!confirm('Reset all settings?'))return; localStorage.removeItem(SKEY); location.reload(); }
+
+async function testMgr(epId,tkId,resultId){
+  const ep=gvi(epId);const tk=gvi(tkId);
+  if(!ep||!tk){ht(resultId,'<div class="st se">Enter endpoint and token first</div>');return;}
+  ht(resultId,'<div class="st si"><span class="sp">⏳</span> Testing…</div>');
+  try{
+    const r=await fetch(RELAY+'/api/manager/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk})});
+    const d=await r.json();
+    ht(resultId,d.success?'<div class="st ss">✅ '+d.message+'</div>':'<div class="st se">❌ '+d.error+'</div>');
+  }catch(e){ht(resultId,'<div class="st se">❌ '+e.message+'</div>');}
 }
 
-// ── Manager.io context via postMessage ────────────────────────────
-window.addEventListener('message',e=>{
-  if(!e.data||e.data.type!=='manager-context') return;
-  const ctx=e.data.payload;
-  if(ctx.baseUrl) document.getElementById('api-url').value=ctx.baseUrl;
-  if(ctx.token)   document.getElementById('api-key').value=ctx.token;
-  if(ctx.businessKey){bizId=ctx.businessKey;buildSyncPreview();}
-  document.getElementById('setup-guide').style.display='none';
+window.addEventListener('message', evt=>{
+  var raw=evt.data;
+  try{ var dbg=document.getElementById('ctxDbg'); if(dbg){ var s; try{s=(typeof raw==='string')?raw:JSON.stringify(raw);}catch(e){s=String(raw);} dbg.textContent='message from '+evt.origin+': '+String(s).slice(0,280); } }catch(e){}
+  var d=raw;
+  if(typeof d==='string'){ try{ d=JSON.parse(d); }catch(e){ return; } }
+  if(!d||typeof d!=='object') return;
+  if(d.type==='manager-context' && d.payload) d=d.payload;
+  else if(d.payload && typeof d.payload==='object') d=d.payload;
+  window.managerAppContext=d;
+  if(d.apiEndpoint){MGR_EP=d.apiEndpoint;if(!CFG.managerEndpoint)CFG.managerEndpoint=d.apiEndpoint;}
+  if(d.apiAccessToken){MGR_TK=d.apiAccessToken;if(!CFG.accessToken)CFG.accessToken=d.apiAccessToken;}
+  var k=d.Key||d.documentKey||d.key||d.recordKey||'';
+  if(k&&typeof k==='string'){var parts=k.split('?')[0].split('/').filter(Boolean);k=parts.length?parts[parts.length-1]:'';DKEY=k;}
+  if(DKEY)loadInv(DKEY);
 });
 
-// ── Load UOM on page load ─────────────────────────────────────────
-async function loadUOM(){
-  try{
-    const r=await fetch(`${API}/units`);
-    UOM_LIST=await r.json();
-  }catch(e){console.warn('Could not load units:',e);}
+function readParams(){
+  const p=new URLSearchParams(window.location.search);
+  if(p.get('apiEndpoint'))MGR_EP=p.get('apiEndpoint');
+  if(p.get('apiAccessToken'))MGR_TK=p.get('apiAccessToken');
+  var k=p.get('documentKey')||p.get('key')||p.get('Key')||p.get('recordKey')||'';
+  if(k){ var parts=k.split('?')[0].split('/').filter(Boolean); DKEY=parts.length?parts[parts.length-1]:k; return true; }
+  return false;
 }
 
-// ── UOM search ────────────────────────────────────────────────────
-function onUOMSearch(v,prefix){
-  const results=document.getElementById(prefix+'-uom-results');
-  if(document.getElementById(prefix+'-uom').value) return;
-  if(v.trim().length<2){results.style.display='none';return;}
-  const q=v.toLowerCase();
+async function loadInv(key){
+  if(!key){showScr('sNone');return;}
+  const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
+  if(!ep||!tk){showScr('sNone');return;}
+  showScr('sLoad');
+  try{
+    const url=RELAY+'/api/manager/invoice?ep='+encodeURIComponent(ep)+'&tk='+encodeURIComponent(tk)+'&key='+encodeURIComponent(key);
+    const r=await fetch(url);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    if(!d.success)throw new Error(d.error||'Failed to load invoice');
+    INV=d.data; renderInv(INV); showScr('sMain');
+  }catch(e){console.warn('Invoice load failed:',e.message);showScr('sNone');}
+}
 
-  // Priority list first (tourism + common)
-  const priorityMatches=[...PRIORITY_UOMS,...customUserUOMs]
-    .filter(u=>u.toLowerCase().includes(q));
-
-  // Then URA customs units
-  const apiMatches=UOM_LIST
-    .filter(u=>u.desc.toLowerCase().includes(q)||u.code.toLowerCase().includes(q))
-    .map(u=>({label:`${u.desc} (${u.code})`,val:`${u.desc} (${u.code})`}));
-
-  const combined=[
-    ...priorityMatches.map(u=>({label:u,val:u})),
-    ...apiMatches.filter(a=>!priorityMatches.some(p=>p.toLowerCase()===a.label.toLowerCase()))
-  ].slice(0,25);
-
-  let html=combined.map(u=>
-    `<div class="sug-item" onclick="pickUOM('${u.val.replace(/'/g,"\\'")}','${prefix}')">${u.label}</div>`
-  ).join('');
-
-  // Always offer "use as custom"
-  const trimmed=v.trim();
-  const alreadyExact=combined.some(u=>u.label.toLowerCase()===trimmed.toLowerCase());
-  if(!alreadyExact&&trimmed){
-    html+=`<div class="sug-item add-custom" onclick="pickUOM('${trimmed.replace(/'/g,"\\'")}','${prefix}',true)">➕ Use "<strong>${trimmed}</strong>" as custom unit</div>`;
+function renderInv(inv){
+  tx('dNo',inv.Reference||inv.Code||inv.InvoiceNo||'—');
+  tx('dDt',fd(inv.IssueDate||inv.Date));
+  tx('dCust',(inv.Customer&&inv.Customer.Name)||inv.BuyerName||inv.CustomerName||'—');
+  tx('dCurr',inv.Currency||'UGX');
+  tx('dTot',(inv.Currency||'UGX')+' '+fn(inv.Total||inv.GrossAmount||0));
+  const curr=inv.Currency||'UGX';
+  if(curr!=='UGX'){sh('fxRow');tx('fxLbl',curr);sv('fxVal',inv.ExchangeRate||'');}else hd('fxRow');
+  const fdn=inv.CustomFields&&inv.CustomFields['EFRIS FDN'];
+  if(fdn){sh('subDone');tx('exFDN',fdn);}else hd('subDone');
+  const lines=inv.Lines||inv.Items||[];
+  if(lines.length){
+    let h='<div class="itbl"><div class="irow hdr"><span>Item</span><span>Qty</span><span>Price</span><span>Total</span></div>';
+    lines.slice(0,5).forEach(l=>{h+='<div class="irow"><span>'+tr(l.ItemName||l.Description||l.Account||'Item',20)+'</span><span>'+(l.Qty||1)+'</span><span>'+fn(l.UnitPrice||0)+'</span><span>'+fn(l.LineTotal||0)+'</span></div>';});
+    if(lines.length>5)h+='<div class="irow"><span style="color:var(--gray)">…'+(lines.length-5)+' more</span></div>';
+    h+='</div>';ht('dItems',h);
   }
-
-  results.innerHTML=html||`<div class="sug-item" style="color:var(--text3);font-style:italic">No matches — type to add custom</div>`;
-  results.style.display='block';
+  const s=inv.CustomFields||{};
+  ht('statCont','<div class="ig"><div class="if"><div class="lb">Status</div><div class="vl">'+(s['EFRIS Status']||'Not submitted')+'</div></div><div class="if"><div class="lb">Date</div><div class="vl">'+(s['EFRIS Submission Date']||'—')+'</div></div><div class="if full"><div class="lb">FDN</div><div class="vl">'+(s['EFRIS FDN']||'—')+'</div></div></div>'+(s['EFRIS Error Message']?'<div class="al aw">Last error: '+s['EFRIS Error Message']+'</div>':''));
 }
 
-function pickUOM(val,prefix,isCustom=false){
-  if(isCustom&&!customUserUOMs.includes(val)) customUserUOMs.push(val);
-  document.getElementById(prefix+'-uom').value=val;
-  document.getElementById(prefix+'-uom-search').value='';
-  document.getElementById(prefix+'-uom-label').textContent=val;
-  document.getElementById(prefix+'-uom-selected').style.display='block';
-  document.getElementById(prefix+'-uom-results').style.display='none';
-}
-
-function clearUOM(prefix){
-  document.getElementById(prefix+'-uom').value='';
-  document.getElementById(prefix+'-uom-search').value='';
-  document.getElementById(prefix+'-uom-selected').style.display='none';
-}
-
-// Close UOM dropdown on outside click
-document.addEventListener('click',e=>{
-  ['f','e'].forEach(p=>{
-    const wrap=document.getElementById(p+'-uom-search')?.closest('.uom-wrap');
-    if(wrap&&!wrap.contains(e.target)){
-      document.getElementById(p+'-uom-results').style.display='none';
-    }
-  });
-});
-
-// ── Tab navigation ────────────────────────────────────────────────
-function sw(t){
-  ['cfg','lst','syn','set'].forEach(id=>{
-    document.getElementById('vw-'+id).style.display=id===t?'':'none';
-    document.getElementById('tab-'+id).classList.toggle('active',id===t);
-  });
-  if(t==='syn') buildSyncPreview();
-}
-
-// ── Wizard navigation ─────────────────────────────────────────────
-function goStep(n){
-  [1,2,3,4,5].forEach(i=>{
-    document.getElementById('s'+i).style.display=i===n?'':'none';
-    const el=document.getElementById('ws'+i);
-    el.className='ws'+(i===n?' active':i<n?' done':'');
-  });
-  if(n===2) loadFamilies();
-  if(n===3) loadClasses();
-  if(n===4) loadCommodities();
-  if(n===5) buildDetailsSummary();
-}
-
-// ── Step 1: Segment search ────────────────────────────────────────
-let segTimer=null;
-function onSegInput(v){
-  const res=document.getElementById('seg-results');
-  if(SEG) return;
-  clearTimeout(segTimer);
-  if(v.trim().length<3){res.innerHTML=v.trim().length>0?'<div class="empty-msg">Type at least 3 characters…</div>':'';return;}
-  res.innerHTML='<div class="loading-msg">Searching…</div>';
-  segTimer=setTimeout(async()=>{
-    try{
-      const r=await fetch(`${API}/segments?q=${encodeURIComponent(v.trim())}`);
-      const data=await r.json();
-      if(!data.length){res.innerHTML=`<div class="empty-msg">No segments match "${v}"</div>`;return;}
-      res.innerHTML='<div class="sug-box">'+data.map(s=>`<div class="sug-item" onclick="pickSeg('${s.code}','${esc(s.name)}')">`+
-        `<span class="sug-code">(${s.code})</span><span>${esc(s.name)}</span></div>`).join('')+'</div>';
-    }catch(e){res.innerHTML='<div class="empty-msg">Search failed — check backend connection</div>';}
-  },280);
-}
-
-function pickSeg(code,name){
-  SEG={code,name};
-  document.getElementById('seg-results').innerHTML='';
-  document.getElementById('seg-inp').value='';
-  const el=document.getElementById('seg-sel');
-  el.innerHTML=`<span class="sc">(${code})</span><span class="sn">${name}</span><button class="clr" onclick="clearSeg()">×</button>`;
-  el.style.display='flex';
-  document.getElementById('b12').disabled=false;
-}
-
-function clearSeg(){
-  SEG=FAM=CLS=COM=null;
-  document.getElementById('seg-sel').style.display='none';
-  document.getElementById('seg-results').innerHTML='';
-  document.getElementById('seg-inp').value='';
-  document.getElementById('b12').disabled=true;
-}
-
-// ── Step 2: Families ──────────────────────────────────────────────
-async function loadFamilies(){
-  document.getElementById('b23').disabled=true;
-  document.getElementById('trail2').innerHTML=`<span>${esc(SEG.name)}</span>`;
-  const sel=document.getElementById('fam-sel');
-  sel.innerHTML='<option value="">Loading…</option>';
+window.__invList=[];
+async function loadList(){
+  const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
+  var el=$('pickList'); if(!el)return;
+  if(!ep||!tk){ el.innerHTML='<div class="al aw">Finish setup in Settings first.</div>'; return; }
+  el.innerHTML='<div class="al ai">Loading your invoices…</div>';
   try{
-    const r=await fetch(`${API}/segments/${SEG.code}/families`);
-    const data=await r.json();
-    sel.innerHTML='<option value="">— Select family —</option>'+data.map(f=>`<option value="${f.code}">(${f.code}) ${esc(f.name)}</option>`).join('');
-  }catch(e){sel.innerHTML='<option value="">Failed to load</option>';}
+    const r=await fetch(RELAY+'/api/manager/invoices?ep='+encodeURIComponent(ep)+'&tk='+encodeURIComponent(tk));
+    const d=await r.json();
+    if(!d.success){ el.innerHTML='<div class="al aw">'+(d.error||'Failed to load')+'</div>'; return; }
+    window.__invList=d.invoices||[];
+    if(!window.__invList.length){ el.innerHTML='<div class="al ai">No sales invoices found.</div>'; return; }
+    var h='<div style="font-size:11px;color:var(--gray);margin:4px 0 8px;">'+(d.business||'')+' — tap an invoice:</div>';
+    window.__invList.forEach(function(i,idx){ h+='<div onclick="pick('+idx+')" style="cursor:pointer;border:1px solid var(--bdr);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:white;"><strong>'+(i.reference||'(no ref)')+'</strong> — '+(i.customer||'')+'<br><span style="color:var(--gray);font-size:11px;">'+(i.currency||'')+' '+fn(i.amount)+' · '+fd(i.date)+'</span></div>'; });
+    el.innerHTML=h;
+  }catch(e){ el.innerHTML='<div class="al aw">Network error: '+e.message+'</div>'; }
 }
-function onFam(){
-  const sel=document.getElementById('fam-sel');
-  const code=sel.value;
-  document.getElementById('b23').disabled=!code;
-  if(code) FAM={code,name:sel.options[sel.selectedIndex].text.replace(/^\(\d+\) /,'')};
-}
+function pick(idx){ var i=window.__invList[idx]; if(i){ DKEY=i.key; loadInv(i.key); } }
 
-// ── Step 3: Classes ───────────────────────────────────────────────
-async function loadClasses(){
-  document.getElementById('b34').disabled=true;
-  document.getElementById('trail3').innerHTML=`<span>${esc(SEG.name)}</span><span class="trail-sep"> › </span><span>${esc(FAM.name)}</span>`;
-  const sel=document.getElementById('cls-sel');
-  sel.innerHTML='<option value="">Loading…</option>';
-  try{
-    const r=await fetch(`${API}/segments/${SEG.code}/families/${FAM.code}/classes`);
-    const data=await r.json();
-    sel.innerHTML='<option value="">— Select class —</option>'+data.map(c=>`<option value="${c.code}">(${c.code}) ${esc(c.name)}</option>`).join('');
-  }catch(e){sel.innerHTML='<option value="">Failed to load</option>';}
-}
-function onCls(){
-  const sel=document.getElementById('cls-sel');
-  const code=sel.value;
-  document.getElementById('b34').disabled=!code;
-  if(code) CLS={code,name:sel.options[sel.selectedIndex].text.replace(/^\(\d+\) /,'')};
-}
-
-// ── Step 4: Commodities ───────────────────────────────────────────
-async function loadCommodities(){
-  document.getElementById('b45').disabled=true;
-  document.getElementById('com-code-wrap').style.display='none';
-  document.getElementById('trail4').innerHTML=`<span>${esc(SEG.name)}</span><span class="trail-sep"> › </span><span>${esc(FAM.name)}</span><span class="trail-sep"> › </span><span>${esc(CLS.name)}</span>`;
-  const sel=document.getElementById('com-sel');
-  sel.innerHTML='<option value="">Loading…</option>';
-  try{
-    const r=await fetch(`${API}/segments/${SEG.code}/families/${FAM.code}/classes/${CLS.code}/commodities`);
-    const data=await r.json();
-    sel.innerHTML='<option value="">— Select commodity —</option>'+data.map(c=>`<option value="${c.code}" data-svc="${c.isService}">${esc(c.name)}</option>`).join('');
-  }catch(e){sel.innerHTML='<option value="">Failed to load</option>';}
-}
-function onCom(){
-  const sel=document.getElementById('com-sel');
-  const code=sel.value;
-  if(!code){document.getElementById('b45').disabled=true;document.getElementById('com-code-wrap').style.display='none';return;}
-  const opt=sel.options[sel.selectedIndex];
-  COM={code,name:opt.text,isService:opt.dataset.svc==='true'};
-  document.getElementById('com-code-val').value=code;
-  document.getElementById('com-code-wrap').style.display='';
-  document.getElementById('b45').disabled=false;
-  setType(COM.isService?'Service':'Goods');
-}
-
-// ── Step 5: Details ───────────────────────────────────────────────
-function buildDetailsSummary(){
-  document.getElementById('com-sum').innerHTML=
-    `<span class="sc">(${COM.code})</span><span class="sn">${esc(COM.name)}</span><span style="color:var(--text3);font-size:10px;margin-left:4px">— ${esc(SEG.name)}</span>`;
-}
-function setType(t){
-  itemType=t;
-  document.getElementById('tt-svc').classList.toggle('active',t==='Service');
-  document.getElementById('tt-gds').classList.toggle('active',t==='Goods');
-}
-function gv(id){return document.getElementById(id).value.trim();}
-
-function validate5(){
-  const missing=[];
-  if(!gv('f-code')) missing.push('Product code');
-  if(!gv('f-name')) missing.push('Name');
-  if(!gv('f-cur'))  missing.push('Currency');
-  if(!gv('f-price')) missing.push('Unit price');
-  if(!document.getElementById('f-uom').value) missing.push('Measure unit');
-  if(missing.length){alert('Please fill required fields: '+missing.join(', '));return false;}
-  return true;
-}
-
-function mkItem(){
-  const uom=document.getElementById('f-uom').value;
-  return{
-    id:Date.now()+'_'+Math.random().toString(36).slice(2),
-    no:items.length+1,
-    code:gv('f-code'),name:gv('f-name'),
-    comCode:COM.code,comName:COM.name,
-    commodity:`(${COM.code}) ${COM.name}`,
-    segment:SEG.name,segCode:SEG.code,
-    family:FAM.name,famCode:FAM.code,
-    cls:CLS.name,clsCode:CLS.code,
-    uom,price:parseFloat(gv('f-price')||0),
-    cur:gv('f-cur'),type:itemType,
-    excise:gv('f-excise'),vat:gv('f-vat'),
-    stock:gv('f-stock'),
-    remarks:document.getElementById('f-remarks').value.trim(),
-    synced:false,syncedAt:null,managerId:null,syncErr:null
+function buildInv(){
+  const inv=INV||{};const fx=parseFloat(gvi('fxVal')||'1')||1;
+  return{ Reference:inv.Reference||inv.Code||'INV-001', IssueDate:inv.IssueDate||inv.Date||new Date().toISOString().slice(0,10),
+    CustomerName:(inv.Customer&&inv.Customer.Name)||inv.CustomerName||'', CustomerTIN:gvi('cTIN')||(inv.CustomFields&&inv.CustomFields['Customer TIN'])||'',
+    CustomerAddress:(inv.Customer&&inv.Customer.Address)||'', Currency:'UGX', ExchangeRate:'1',
+    Total:(inv.Total||0)*fx, AmountExcludingTax:(inv.AmountExcludingTax||0)*fx, TaxAmount:(inv.TaxAmount||0)*fx, Notes:inv.Notes||'',
+    Lines:(inv.Lines||inv.Items||[]).map(l=>({ ItemName:l.ItemName||l.Description||l.Account||'Service',
+      Qty:l.Qty||l.Quantity||1, UnitPrice:(l.UnitPrice||0)*fx, LineTotal:(l.LineTotal||l.Amount||0)*fx,
+      TaxAmount:(l.TaxAmount||0)*fx, Unit:l.Unit||'Each', EFRISCategoryId:l.EFRISCategoryId||'101', EFRISCategoryName:l.EFRISCategoryName||'Miscellaneous' }))
   };
 }
 
-function saveItem(){
-  if(!validate5()) return;
-  items.push(mkItem());
-  refreshList();
-  alert('✓ Item saved!');
-  sw('lst');
+function setProg(steps){
+  const icons={pnd:'·',act:'…',don:'✓',err:'✕'};
+  ht('subProg','<div class="pl">'+steps.map(s=>'<div class="ps '+s.st+'"><div class="pd">'+icons[s.st]+'</div><div>'+s.tx+'</div></div>').join('')+'</div>');
 }
 
-function addAnother(){
-  if(!validate5()) return;
-  items.push(mkItem());
-  ['f-code','f-name','f-price','f-stock'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('f-remarks').value='';
-  document.getElementById('f-cur').value='';
-  document.getElementById('f-excise').value='No';
-  document.getElementById('f-vat').value='Standard';
-  clearUOM('f');
-  setType(COM.isService?'Service':'Goods');
-  refreshList();
-  document.getElementById('f-code').focus();
-}
-
-function fullReset(){
-  SEG=FAM=CLS=COM=null;itemType='Service';
-  document.getElementById('seg-inp').value='';
-  document.getElementById('seg-results').innerHTML='';
-  document.getElementById('seg-sel').style.display='none';
-  document.getElementById('b12').disabled=true;
-  clearUOM('f');
-  goStep(1);
-}
-
-// ── Items list ────────────────────────────────────────────────────
-function refreshList(){
-  const n=items.length;
-  const synced=items.filter(x=>x.synced).length;
-  document.getElementById('cnt').textContent=n;
-  document.getElementById('syn-cnt').textContent=synced+'/'+n;
-  document.getElementById('lst-lbl').textContent=n+' item'+(n!==1?'s':'')+' configured';
-  const tb=document.getElementById('lst-body');
-  if(!n){tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--text3);padding:32px">No items yet.</td></tr>';return;}
-  tb.innerHTML=items.map((it,i)=>`<tr>
-    <td style="color:var(--text3)">${it.no}</td>
-    <td class="mono">${esc(it.code)}</td>
-    <td><strong>${esc(it.name)}</strong><div class="small">${esc(it.commodity)}</div></td>
-    <td class="small">${esc(it.cls)}</td>
-    <td class="small">${esc(it.uom)}</td>
-    <td style="font-weight:600">${it.price.toLocaleString()}</td>
-    <td>${it.cur}</td>
-    <td><span class="pill ${it.type==='Service'?'pill-svc':'pill-gds'}">${it.type}</span></td>
-    <td class="small">${it.vat}</td>
-    <td>${it.synced?'<span class="pill pill-ok">✓ Synced</span>':it.syncErr?`<span class="pill pill-err" title="${esc(it.syncErr)}">Error</span>`:'<span class="pill pill-pend">Pending</span>'}</td>
-    <td style="white-space:nowrap">
-      <button class="icn" onclick="openEdit(${i})" title="Edit">✏️</button>
-      <button class="icn icn-del" onclick="delItem(${i})" title="Delete">🗑</button>
-    </td>
-  </tr>`).join('');
-}
-
-function delItem(i){
-  if(!confirm('Delete "'+items[i].name+'"?')) return;
-  items.splice(i,1);items.forEach((it,j)=>it.no=j+1);refreshList();
-}
-
-// ── Edit modal ────────────────────────────────────────────────────
-function openEdit(i){
-  editIdx=i;const it=items[i];
-  document.getElementById('e-code').value=it.code;
-  document.getElementById('e-name').value=it.name;
-  document.getElementById('e-cur').value=it.cur;
-  document.getElementById('e-price').value=it.price;
-  document.getElementById('e-stock').value=it.stock||'';
-  document.getElementById('e-excise').value=it.excise;
-  document.getElementById('e-vat').value=it.vat||'Standard';
-  document.getElementById('e-remarks').value=it.remarks||'';
-  document.getElementById('e-commodity').textContent=it.commodity;
-  document.getElementById('e-segment').textContent=it.segment;
-  // Set UOM
-  clearUOM('e');
-  if(it.uom){
-    document.getElementById('e-uom').value=it.uom;
-    document.getElementById('e-uom-label').textContent=it.uom;
-    document.getElementById('e-uom-selected').style.display='block';
-  }
-  editType=it.type;setEditType(editType);
-  document.getElementById('edit-modal').classList.add('open');
-}
-function closeEdit(){document.getElementById('edit-modal').classList.remove('open');}
-function setEditType(t){
-  editType=t;
-  document.getElementById('et-svc').classList.toggle('active',t==='Service');
-  document.getElementById('et-gds').classList.toggle('active',t==='Goods');
-}
-function saveEdit(){
-  const code=document.getElementById('e-code').value.trim();
-  const name=document.getElementById('e-name').value.trim();
-  const cur=document.getElementById('e-cur').value;
-  const price=document.getElementById('e-price').value;
-  const uom=document.getElementById('e-uom').value;
-  if(!code||!name||!cur||!price||!uom){alert('Please fill all required fields.');return;}
-  items[editIdx]={...items[editIdx],code,name,cur,uom,
-    price:parseFloat(price),
-    stock:document.getElementById('e-stock').value.trim(),
-    excise:document.getElementById('e-excise').value,
-    vat:document.getElementById('e-vat').value,
-    remarks:document.getElementById('e-remarks').value.trim(),
-    type:editType,synced:false,managerId:null,syncErr:null};
-  closeEdit();refreshList();
-}
-
-// ── CSV Export ────────────────────────────────────────────────────
-function exportCSV(){
-  if(!items.length){alert('No items to export.');return;}
-  const hdr='#,Product Code,Name,Commodity Code,Commodity Name,Segment,Family,Class,UOM,Unit Price,Currency,Type,VAT,Excise,Synced,Manager ID,Remarks\n';
-  const rows=items.map(it=>[it.no,it.code,`"${it.name}"`,it.comCode,`"${it.comName}"`,
-    `"${it.segment}"`,`"${it.family}"`,`"${it.cls}"`,it.uom,it.price,it.cur,
-    it.type,it.vat,it.excise,it.synced?'Yes':'No',it.managerId||'',`"${it.remarks||''}"`].join(',')).join('\n');
-  const a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(hdr+rows);
-  a.download='goods-services-'+new Date().toISOString().slice(0,10)+'.csv';
-  a.click();
-}
-
-// ── Sync preview ──────────────────────────────────────────────────
-function buildSyncPreview(){
-  const pending=items.filter(x=>!x.synced),synced=items.filter(x=>x.synced);
-  document.getElementById('m-pend').textContent=pending.length;
-  document.getElementById('m-done').textContent=synced.length;
-  document.getElementById('m-total').textContent=items.length;
-  document.getElementById('sync-btn').disabled=!bizId||!pending.length;
-  const el=document.getElementById('sync-preview');
-  if(!items.length){el.innerHTML='<div style="font-size:12px;color:var(--text3)">No items configured yet.</div>';return;}
-  if(!pending.length){el.innerHTML='<div style="color:var(--green);font-size:13px;font-weight:500">✓ All items synced!</div>';return;}
-  el.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">'+pending.length+' item(s) pending</div>'+
-    pending.map(it=>`<div class="sync-row"><div class="sr-l"><span class="sr-code">${esc(it.code)}</span><span class="sr-name">${esc(it.name)}</span></div>
-    <span class="pill ${it.type==='Service'?'pill-svc':'pill-gds'}" style="flex-shrink:0;font-size:10px">${it.type==='Service'?'→ /non-inventory':'→ /inventory'}</span></div>`).join('');
-}
-
-// ── Sync to Manager.io ────────────────────────────────────────────
-async function doSync(){
-  const url=document.getElementById('api-url').value.trim();
-  const key=document.getElementById('api-key').value.trim();
-  if(!bizId){alert('Select a business in the Connection tab first.');return;}
-  if(!url||!key){alert('Enter server URL and API key in the Connection tab.');return;}
-  const pending=items.filter(x=>!x.synced);
-  if(!pending.length){alert('Nothing to sync.');return;}
-  document.getElementById('sync-btn').disabled=true;
-  const pw=document.getElementById('pbar-wrap'),pb=document.getElementById('pbar'),pl=document.getElementById('pbar-lbl');
-  pw.style.display='';
-  let done=0;
-  for(const it of pending){
-    pl.textContent=`Syncing "${it.name}"…`;
-    const isService=it.type==='Service';
-    const endpoint=isService?'/non-inventory-items':'/inventory-items';
-    const payload={Code:it.code,Name:it.name,UnitPrice:it.price,UnitName:it.uom,
-      CustomFields:{'URA Commodity Code':it.comCode,'URA Commodity Name':it.comName,
-        'Industry Segment':it.segment,'Family':it.family,'Class':it.cls,
-        'Is Service':isService?'Yes':'No','Excise Tax':it.excise,'VAT':it.vat}};
-    if(it.remarks) payload.CustomFields['Remarks']=it.remarks;
-    try{
-      const r=await fetch(`${url}/api/${bizId}${endpoint}`,{method:'POST',
-        headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      if(r.ok){const d=await r.json();it.synced=true;it.syncedAt=new Date().toISOString();it.managerId=d.Key||d.key||null;}
-      else{it.syncErr='HTTP '+r.status;}
-    }catch(e){it.syncErr=e.message;}
-    done++;pb.style.width=Math.round(done/pending.length*100)+'%';
-    await new Promise(r=>setTimeout(r,250));
-  }
-  document.getElementById('sync-btn').disabled=false;
-  pl.textContent='Sync complete!';
-  refreshList();buildSyncPreview();
-  const failed=pending.filter(x=>!x.synced);
-  setTimeout(()=>{pw.style.display='none';pb.style.width='0%';},2500);
-  alert(failed.length?`Done: ${done-failed.length} succeeded, ${failed.length} failed.`:`✓ All ${done} item(s) synced successfully!`);
-}
-
-// ── Connection ────────────────────────────────────────────────────
-async function testConn(){
-  const url=document.getElementById('api-url').value.trim();
-  const key=document.getElementById('api-key').value.trim();
-  if(!url||!key){alert('Enter server URL and API key.');return;}
-  const bar=document.getElementById('conn-bar');
-  bar.style.display='flex';bar.innerHTML='<div class="dot dot-ld"></div> Testing…';
+async function doSubmit(){
+  if(!CFG.tin){alert('Complete setup in Settings first');return;}
+  const btn=$('btnSub'); btn.disabled=true; btn.innerHTML='<span class="sp">⏳</span> Submitting…';
+  hd('rCard');hd('errCard');
+  const steps=[{tx:'Connecting to EFRIS relay',st:'act'},{tx:'Authenticating with URA',st:'pnd'},{tx:'Building &amp; encrypting payload',st:'pnd'},{tx:'Submitting to URA EFRIS',st:'pnd'},{tx:'Saving FDN to Manager.io',st:'pnd'}];
+  setProg(steps);
   try{
-    const r=await fetch(url+'/api/businesses',{headers:{'Authorization':'Bearer '+key}});
-    bar.innerHTML=r.ok?'<div class="dot dot-ok"></div> Connected successfully to '+url:'<div class="dot dot-er"></div> Error '+r.status+' — check your API key';
-  }catch(e){bar.innerHTML='<div class="dot dot-er"></div> Cannot reach '+url+' — check URL and ensure CORS is enabled';}
+    steps[0].st='don';steps[1].st='act';setProg(steps);
+    const r1=await fetch(RELAY+'/api/efris/submit-invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({invoice:buildInv(),config:{tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',businessName:CFG.legalName,tradeName:CFG.tradeName,businessAddress:CFG.address,brn:CFG.brn,phone:CFG.phone,email:CFG.email,vatRegistered:CFG.vatReg}})});
+    const d1=await r1.json();
+    steps[1].st='don';steps[2].st='don';steps[3].st=d1.success?'don':'err';setProg(steps);
+    if(!d1.success)throw new Error(d1.error||'EFRIS submission failed');
+    sh('rCard');tx('rFDN',d1.fdn||'—');tx('rAF',d1.antifakeCode||'—');
+    steps[4].st='act';setProg(steps);
+    await saveMgr(d1.fdn,d1.qrCode,d1.antifakeCode);
+    steps[4].st='don';setProg(steps);
+  }catch(err){
+    console.error(err); showErr(err.message);
+    steps.forEach(s=>{if(s.st==='act')s.st='err';});setProg(steps);
+  }
+  btn.disabled=false;btn.innerHTML='📤 Submit to URA EFRIS';
 }
 
-async function loadBiz(){
-  const url=document.getElementById('api-url').value.trim();
-  const key=document.getElementById('api-key').value.trim();
-  if(!url||!key){alert('Enter server URL and API key.');return;}
-  const sel=document.getElementById('biz-sel'),bar=document.getElementById('conn-bar');
-  sel.innerHTML='<option value="">Loading…</option>';
-  bar.style.display='flex';bar.innerHTML='<div class="dot dot-ld"></div> Loading businesses…';
+async function saveMgr(fdn,qrCode,antifakeCode){
+  const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
+  if(!ep||!tk||!DKEY){ ht('mgrSave','<div class="al aw">⚠ FDN received but Manager auto-save missing. FDN: <strong>'+fdn+'</strong></div>'); return; }
   try{
-    const r=await fetch(url+'/api/businesses',{headers:{'Authorization':'Bearer '+key}});
-    if(!r.ok){sel.innerHTML='<option value="">Failed — error '+r.status+'</option>';
-      bar.innerHTML='<div class="dot dot-er"></div> Error '+r.status+' — check API key';return;}
+    const r=await fetch(RELAY+'/api/efris/save-to-manager',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,documentKey:DKEY,efrisData:{fdn,qrCode,antifakeCode}})});
     const d=await r.json();
-    const bz=Array.isArray(d)?d:(d.Data||d.data||[]);
-    sel.innerHTML='<option value="">— Select business —</option>'+bz.map(b=>`<option value="${b.Key||b.key||b.id}">${b.Name||b.name||b.Key}</option>`).join('');
-    bar.innerHTML='<div class="dot dot-ok"></div> Loaded '+bz.length+' business(es)';
-  }catch(e){
-    sel.innerHTML='<option value="">Failed</option>';
-    bar.innerHTML='<div class="dot dot-er"></div> '+e.message;
-  }
+    ht('mgrSave',d.success?'<div class="st ss">✅ EFRIS data saved to Manager.io</div>':'<div class="al aw">⚠ FDN=<strong>'+fdn+'</strong> received but Manager save failed.<br>'+(d.error||'')+'</div>');
+  }catch(e){ ht('mgrSave','<div class="al aw">⚠ FDN: <strong>'+fdn+'</strong> — note this down.</div>'); }
 }
 
-function onBiz(){bizId=document.getElementById('biz-sel').value;buildSyncPreview();}
+function showErr(msg){
+  sh('errCard');ht('errMsg',msg);
+  const m=msg.toLowerCase();
+  const hints={auth:'💡 Check TIN, Device No. and EFRIS Password in Settings.',duplicate:'💡 This invoice was already submitted.',commodity:'💡 A product is not in the EFRIS goods registry.',timeout:'💡 URA EFRIS is slow. Try again in a moment.'};
+  const hint=Object.entries(hints).find(([k])=>m.includes(k));
+  if(hint)ht('errHint','<div class="al ai">'+hint[1]+'</div>');else hd('errHint');
+}
+function retry(){hd('errCard');doSubmit();}
+function openVerify(){
+  const fdn=gvi('fdnQ');if(!fdn){alert('Enter an FDN first');return;}
+  window.open((CFG.sandbox?'https://efristest.ura.go.ug':'https://efris.ura.go.ug')+'/efrissite/receipts/verify?fdn='+encodeURIComponent(fdn),'_blank');
+}
 
-// ── Utils ─────────────────────────────────────────────────────────
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+// ══════════════════════════════════════════════════════════════
+//  GOODS TAB
+// ══════════════════════════════════════════════════════════════
+let gItems=[], gSEG=null, gFAM=null, gCLS=null, gCOM=null;
+let gUnits=[], gUnitsLoaded=false;
 
-// ── Init ──────────────────────────────────────────────────────────
-loadUOM();
+function gSwSub(t){
+  $('gv-cfg').style.display=t==='cfg'?'':'none';
+  $('gv-lst').style.display=t==='lst'?'':'none';
+  $('gst-cfg').className='g-stab'+(t==='cfg'?' on':'');
+  $('gst-lst').className='g-stab'+(t==='lst'?' on':'');
+}
+
+function gOnGoodsTabOpen(){ if(!gUnitsLoaded) gLoadUnits(); }
+
+async function gLoadUnits(){
+  try{
+    const r=await fetch(RELAY+'/api/units');
+    if(r.ok){
+      const d=await r.json();
+      if(Array.isArray(d)) gUnits=d.map(u=>typeof u==='string'?u:(u.name||u.Name||String(u)));
+      else if(d&&typeof d==='object') gUnits=Object.values(d).map(v=>String(v));
+      gUnitsLoaded=true;
+    }
+  }catch(e){}
+}
+
+function gGoStep(n){
+  for(let i=1;i<=5;i++){
+    const el=$('gstep'+i); if(el) el.style.display=i===n?'':'none';
+    const ws=$('gws'+i); if(ws) ws.className='g-step'+(i===n?' act':i<n?' dn':'');
+  }
+  if(n===2) gBuildFamilySelect();
+  if(n===3) gBuildClassSelect();
+  if(n===4) gBuildCommoditySelect();
+  if(n===5) gBuildDetailsSummary();
+}
+
+function gOnSegInput(v){
+  const res=$('gSegResults');
+  if(gSEG) return;
+  if(!v||v.trim().length<3){ res.innerHTML='<div style="font-size:11px;color:var(--gray);padding:6px;">Type at least 3 characters…</div>'; return; }
+  fetch(RELAY+'/api/segments?q='+encodeURIComponent(v.trim()))
+    .then(r=>r.json())
+    .then(hits=>{
+      if(!hits.length){ res.innerHTML='<div style="font-size:11px;color:var(--gray);padding:6px;">No segments match "'+esc(v)+'"</div>'; return; }
+      res.innerHTML='<div class="g-sug">'+hits.slice(0,20).map(s=>
+        '<div class="g-sug-item" onclick="gPickSegment(\''+esc(s.code)+'\',\''+esc(s.name.replace(/'/g,"\\'"))+'\')">'
+        +'<span class="g-sug-code">('+esc(s.code)+')</span>'
+        +'<span>'+esc(s.name)+'</span></div>'
+      ).join('')+'</div>';
+    })
+    .catch(()=>{ res.innerHTML='<div style="font-size:11px;color:var(--red);padding:6px;">Search failed — check server</div>'; });
+}
+
+function gPickSegment(code,name){
+  gSEG={k:code,n:name};
+  $('gSegResults').innerHTML='';
+  $('gSegInp').value='';
+  const el=$('gSegSel');
+  el.innerHTML='<span class="g-sel-code">('+esc(code)+')</span><span class="g-sel-name">'+esc(name)+'</span><button class="g-sel-clr" onclick="gClearSegment()">&times;</button>';
+  el.style.display='flex';
+  $('gBtnS1').disabled=false;
+}
+
+function gClearSegment(){
+  gSEG=gFAM=gCLS=gCOM=null;
+  $('gSegSel').style.display='none';
+  $('gSegResults').innerHTML='';
+  $('gSegInp').value='';
+  $('gBtnS1').disabled=true;
+}
+
+function gBuildFamilySelect(){
+  const sel=$('gFamSel');
+  sel.innerHTML='<option value="">Loading…</option>';
+  $('gTrail2').textContent=gSEG?gSEG.n:'';
+  $('gBtnS2').disabled=true;
+  fetch(RELAY+'/api/segments/'+encodeURIComponent(gSEG.k)+'/families')
+    .then(r=>r.json())
+    .then(fams=>{
+      sel.innerHTML='<option value="">— Select family —</option>'+
+        fams.map(f=>'<option value="'+esc(f.code)+'">('+esc(f.code)+') '+esc(f.name)+'</option>').join('');
+    })
+    .catch(()=>{ sel.innerHTML='<option value="">Failed to load</option>'; });
+}
+
+function gOnFamChange(){
+  const sel=$('gFamSel'), v=sel.value;
+  $('gBtnS2').disabled=!v;
+  if(v){ const name=sel.options[sel.selectedIndex].text.replace(/^\([^)]+\)\s*/,''); gFAM={k:v,n:name}; }
+}
+
+function gBuildClassSelect(){
+  const sel=$('gClsSel');
+  sel.innerHTML='<option value="">Loading…</option>';
+  $('gTrail3').textContent=(gSEG?gSEG.n:'')+' › '+(gFAM?gFAM.n:'');
+  $('gBtnS3').disabled=true;
+  fetch(RELAY+'/api/segments/'+encodeURIComponent(gSEG.k)+'/families/'+encodeURIComponent(gFAM.k)+'/classes')
+    .then(r=>r.json())
+    .then(cls=>{
+      sel.innerHTML='<option value="">— Select class —</option>'+
+        cls.map(c=>'<option value="'+esc(c.code)+'">('+esc(c.code)+') '+esc(c.name)+'</option>').join('');
+    })
+    .catch(()=>{ sel.innerHTML='<option value="">Failed to load</option>'; });
+}
+
+function gOnClsChange(){
+  const sel=$('gClsSel'), v=sel.value;
+  $('gBtnS3').disabled=!v;
+  if(v){ const name=sel.options[sel.selectedIndex].text.replace(/^\([^)]+\)\s*/,''); gCLS={k:v,n:name}; }
+}
+
+function gBuildCommoditySelect(){
+  const sel=$('gComSel');
+  sel.innerHTML='<option value="">Loading…</option>';
+  $('gTrail4').textContent=(gSEG?gSEG.n:'')+' › '+(gFAM?gFAM.n:'')+' › '+(gCLS?gCLS.n:'');
+  $('gBtnS4').disabled=true;
+  $('gComCodeWrap').style.display='none';
+  fetch(RELAY+'/api/segments/'+encodeURIComponent(gSEG.k)+'/families/'+encodeURIComponent(gFAM.k)+'/classes/'+encodeURIComponent(gCLS.k)+'/commodities')
+    .then(r=>r.json())
+    .then(coms=>{
+      sel.innerHTML='<option value="">— Select commodity —</option>'+
+        coms.map(c=>'<option value="'+esc(c.code)+'">'+esc(c.code)+' — '+esc(c.name)+'</option>').join('');
+    })
+    .catch(()=>{ sel.innerHTML='<option value="">Failed to load</option>'; });
+}
+
+function gOnComChange(){
+  const sel=$('gComSel'), v=sel.value;
+  if(!v){ $('gBtnS4').disabled=true; $('gComCodeWrap').style.display='none'; return; }
+  const name=sel.options[sel.selectedIndex].text.replace(/^\d+ — /,'');
+  gCOM={k:v,n:name};
+  $('gComCodeVal').value=v;
+  $('gComCodeWrap').style.display='';
+  $('gBtnS4').disabled=false;
+}
+
+function gBuildDetailsSummary(){
+  const el=$('gComSummary');
+  el.innerHTML='<span class="g-sel-code">('+esc(gCOM.k)+')</span><span class="g-sel-name">'+esc(gCOM.n)+'</span>';
+  $('gFldGrouping').value=(gSEG?gSEG.n:'')+' >> '+(gFAM?gFAM.n:'')+' >> '+(gCLS?gCLS.n:'');
+  $('gFldComCode').value=gCOM.k;
+}
+
+function gUomInput(v){
+  const dd=$('gUomDd');
+  if(!v){ dd.style.display='none'; return; }
+  const q=v.toLowerCase();
+  const matches=gUnits.filter(u=>u.toLowerCase().includes(q)).slice(0,10);
+  const customMatch=v.trim()&&!gUnits.some(u=>u.toLowerCase()===q);
+  let html=matches.map(u=>'<div class="g-uom-opt" onclick="gPickUom(\''+esc(u.replace(/'/g,"\\'"))+'\')">'+esc(u)+'</div>').join('');
+  if(customMatch) html+='<div class="g-uom-opt g-uom-cust" onclick="gPickUom(\''+esc(v.trim().replace(/'/g,"\\'"))+'\')">&#10003; Use custom: "'+esc(v.trim())+'"</div>';
+  dd.innerHTML=html;
+  dd.style.display=html?'':'none';
+}
+
+function gPickUom(val){ $('gFldUom').value=val; $('gUomDd').style.display='none'; }
+
+document.addEventListener('click',function(e){
+  const dd=$('gUomDd');
+  if(dd&&!dd.contains(e.target)&&e.target.id!=='gFldUom') dd.style.display='none';
+});
+
+async function gSyncItem(){
+  const code=gvi('gFldCode'), name=gvi('gFldName'), cur=gvi('gFldCur'),
+        price=gvi('gFldPrice'), uom=gvi('gFldUom');
+  if(!code||!name||!cur||!price||!uom){ alert('Please fill all required fields: Code, Name, Currency, Price, Unit.'); return; }
+  if(!gCOM){ alert('Please complete the wizard steps first.'); return; }
+  const item={
+    code, name, comCode:gCOM.k, comName:gCOM.n,
+    segment:gSEG?gSEG.n:'', segCode:gSEG?gSEG.k:'',
+    family:gFAM?gFAM.n:'', famCode:gFAM?gFAM.k:'',
+    cls:gCLS?gCLS.n:'', clsCode:gCLS?gCLS.k:'',
+    uom, price:parseFloat(price)||0, cur,
+    type:$('gFldType').value, vat:$('gFldVat').value,
+    excise:$('gFldExcise').value,
+    remarks:$('gFldRemarks')?$('gFldRemarks').value.trim():'',
+    managerSync:null, efrisSync:null,
+    id:Date.now()+'_'+Math.random().toString(36).slice(2)
+  };
+  const statusEl=$('gSyncStatus');
+  statusEl.innerHTML='<div class="st si"><span class="sp">⏳</span> Syncing to Manager.io…</div>';
+  const ep=CFG.managerEndpoint, tk=CFG.accessToken;
+  if(!ep||!tk){
+    item.managerSync='error';
+    statusEl.innerHTML='<div class="st se">❌ Manager.io not configured. Go to Settings first.</div>';
+    gItems.push(item); gRefreshList(); return;
+  }
+  try{
+    const r=await fetch(RELAY+'/api/goods/sync-to-manager',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,item})});
+    const d=await r.json();
+    if(d.success){ item.managerSync='ok'; item.managerId=d.managerId; statusEl.innerHTML='<div class="st ss">✅ Synced to Manager.io successfully!</div>'; }
+    else{ item.managerSync='error'; statusEl.innerHTML='<div class="st se">❌ Manager sync failed: '+esc(d.error||'Unknown error')+'</div>'; }
+  }catch(e){ item.managerSync='error'; statusEl.innerHTML='<div class="st se">❌ Network error: '+esc(e.message)+'</div>'; }
+
+  if(item.managerSync==='ok'&&CFG.tin&&CFG.deviceNo){
+    statusEl.innerHTML+='<div class="st si"><span class="sp">⏳</span> Registering in EFRIS goods registry…</div>';
+    try{
+      const r2=await fetch(RELAY+'/api/efris/register-goods',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',item})});
+      const d2=await r2.json();
+      if(d2.success){ item.efrisSync='ok'; statusEl.innerHTML+='<div class="st ss">✅ Registered in EFRIS goods registry!</div>'; }
+      else{ item.efrisSync='error'; statusEl.innerHTML+='<div class="al aw">⚠ EFRIS: '+esc(d2.error||d2.returnMessage||'Failed')+'</div>'; }
+    }catch(e2){ item.efrisSync='error'; }
+  }
+  gItems.push(item); gRefreshList();
+}
+
+function gRefreshList(){
+  const n=gItems.length;
+  const el=$('gItemCount'); if(el) el.textContent=n+' item'+(n!==1?'s':'');
+  const tbody=$('gItemsTbody'); if(!tbody) return;
+  if(!n){ tbody.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--gray);padding:20px;">No items yet.</td></tr>'; return; }
+  tbody.innerHTML=gItems.map((it,i)=>'<tr>'
+    +'<td style="font-family:monospace;font-size:10px;">'+esc(it.code)+'</td>'
+    +'<td><strong>'+esc(it.name)+'</strong></td>'
+    +'<td style="font-size:10px;color:var(--gray);">'+esc(it.comCode)+'</td>'
+    +'<td>'+esc(it.uom)+'</td>'
+    +'<td style="font-weight:600;">'+(it.price||0).toLocaleString()+'</td>'
+    +'<td>'+esc(it.cur)+'</td>'
+    +'<td><span class="pill '+(it.type==='Service'?'pill-svc':'pill-gds')+'">'+esc(it.type)+'</span></td>'
+    +'<td style="font-size:10px;">'+esc(it.vat)+'</td>'
+    +'<td>'+(it.managerSync==='ok'?'<span class="pill pill-ok">✓ Synced</span>':it.managerSync==='error'?'<span class="pill pill-err">Error</span>':'<span class="pill pill-pend">Pending</span>')+'</td>'
+    +'<td>'+(it.efrisSync==='ok'?'<span class="pill pill-ok">✓ Done</span>':it.efrisSync==='error'?'<span class="pill pill-err">Error</span>':'<span class="pill pill-pend">—</span>')+'</td>'
+    +'<td><button onclick="gDeleteItem('+i+')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;">🗑</button></td>'
+    +'</tr>'
+  ).join('');
+}
+
+function gDeleteItem(i){ if(!confirm('Delete "'+gItems[i].name+'"?'))return; gItems.splice(i,1); gRefreshList(); }
+
+// ── Init ──────────────────────────────────────────────────────
+function init(){
+  rDots();
+  const saved=ld();
+  if(saved&&saved.tin&&saved.managerEndpoint){
+    CFG=saved;TG.vatReg=!!CFG.vatReg;TG.sandbox=CFG.sandbox!==false;apCFG();
+    try{ if(window.parent&&window.parent!==window){ window.parent.postMessage({type:'request_context'},'*'); window.parent.postMessage({type:'efris-extension-ready'},'*'); } }catch(e){}
+    if(readParams()){
+      loadInv(DKEY);
+    } else {
+      setTimeout(()=>{
+        if(!INV&&!DKEY){
+          showScr('sNone'); loadList();
+          try{
+            var dbg=$('ctxDbg');
+            if(dbg&&!dbg.textContent){
+              var inIframe=(window.parent&&window.parent!==window)?'yes':'no';
+              dbg.textContent='Auto-context: none (in iframe: '+inIframe+'). Using the invoice list above.';
+            }
+          }catch(e){}
+        }
+      },1500);
+    }
+  } else {
+    showScr('sOB');
+  }
+}
+init();
 </script>
 </body>
 </html>
