@@ -641,8 +641,16 @@ app.post('/api/efris/register-goods', async (req, res) => {
     const vatCat = item.vat === 'Exempt' ? '03' : item.vat === 'Zero' ? '02' : '01';
     const taxRate = vatCat === '01' ? '0.18' : '0.00';
 
-    // goodsTypeCode: '1'=Goods, '2'=Service (required by T130)
-    const goodsTypeCode = (item.type || 'Service') === 'Goods' ? '1' : '2';
+    // goodsTypeCode: '101'=Goods, '102'=Service (URA numeric codes)
+    const goodsTypeCode = (item.type || 'Service') === 'Goods' ? '101' : '102';
+
+    // URA currency numeric codes (from EFRIS reference data)
+    const CURRENCY_CODES = {
+      UGX: '101', USD: '102', EUR: '103', GBP: '104',
+      KES: '105', TZS: '106', RWF: '107', JPY: '108',
+      CNY: '109', INR: '110', ZAR: '111', AED: '112',
+    };
+    const currencyCode = CURRENCY_CODES[item.cur] || CURRENCY_CODES['UGX'];
 
     // T130 = Goods Registration (Add Product Code). The correct interface for
     // registering items in the EFRIS goods catalogue.
@@ -651,7 +659,7 @@ app.post('/api/efris/register-goods', async (req, res) => {
       goodsName:         item.name,
       goodsTypeCode,
       measureUnit:       uomCode,
-      currency:          item.cur || 'UGX',
+      currency:          currencyCode,
       unitPrice:         String(parseFloat(item.price) || 0),
       goodsCategoryId:   item.comCode || '',
       goodsCategoryName: item.comName || '',
@@ -674,7 +682,7 @@ app.post('/api/efris/register-goods', async (req, res) => {
     };
 
     console.log(`\n📦 Registering goods with EFRIS T130: ${item.code} — ${item.name}`);
-    console.log(`   Payload: goodsCode=${t130Payload.goodsCode}, categoryId=${t130Payload.goodsCategoryId}, measureUnit=${uomCode}, price=${t130Payload.unitPrice}, vatCat=${vatCat}, type=${goodsTypeCode}`);
+    console.log(`   Payload: goodsCode=${t130Payload.goodsCode}, categoryId=${t130Payload.goodsCategoryId}, measureUnit=${uomCode}, price=${t130Payload.unitPrice}, currency=${currencyCode}(${item.cur}), vatCat=${vatCat}, type=${goodsTypeCode}`);
     const t130 = await efrisCall(eu, efrisEnvEnc('T130', t130Payload, tin, deviceNo, session.aesKey, session.privatePem));
     const rc = t130.data && t130.data.returnStateInfo ? t130.data.returnStateInfo.returnCode : null;
     const rm = t130.data && t130.data.returnStateInfo ? t130.data.returnStateInfo.returnMessage : '';
