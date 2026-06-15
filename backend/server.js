@@ -637,45 +637,33 @@ app.post('/api/efris/register-goods', async (req, res) => {
     // goodsTypeCode: '101'=Goods, '102'=Service (URA numeric codes)
     const goodsTypeCode = (item.type || 'Service') === 'Goods' ? '101' : '102';
 
-    // URA currency numeric codes (from EFRIS reference data)
-    const CURRENCY_CODES = {
-      UGX: '101', USD: '102', EUR: '103', GBP: '104',
-      KES: '105', TZS: '106', RWF: '107', JPY: '108',
-      CNY: '109', INR: '110', ZAR: '111', AED: '112',
-    };
-    const currencyCode = CURRENCY_CODES[item.cur] || CURRENCY_CODES['UGX'];
-
-    // T130 = Goods Registration (Add Product Code). The correct interface for
-    // registering items in the EFRIS goods catalogue.
+    // T130 = Goods Registration (Add Product Code).
+    // currency: EFRIS accepts ISO codes (USD, EUR, GBP…) for foreign-currency items.
+    // UGX is the default base currency — omit the field entirely when pricing in UGX.
+    // taxItems are for invoices (T109), not goods registration — exclude here.
+    const isForeignCurrency = item.cur && item.cur !== 'UGX';
     const t130Payload = {
-      goodsCode:         item.code,
-      goodsName:         item.name,
+      goodsCode:          item.code,
+      goodsName:          item.name,
       goodsTypeCode,
-      measureUnit:       uomCode,
-      currency:          currencyCode,
-      unitPrice:         String(parseFloat(item.price) || 0),
-      goodsCategoryId:   item.comCode || '',
-      goodsCategoryName: item.comName || '',
-      haveExciseTax:     item.excise === 'Yes' ? '101' : '102',
-      description:       item.remarks || '',
-      stockPrewarning:   0,
-      pricingMode:       1,
-      havePieceUnit:     '102',
-      pieceUnit:         '',
-      packageScaledValue: 1,
-      scaledValue:       1,
-      discountTaxRate:   '',
-      taxItems: [{
-        taxCategoryCode: vatCat,
-        taxRateCode:     '1',
-        taxRate:         taxRate,
-        taxAmount:       '',
-        taxAmountUsd:    ''
-      }]
+      measureUnit:        uomCode,
+      unitPrice:          String(parseFloat(item.price) || 0),
+      goodsCategoryId:    item.comCode || '',
+      goodsCategoryName:  item.comName || '',
+      haveExciseTax:      item.excise === 'Yes' ? '101' : '102',
+      description:        item.remarks || '',
+      stockPrewarning:    '0',
+      pricingMode:        '1',
+      havePieceUnit:      '102',
+      pieceUnit:          '',
+      packageScaledValue: '1',
+      scaledValue:        '1',
+      discountTaxRate:    '',
     };
+    if (isForeignCurrency) t130Payload.currency = item.cur;
 
     console.log(`\n📦 Registering goods with EFRIS T130: ${item.code} — ${item.name}`);
-    console.log(`   Payload: goodsCode=${t130Payload.goodsCode}, categoryId=${t130Payload.goodsCategoryId}, measureUnit=${uomCode}, price=${t130Payload.unitPrice}, currency=${currencyCode}(${item.cur}), vatCat=${vatCat}, type=${goodsTypeCode}`);
+    console.log(`   Payload: goodsCode=${t130Payload.goodsCode}, categoryId=${t130Payload.goodsCategoryId}, measureUnit=${uomCode}, price=${t130Payload.unitPrice}, currency=${t130Payload.currency||'UGX(default)'}, vatCat=${vatCat}, type=${goodsTypeCode}`);
     const t130 = await efrisCall(eu, efrisEnvEnc('T130', t130Payload, tin, deviceNo, session.aesKey, session.privatePem));
     const rc = t130.data && t130.data.returnStateInfo ? t130.data.returnStateInfo.returnCode : null;
     const rm = t130.data && t130.data.returnStateInfo ? t130.data.returnStateInfo.returnMessage : '';
