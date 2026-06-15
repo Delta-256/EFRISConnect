@@ -335,6 +335,12 @@
           <div class="ct" style="margin:0;border:none;padding:0;">&#128203; My Items <span id="gItemCount" style="font-size:10px;font-weight:400;color:var(--gray)">0 items</span></div>
           <button class="btn bg bsm" onclick="gSwSub('cfg');gGoStep(1)">&#10133; Add New</button>
         </div>
+        <div class="card" style="margin-bottom:9px;">
+          <div class="ct">&#128229; Import Existing Manager.io Items</div>
+          <p style="font-size:11px;color:var(--gray);margin-bottom:8px;">Pull items already in Manager.io and configure their EFRIS commodity codes here.</p>
+          <button class="btn bo bsm" onclick="gLoadManagerItems()" id="gBtnImport">&#128260; Load Manager Items</button>
+          <div id="gManagerItemsList" style="margin-top:8px;max-height:250px;overflow-y:auto;"></div>
+        </div>
         <div class="g-tbl">
           <table>
             <thead><tr><th>Code</th><th>Name</th><th>Commodity</th><th>UOM</th><th>Price</th><th>Cur</th><th>Type</th><th>VAT</th><th>Mgr</th><th>EFRIS</th><th>Del</th></tr></thead>
@@ -837,7 +843,7 @@ async function gSyncItem(){
   try{
     const r=await fetch(RELAY+'/api/goods/sync-to-manager',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,item})});
     const d=await r.json();
-    if(d.success){ item.managerSync='ok'; item.managerId=d.managerId; statusEl.innerHTML='<div class="st ss">✅ Synced to Manager.io successfully!</div>'; }
+    if(d.success){ item.managerSync='ok'; item.managerId=d.managerId||null; const actionLabel=d.action==='updated'?'✏️ Updated in Manager.io':'✅ Created in Manager.io'; statusEl.innerHTML='<div class="st ss">'+actionLabel+'</div>'; }
     else{ item.managerSync='error'; statusEl.innerHTML='<div class="st se">❌ Manager sync failed: '+esc(d.error||'Unknown error')+'</div>'; }
   }catch(e){ item.managerSync='error'; statusEl.innerHTML='<div class="st se">❌ Network error: '+esc(e.message)+'</div>'; }
 
@@ -877,6 +883,56 @@ function gRefreshList(){
 }
 
 function gDeleteItem(i){ if(!confirm('Delete "'+gItems[i].name+'"?'))return; gItems.splice(i,1); gRefreshList(); }
+
+let _mgrItems=[];
+async function gLoadManagerItems(){
+  const btn=$('gBtnImport');
+  const el=$('gManagerItemsList');
+  if(!el)return;
+  btn.disabled=true;btn.textContent='Loading…';
+  el.innerHTML='<div class="al ai"><span class="sp">⏳</span> Fetching from Manager.io…</div>';
+  try{
+    const ep=encodeURIComponent(CFG.managerEndpoint||'');
+    const tk=encodeURIComponent(CFG.accessToken||'');
+    const r=await fetch(RELAY+'/api/goods/manager-items?ep='+ep+'&tk='+tk);
+    const d=await r.json();
+    if(!d.success){el.innerHTML='<div class="al ae">'+esc(d.error||'Failed')+'</div>';return;}
+    if(!d.items||!d.items.length){el.innerHTML='<div class="al ai">No items found in Manager.io.</div>';return;}
+    const imported=new Set(gItems.map(i=>i.code.toLowerCase()));
+    const fresh=d.items.filter(i=>i.code&&!imported.has(i.code.toLowerCase()));
+    const already=d.items.filter(i=>i.code&&imported.has(i.code.toLowerCase()));
+    let h='';
+    if(already.length) h+='<div class="al as" style="margin-bottom:6px;">'+already.length+' item(s) already in your list: '+already.map(i=>esc(i.code)).join(', ')+'</div>';
+    if(!fresh.length&&already.length){el.innerHTML=h+'<div class="al ai">All Manager items are already imported.</div>';return;}
+    h+='<div style="font-size:10px;color:var(--gray);margin-bottom:5px;">Click an item to import it and configure its EFRIS commodity code:</div>';
+    _mgrItems=fresh;
+    fresh.forEach(function(i,idx){
+      h+='<div onclick="gImportManagerItem('+idx+')" style="cursor:pointer;border:1px solid var(--bdr);border-radius:5px;padding:7px 10px;margin-bottom:5px;background:white;font-size:12px;">'
+        +'<strong>'+esc(i.code||'—')+'</strong> — '+esc(i.name)
+        +'<span class="pill '+(i.type==='Goods'?'pill-gds':'pill-svc')+'" style="margin-left:6px;">'+esc(i.type)+'</span>'
+        +(i.unitName?'<span style="color:var(--gray);font-size:10px;margin-left:6px;">'+esc(i.unitName)+'</span>':'')
+        +'</div>';
+    });
+    el.innerHTML=h;
+  }catch(e){el.innerHTML='<div class="al ae">Network error: '+esc(e.message)+'</div>';}
+  finally{btn.disabled=false;btn.textContent='🔄 Reload Manager Items';}
+}
+
+function gImportManagerItem(idx){
+  const i=_mgrItems[idx];
+  if(!i)return;
+  gSwSub('cfg');
+  gGoStep(1);
+  setTimeout(()=>{
+    sv('gFldCode', i.code||'');
+    sv('gFldName', i.name||'');
+    sv('gFldUom',  i.unitName||'');
+    const typeEl=$('gFldType');
+    if(typeEl) typeEl.value=i.type==='Goods'?'Goods':'Service';
+    window._importedManagerKey=i.key;
+  },50);
+  $('gManagerItemsList').innerHTML='<div class="al as">✅ Importing <strong>'+esc(i.code)+'</strong> — now complete the commodity wizard steps 1–4, then fill in Step 5 details and click Sync.</div>';
+}
 
 // ── Init ──────────────────────────────────────────────────────
 function init(){

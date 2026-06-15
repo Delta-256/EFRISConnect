@@ -421,8 +421,9 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
   }
   const ep = normEp(managerEndpoint);
   const isService = (item.type || 'Service') !== 'Goods';
-  const docPath = isService ? '/non-inventory-items' : '/inventory-items';
-  // Manager.io API v2 uses SalesUnitPrice (not UnitPrice) and Name (not ItemName).
+  const listPath = isService ? '/non-inventory-items' : '/inventory-items';
+  const listKey  = isService ? 'nonInventoryItems' : 'inventoryItems';
+
   const payload = {
     Code:           item.code,
     Name:           item.name,
@@ -430,17 +431,66 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
     UnitName:       item.uom,
     Description:    item.remarks || ''
   };
-  console.log(`\n🔗 Syncing to Manager.io: POST ${ep}${docPath} — ${item.code} ${item.name}`);
+
   try {
-    const r = await managerCall(ep, accessToken, 'POST', docPath, payload);
+    // 1. Fetch existing items to check for duplicate by Code
+    let existingKey = null;
+    try {
+      const listR = await managerCall(ep, accessToken, 'GET', listPath, null);
+      if (listR.status === 200 && listR.data && Array.isArray(listR.data[listKey])) {
+        const match = listR.data[listKey].find(i =>
+          (i.code || i.Code || '').toLowerCase() === (item.code || '').toLowerCase()
+        );
+        if (match) existingKey = match.key || match.Key;
+      }
+    } catch(_) {}
+
+    let r, action;
+    if (existingKey) {
+      // 2a. Item exists — PUT to update
+      console.log(`\n🔗 Updating in Manager.io: PUT ${ep}${listPath}/${existingKey} — ${item.code} ${item.name}`);
+      r = await managerCall(ep, accessToken, 'PUT', `${listPath}/${existingKey}`, payload);
+      action = 'updated';
+    } else {
+      // 2b. New item — POST to create
+      console.log(`\n🔗 Creating in Manager.io: POST ${ep}${listPath} — ${item.code} ${item.name}`);
+      r = await managerCall(ep, accessToken, 'POST', listPath, payload);
+      action = 'created';
+    }
     console.log(`   Manager response: HTTP ${r.status}`, JSON.stringify(r.data || '').slice(0, 200));
+
+    // Manager returns 200 for both create and update; a 4xx means a real error
     const ok = r.status >= 200 && r.status < 300;
-    const managerId = ok && r.data ? (r.data.Key || r.data.key || r.data.id || null) : null;
+    const managerId = ok ? (existingKey || (r.data && (r.data.Key || r.data.key || r.data.id)) || null) : null;
     res.json(ok
-      ? { success: true, managerId }
-      : { success: false, error: `Manager returned HTTP ${r.status} — check access token and that the business is open` });
+      ? { success: true, action, managerId }
+      : { success: false, error: `Manager returned HTTP ${r.status}` });
   } catch(e) {
     res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/goods/manager-items', async (req, res) => {
+  const ep = normEp(req.query.ep || '');
+  const tk = req.query.tk || '';
+  if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk required' });
+  try {
+    const [niR, invR] = await Promise.all([
+      managerCall(ep, tk, 'GET', '/non-inventory-items', null),
+      managerCall(ep, tk, 'GET', '/inventory-items', null)
+    ]);
+    const services = (niR.status === 200 && niR.data && niR.data.nonInventoryItems) || [];
+    const goods    = (invR.status === 200 && invR.data && invR.data.inventoryItems) || [];
+    const normalize = (arr, type) => arr.map(i => ({
+      key:      i.key || i.Key,
+      code:     i.code || i.Code || '',
+      name:     i.itemName || i.name || i.Name || '',
+      unitName: i.unitName || i.UnitName || '',
+      type
+    }));
+    res.json({ success: true, items: [...normalize(services,'Service'), ...normalize(goods,'Goods')] });
+  } catch(e) {
+    res.json({ success: false, error: e.message });
   }
 });
 
