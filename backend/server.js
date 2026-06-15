@@ -550,13 +550,6 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
     res.status(500).json({ success: false, error: e.message });
   }
 });
-    res.json(ok
-      ? { success: true, action, managerId, comCodeWritten: !!(comCodeFieldKey && item.comCode), fieldsWritten }
-      : { success: false, error: `Manager returned HTTP ${r.status}: ${JSON.stringify(r.data||'').slice(0,200)}` });
-  } catch(e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
 
 app.get('/api/goods/manager-items', async (req, res) => {
   const ep = normEp(req.query.ep || '');
