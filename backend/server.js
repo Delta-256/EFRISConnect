@@ -641,17 +641,21 @@ app.post('/api/efris/register-goods', async (req, res) => {
     const vatCat = item.vat === 'Exempt' ? '03' : item.vat === 'Zero' ? '02' : '01';
     const taxRate = vatCat === '01' ? '0.18' : '0.00';
 
-    // T127 = UploadGoods (goods registration). Field names are URA-specific.
-    // goodsTypeCode is NOT sent — URA derives type from goodsCategoryId.
-    const t127Payload = {
+    // goodsTypeCode: '1'=Goods, '2'=Service (required by T130)
+    const goodsTypeCode = (item.type || 'Service') === 'Goods' ? '1' : '2';
+
+    // T130 = Goods Registration (Add Product Code). The correct interface for
+    // registering items in the EFRIS goods catalogue.
+    const t130Payload = {
       goodsCode:         item.code,
       goodsName:         item.name,
+      goodsTypeCode,
       measureUnit:       uomCode,
       currency:          item.cur || 'UGX',
       unitPrice:         String(parseFloat(item.price) || 0),
       goodsCategoryId:   item.comCode || '',
       goodsCategoryName: item.comName || '',
-      haveExciseTax:     item.excise === 'Yes' ? '101' : '102',  // 101=yes, 102=no
+      haveExciseTax:     item.excise === 'Yes' ? '101' : '102',
       description:       item.remarks || '',
       stockPrewarning:   0,
       pricingMode:       1,
@@ -669,15 +673,17 @@ app.post('/api/efris/register-goods', async (req, res) => {
       }]
     };
 
-    console.log(`\n📦 Registering goods with EFRIS T127: ${item.code} — ${item.name}`);
-    console.log(`   Payload: goodsCode=${t127Payload.goodsCode}, categoryId=${t127Payload.goodsCategoryId}, measureUnit=${uomCode}, price=${t127Payload.unitPrice}, vatCat=${vatCat}`);
-    const t127 = await efrisCall(eu, efrisEnvEnc('T127', t127Payload, tin, deviceNo, session.aesKey, session.privatePem));
-    const rc = t127.data && t127.data.returnStateInfo ? t127.data.returnStateInfo.returnCode : null;
-    const rm = t127.data && t127.data.returnStateInfo ? t127.data.returnStateInfo.returnMessage : '';
-    console.log(`   T127 rc: ${rc} (${rm})`);
+    console.log(`\n📦 Registering goods with EFRIS T130: ${item.code} — ${item.name}`);
+    console.log(`   Payload: goodsCode=${t130Payload.goodsCode}, categoryId=${t130Payload.goodsCategoryId}, measureUnit=${uomCode}, price=${t130Payload.unitPrice}, vatCat=${vatCat}, type=${goodsTypeCode}`);
+    const t130 = await efrisCall(eu, efrisEnvEnc('T130', t130Payload, tin, deviceNo, session.aesKey, session.privatePem));
+    const rc = t130.data && t130.data.returnStateInfo ? t130.data.returnStateInfo.returnCode : null;
+    const rm = t130.data && t130.data.returnStateInfo ? t130.data.returnStateInfo.returnMessage : '';
+    // Log full response body to help diagnose partial failures
+    console.log(`   T130 rc: ${rc} (${rm})`);
+    if (rc !== '00') console.log(`   T130 full response:`, JSON.stringify(t130.data || '').slice(0, 500));
     const ok = rc === '00';
     res.json({ success: ok, returnCode: rc, returnMessage: rm,
-      error: ok ? undefined : `EFRIS T127: ${rc} — ${rm}` });
+      error: ok ? undefined : `EFRIS T130: ${rc} — ${rm}` });
   } catch(e) {
     console.log(`   ❌ register-goods error: ${e.message}`);
     res.status(500).json({ success: false, error: e.message });
