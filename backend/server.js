@@ -566,6 +566,7 @@ app.post('/api/efris/register-goods', async (req, res) => {
     };
 
     console.log(`\n📦 Registering goods with EFRIS T127: ${item.code} — ${item.name}`);
+    console.log(`   Payload: goodsCode=${t127Payload.goodsCode}, categoryId=${t127Payload.goodsCategoryId}, measureUnit=${uomCode}, price=${t127Payload.unitPrice}, vatCat=${vatCat}`);
     const t127 = await efrisCall(eu, efrisEnvEnc('T127', t127Payload, tin, deviceNo, session.aesKey, session.privatePem));
     const rc = t127.data && t127.data.returnStateInfo ? t127.data.returnStateInfo.returnCode : null;
     const rm = t127.data && t127.data.returnStateInfo ? t127.data.returnStateInfo.returnMessage : '';
