@@ -444,24 +444,58 @@ app.post('/api/efris/register-goods', async (req, res) => {
   try {
     const session = await getSession(tin, deviceNo, efrisPassword, eu);
     if (!session.aesKey) throw new Error('No AES key available — check private key path');
-    const t130Payload = {
-      goodsCode:          item.code,
-      goodsName:          item.name,
-      measureUnit:        item.uom,
-      currency:           item.cur,
-      unitPrice:          String(item.price),
-      goodsCategoryId:    item.comCode,
-      goodsCategoryName:  item.comName,
-      exciseFlag:         item.excise === 'Yes' ? '1' : '2',
-      vatApplicableFlag:  item.vat === 'Exempt' ? '2' : item.vat === 'Zero' ? '3' : '1',
-      description:        item.remarks || ''
+
+    // Resolve UOM text → URA code (e.g. "Per Person" → "PP").
+    // Fall back to the raw text if not found (URA rejects unknown codes, but at least the error is clear).
+    let uomCode = item.uom || 'UN';
+    try {
+      const units = getUnits();
+      const match = units.find(u => u.name.toLowerCase() === (item.uom || '').toLowerCase());
+      if (match) uomCode = match.code;
+    } catch(_) {}
+
+    // VAT tax item — taxCategoryCode: '01'=standard(18%), '02'=zero-rated, '03'=exempt
+    const vatCat = item.vat === 'Exempt' ? '03' : item.vat === 'Zero' ? '02' : '01';
+    const taxRate = vatCat === '01' ? '0.18' : '0.00';
+
+    // T127 = UploadGoods (goods registration). Field names are URA-specific.
+    const t127Payload = {
+      goodsCode:         item.code,
+      goodsName:         item.name,
+      goodsTypeCode:     item.type === 'Goods' ? '1' : '2',  // 1=goods, 2=service
+      measureUnit:       uomCode,
+      currency:          item.cur || 'UGX',
+      unitPrice:         String(parseFloat(item.price) || 0),
+      goodsCategoryId:   item.comCode || '',
+      goodsCategoryName: item.comName || '',
+      haveExciseTax:     item.excise === 'Yes' ? '101' : '102',  // 101=yes, 102=no
+      description:       item.remarks || '',
+      stockPrewarning:   0,
+      pricingMode:       1,
+      havePieceUnit:     '102',
+      pieceUnit:         '',
+      packageScaledValue: 1,
+      scaledValue:       1,
+      discountTaxRate:   '',
+      taxItems: [{
+        taxCategoryCode: vatCat,
+        taxRateCode:     '1',
+        taxRate:         taxRate,
+        taxAmount:       '',
+        taxAmountUsd:    ''
+      }]
     };
-    const t130 = await efrisCall(eu, efrisEnvEnc('T130', t130Payload, tin, deviceNo, session.aesKey, session.privatePem));
-    const rc = t130.data && t130.data.returnStateInfo ? t130.data.returnStateInfo.returnCode : null;
-    const rm = t130.data && t130.data.returnStateInfo ? t130.data.returnStateInfo.returnMessage : '';
+
+    console.log(`\n📦 Registering goods with EFRIS T127: ${item.code} — ${item.name}`);
+    const t127 = await efrisCall(eu, efrisEnvEnc('T127', t127Payload, tin, deviceNo, session.aesKey, session.privatePem));
+    const rc = t127.data && t127.data.returnStateInfo ? t127.data.returnStateInfo.returnCode : null;
+    const rm = t127.data && t127.data.returnStateInfo ? t127.data.returnStateInfo.returnMessage : '';
+    console.log(`   T127 rc: ${rc} (${rm})`);
     const ok = rc === '00';
-    res.json({ success: ok, returnCode: rc, returnMessage: rm });
+    res.json({ success: ok, returnCode: rc, returnMessage: rm,
+      error: ok ? undefined : `EFRIS T127: ${rc} — ${rm}` });
   } catch(e) {
+    console.log(`   ❌ register-goods error: ${e.message}`);
     res.status(500).json({ success: false, error: e.message });
   }
 });
