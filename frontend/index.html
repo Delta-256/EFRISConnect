@@ -843,7 +843,7 @@ async function gSyncItem(){
   try{
     const r=await fetch(RELAY+'/api/goods/sync-to-manager',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,item})});
     const d=await r.json();
-    if(d.success){ item.managerSync='ok'; item.managerId=d.managerId||null; const actionLabel=d.action==='updated'?'✏️ Updated in Manager.io':'✅ Created in Manager.io'; const comNote=d.comCodeWritten?' + EFRIS Commodity Code saved':''; statusEl.innerHTML='<div class="st ss">'+actionLabel+comNote+'</div>'; }
+    if(d.success){ item.managerSync='ok'; item.managerId=d.managerId||null; const actionLabel=d.action==='updated'?'✏️ Updated in Manager.io':'✅ Created in Manager.io'; const cfNote=d.fieldsWritten?' + '+d.fieldsWritten+' EFRIS field(s) saved':''; statusEl.innerHTML='<div class="st ss">'+actionLabel+cfNote+'</div>'; }
     else{ item.managerSync='error'; statusEl.innerHTML='<div class="st se">❌ Manager sync failed: '+esc(d.error||'Unknown error')+'</div>'; }
   }catch(e){ item.managerSync='error'; statusEl.innerHTML='<div class="st se">❌ Network error: '+esc(e.message)+'</div>'; }
 
@@ -898,12 +898,15 @@ async function gLoadManagerItems(){
     const d=await r.json();
     if(!d.success){el.innerHTML='<div class="al ae">'+esc(d.error||'Failed')+'</div>';return;}
     if(!d.items||!d.items.length){el.innerHTML='<div class="al ai">No items found in Manager.io.</div>';return;}
-    const imported=new Set(gItems.map(i=>i.code.toLowerCase()));
-    const fresh=d.items.filter(i=>i.code&&!imported.has(i.code.toLowerCase()));
-    const already=d.items.filter(i=>i.code&&imported.has(i.code.toLowerCase()));
+    // Match by code (if available) or name to detect already-imported items
+    const imported=new Set(gItems.map(i=>(i.code||i.name||'').toLowerCase()).filter(Boolean));
+    const key=i=>(i.code||i.name||'').toLowerCase();
+    const fresh=d.items.filter(i=>!imported.has(key(i)));
+    const already=d.items.filter(i=>imported.has(key(i)));
     let h='';
-    if(already.length) h+='<div class="al as" style="margin-bottom:6px;">'+already.length+' item(s) already in your list: '+already.map(i=>esc(i.code)).join(', ')+'</div>';
+    if(already.length) h+='<div class="al as" style="margin-bottom:6px;">'+already.length+' item(s) already configured: '+already.map(i=>esc(i.code||i.name)).join(', ')+'</div>';
     if(!fresh.length&&already.length){el.innerHTML=h+'<div class="al ai">All Manager items are already imported.</div>';return;}
+    if(!fresh.length){el.innerHTML='<div class="al ai">No items found in Manager.io to import.</div>';return;}
     h+='<div style="font-size:10px;color:var(--gray);margin-bottom:5px;">Click an item to import it and configure its EFRIS commodity code:</div>';
     _mgrItems=fresh;
     fresh.forEach(function(i,idx){

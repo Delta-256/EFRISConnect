@@ -425,14 +425,17 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
   const listKey  = isService ? 'nonInventoryItems' : 'inventoryItems';
 
   try {
-    // 1. Look up the "EFRIS Commodity Code" custom field GUID (so we can write it)
-    let comCodeFieldKey = null;
+    // Look up custom field GUIDs for "EFRIS Commodity Code" and "EFRIS Category Path"
+    let comCodeFieldKey = null, catPathFieldKey = null;
     try {
       const cf = await mgrTextCustomFields(ep, accessToken);
       comCodeFieldKey = cf.byName['EFRIS Commodity Code'] || null;
+      catPathFieldKey = cf.byName['EFRIS Category Path'] || cf.byName['EFRIS Segment'] || null;
     } catch(_) {}
 
-    // 2. Build payload — include custom field if the GUID was found
+    // Build the category path from segment >> family >> class
+    const catPath = [item.segment, item.family, item.cls].filter(Boolean).join(' >> ');
+
     const payload = {
       Code:           item.code,
       Name:           item.name,
@@ -440,39 +443,45 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
       UnitName:       item.uom,
       Description:    item.remarks || ''
     };
-    if (comCodeFieldKey && item.comCode) {
-      payload.CustomFields2 = { Strings: { [comCodeFieldKey]: item.comCode } };
-    }
+    const cfStrings = {};
+    if (comCodeFieldKey && item.comCode) cfStrings[comCodeFieldKey] = item.comCode;
+    if (catPathFieldKey && catPath)      cfStrings[catPathFieldKey] = catPath;
+    if (Object.keys(cfStrings).length)   payload.CustomFields2 = { Strings: cfStrings };
 
-    // 3. Check for existing item by Code to decide create vs update
+    // Strategy: POST first. Manager always returns the item list after POST
+    // (whether created or already existed). Find our item in that list by
+    // name/code, then PUT to ensure the payload is applied correctly.
+    console.log(`\n🔗 Syncing to Manager.io: POST ${ep}${listPath} — ${item.code} ${item.name}`);
+    let r = await managerCall(ep, accessToken, 'POST', listPath, payload);
+    let action = 'created';
     let existingKey = null;
-    try {
-      const listR = await managerCall(ep, accessToken, 'GET', listPath, null);
-      if (listR.status === 200 && listR.data && Array.isArray(listR.data[listKey])) {
-        const match = listR.data[listKey].find(i =>
-          (i.code || i.Code || '').toLowerCase() === (item.code || '').toLowerCase()
-        );
-        if (match) existingKey = match.key || match.Key;
-      }
-    } catch(_) {}
 
-    let r, action;
-    if (existingKey) {
-      console.log(`\n🔗 Updating in Manager.io: PUT ${ep}${listPath}/${existingKey} — ${item.code} ${item.name}`);
-      r = await managerCall(ep, accessToken, 'PUT', `${listPath}/${existingKey}`, payload);
-      action = 'updated';
-    } else {
-      console.log(`\n🔗 Creating in Manager.io: POST ${ep}${listPath} — ${item.code} ${item.name}`);
-      r = await managerCall(ep, accessToken, 'POST', listPath, payload);
-      action = 'created';
+    if (r.status === 200 && r.data && Array.isArray(r.data[listKey])) {
+      // Find the item in the returned list by name or code
+      const match = r.data[listKey].find(i => {
+        const nm = (i.itemName || i.name || i.Name || '').toLowerCase();
+        const cd = (i.code || i.Code || '').toLowerCase();
+        return nm === item.name.toLowerCase() || (item.code && cd === item.code.toLowerCase());
+      });
+      if (match) {
+        existingKey = match.key || match.Key;
+        console.log(`   Found key ${existingKey} — applying PUT to set all fields`);
+        r = await managerCall(ep, accessToken, 'PUT', `${listPath}/${existingKey}`, payload);
+        // If we got the list back on POST and there was already 1+ item, it was an update
+        action = r.data && r.data[listKey] && r.data[listKey].length > 0 &&
+                 r.data[listKey].some(i => (i.key||i.Key) === existingKey) ? 'updated' : 'created';
+      }
     }
+
     console.log(`   Manager response: HTTP ${r.status}`, JSON.stringify(r.data || '').slice(0, 200));
-    if (comCodeFieldKey) console.log(`   EFRIS Commodity Code field key: ${comCodeFieldKey} → ${item.comCode}`);
+    if (comCodeFieldKey) console.log(`   EFRIS Commodity Code → ${item.comCode}`);
+    if (catPathFieldKey) console.log(`   EFRIS Category Path  → ${catPath}`);
 
     const ok = r.status >= 200 && r.status < 300;
     const managerId = ok ? (existingKey || (r.data && (r.data.Key || r.data.key || r.data.id)) || null) : null;
+    const fieldsWritten = Object.keys(cfStrings).length;
     res.json(ok
-      ? { success: true, action, managerId, comCodeWritten: !!(comCodeFieldKey && item.comCode) }
+      ? { success: true, action, managerId, comCodeWritten: !!(comCodeFieldKey && item.comCode), fieldsWritten }
       : { success: false, error: `Manager returned HTTP ${r.status}` });
   } catch(e) {
     res.status(500).json({ success: false, error: e.message });
