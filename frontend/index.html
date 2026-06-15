@@ -24,6 +24,7 @@
   .si{background:#e3f2fd;color:#0d47a1;border-color:#90caf9;}
   .ss{background:#e8f5e9;color:var(--gd);border-color:#a5d6a7;}
   .se{background:#ffebee;color:#b71c1c;border-color:#ef9a9a;}
+  .sw{background:#fff8e1;color:#e65100;border-color:#ffcc02;}
   @keyframes spin{to{transform:rotate(360deg)}}
   .sp{animation:spin 1s linear infinite;display:inline-block;}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:8px 14px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;width:100%;margin-bottom:5px;}
@@ -154,7 +155,7 @@
     <div class="ob" id="ob3">
       <div class="al ai"><strong>Step 3 of 4 &mdash; Tax &amp; Mode</strong></div>
       <div class="trow"><div><div class="tlbl">VAT Registered</div><div class="tdsc">Business charges 18% VAT</div></div><div class="tog" id="t3v" onclick="tg('t3v','vatReg')"></div></div>
-      <div class="trow"><div><div class="tlbl">Sandbox / Test Mode</div><div class="tdsc">Recommended until you go live</div></div><div class="tog on" id="t3s" onclick="tg('t3s','sandbox')"></div></div>
+      <div class="trow"><div><div class="tlbl">Sandbox / Test Mode &#10003;</div><div class="tdsc">Recommended until you go live</div></div><div class="tog on" id="t3s" onclick="tg('t3s','sandbox')"></div></div>
       <div class="al aw mt">&#9888; Keep Sandbox ON until you have tested 3+ invoices.</div>
       <div class="row mt"><button class="btn bo" onclick="obb(3)">&larr; Back</button><button class="btn bg" onclick="obn(3)">Next &rarr;</button></div>
     </div>
@@ -353,8 +354,10 @@
       <div class="gs"><div class="gn">4</div><div class="gb"><h4>FDN saved automatically</h4><p>Written to the EFRIS FDN field on your Manager invoice.</p></div></div>
       <div class="gs"><div class="gn">5</div><div class="gb"><h4>Use Goods tab to configure items</h4><p>Browse URA commodity tree and sync items to Manager.io as inventory or non-inventory items.</p></div></div>
       <hr>
-      <div class="al aw mt"><strong>Sad face in Manager?</strong> Use HTTPS URL: <code>https://localhost:5443/extension</code></div>
-      <div class="al aw"><strong>Auth failed?</strong> Check TIN, Device No. and EFRIS Password in Settings.</div>
+      <div class="al aw mt"><strong>Sad face icon in Manager panel?</strong><br>Manager requires HTTPS. Your custom button URL must be HTTPS — use your Cloudflare Tunnel URL:<br><code>https://goods.twoservants.com/extension</code></div>
+      <div class="al aw"><strong>Authentication failed?</strong><br>Check TIN, Device No. and EFRIS Password in Settings.</div>
+      <div class="al aw"><strong>Manager not saving?</strong><br>Check access token and that custom fields exist in Manager Settings &rarr; Custom Fields &rarr; Sales Invoices.</div>
+      <div class="al aw"><strong>Goods not appearing in URA?</strong><br>Enable &ldquo;Also register in EFRIS goods registry&rdquo; toggle in the Goods tab when syncing items.</div>
     </div>
   </div>
 
@@ -375,7 +378,7 @@
     <div class="card"><div class="ct">&#128279; System</div>
       <div class="fg"><label>Manager.io Endpoint</label><input id="sMgr"/></div>
       <div class="fg"><label>Access Token</label><input id="sTok"/></div>
-      <div class="al ai"><strong>Extension URLs:</strong><br>HTTP: <code>http://localhost:3000/extension</code><br>HTTPS: <code>https://localhost:5443/extension</code></div>
+      <div class="al ai"><strong>Extension URLs:</strong><br>&#127760; Cloudflare (use this in Manager): <code>https://goods.twoservants.com/extension</code><br>Local HTTP: <code>http://localhost:3000/extension</code></div>
       <div class="trow mt"><div><div class="tlbl">VAT Registered</div><div class="tdsc">18% VAT on sales</div></div><div class="tog" id="sTV" onclick="tg('sTV','vatReg')"></div></div>
       <div class="trow"><div><div class="tlbl">Sandbox Mode</div><div class="tdsc">EFRIS test environment</div></div><div class="tog on" id="sTS" onclick="tg('sTS','sandbox')"></div></div>
     </div>
@@ -394,8 +397,12 @@
     <button onclick="loadList()" style="width:100%;padding:9px;border:1px solid var(--bdr);background:white;border-radius:6px;cursor:pointer;font-weight:600;color:var(--gd);margin-bottom:8px;">&#128260; Refresh invoice list</button>
     <div id="pickList"></div>
     <div id="ctxDbg" style="font-size:10px;color:#8a6d00;background:#fffbe6;border:1px solid #ffe58f;border-radius:5px;padding:5px 8px;margin:8px 0;word-break:break-all;"></div>
-    <div class="al as">&#10003; Server is online</div>
-    <div class="al ai mt"><strong>Use in Manager custom button:</strong><br><code>https://localhost:5443/extension</code></div>
+    <div class="al as">&#10003; Server is online &mdash; Cloudflare Tunnel active at <code>goods.twoservants.com</code></div>
+    <div class="al ai mt">
+      <strong>Use this URL in Manager custom button:</strong><br>
+      <code>https://goods.twoservants.com/extension</code><br><br>
+      <strong>If you see a sad face icon</strong>, go to Manager &rarr; Settings &rarr; Custom Buttons &rarr; verify the URL is exactly as above.
+    </div>
     <button class="btn bgld mt" onclick="showT('tSet',null);showScr('sMain')">&#9881; Go to Settings</button>
   </div>
 </div>
