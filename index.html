@@ -137,7 +137,8 @@
     <p style="font-size:11px;color:var(--gray);margin-bottom:9px;">Complete once &mdash; settings are saved automatically.</p>
     <div class="dots" id="sDots"></div>
     <div class="ob on" id="ob1">
-      <div class="al ai"><strong>Step 1 of 4 &mdash; Business Details</strong></div>
+      <div class="al ai"><strong>Step 1 &mdash; About Your Business</strong></div>
+      <div class="trow" style="border:1px solid var(--bdr);border-radius:6px;padding:9px 11px;background:var(--bg);margin-bottom:10px;"><div><div class="tlbl">Are you registered on EFRIS?</div><div class="tdsc">Turn ON if you have a URA TIN &amp; EFRIS account. OFF = use for Manager.io item setup only.</div></div><div class="tog on" id="t1e" onclick="tg('t1e','efrisEnabled')"></div></div>
       <div class="fg"><label>Legal Business Name *</label><input id="o1a" placeholder="e.g. Two Servants Tours &amp; Safaris Ltd"/><div class="hint">As registered with URSB</div></div>
       <div class="fg"><label>Trade / Receipt Name</label><input id="o1b" placeholder="Name shown on receipts (if different)"/></div>
       <div class="fg"><label>Business Address *</label><input id="o1c" placeholder="e.g. Plot 14 Kimaka Road, Entebbe"/></div>
@@ -146,7 +147,7 @@
       <button class="btn bg" onclick="obn(1)">Next &rarr;</button>
     </div>
     <div class="ob" id="ob2">
-      <div class="al aw"><strong>Step 2 of 4 &mdash; EFRIS Credentials (from URA)</strong></div>
+      <div class="al aw"><strong>EFRIS Credentials (from URA)</strong></div>
       <div class="fg"><label>TIN *</label><input id="o2a" placeholder="e.g. 1015292010"/><div class="hint">Your 10-digit URA number</div></div>
       <div class="fg"><label>Device Number (DSN) *</label><input id="o2b" placeholder="e.g. 1015292010_01"/><div class="hint">EFRIS portal &rarr; Device Management</div></div>
       <div class="fg"><label>EFRIS Password *</label><input id="o2c" type="password" placeholder="Your URA EFRIS portal password"/></div>
@@ -154,15 +155,14 @@
       <div class="row"><button class="btn bo" onclick="obb(2)">&larr; Back</button><button class="btn bg" onclick="obn(2)">Next &rarr;</button></div>
     </div>
     <div class="ob" id="ob3">
-      <div class="al ai"><strong>Step 3 of 4 &mdash; Tax &amp; Mode</strong></div>
-      <div class="trow"><div><div class="tlbl">Registered on EFRIS</div><div class="tdsc">You have a URA TIN and EFRIS account</div></div><div class="tog on" id="t3e" onclick="tg('t3e','efrisEnabled')"></div></div>
+      <div class="al ai"><strong>Tax &amp; Mode</strong></div>
       <div class="trow"><div><div class="tlbl">VAT Registered</div><div class="tdsc">Business charges 18% VAT</div></div><div class="tog" id="t3v" onclick="tg('t3v','vatReg')"></div></div>
-      <div class="trow"><div><div class="tlbl">Sandbox / Test Mode &#10003;</div><div class="tdsc">Recommended until you go live</div></div><div class="tog on" id="t3s" onclick="tg('t3s','sandbox')"></div></div>
-      <div class="al aw mt">&#9888; Keep Sandbox ON until you have tested 3+ invoices.</div>
+      <div class="trow" id="obSandboxRow"><div><div class="tlbl">Sandbox / Test Mode &#10003;</div><div class="tdsc">Recommended until you go live</div></div><div class="tog on" id="t3s" onclick="tg('t3s','sandbox')"></div></div>
+      <div class="al aw mt" id="obSandboxWarn">&#9888; Keep Sandbox ON until you have tested 3+ invoices.</div>
       <div class="row mt"><button class="btn bo" onclick="obb(3)">&larr; Back</button><button class="btn bg" onclick="obn(3)">Next &rarr;</button></div>
     </div>
     <div class="ob" id="ob4">
-      <div class="al ai"><strong>Step 4 of 4 &mdash; Manager.io Connection</strong></div>
+      <div class="al ai"><strong>Manager.io Connection</strong></div>
       <div class="al as">&#10003; Relay server is running &mdash; this page is served by it.</div>
       <div class="fg"><label>Manager.io API Endpoint *</label><input id="o4a" value="http://localhost:8090/api2"/><div class="hint">Docker/Server: <code>http://localhost:8090/api2</code></div></div>
       <div class="fg"><label>Access Token *</label><input id="o4b" placeholder="Paste your Manager access token"/><div class="hint">Manager &rarr; Settings &rarr; API Keys &rarr; New Key</div></div>
@@ -175,9 +175,9 @@
 
 <div class="scr" id="sMain">
   <div class="tabs">
-    <button class="tab on" onclick="showT('tSub',this)">&#128228; Submit</button>
-    <button class="tab" onclick="showT('tStat',this)">&#128203; Status</button>
-    <button class="tab" onclick="showT('tGds',this)">&#128230; Goods</button>
+    <button class="tab on efris-only" id="tabSub" onclick="showT('tSub',this)">&#128228; Submit</button>
+    <button class="tab efris-only" id="tabStat" onclick="showT('tStat',this)">&#128203; Status</button>
+    <button class="tab" id="tabGds" onclick="showT('tGds',this)">&#128230; Goods</button>
     <button class="tab" onclick="showT('tGd',this)">&#10067; Guide</button>
     <button class="tab" onclick="showT('tSet',this)">&#9881;&#65039; Settings</button>
   </div>
@@ -463,18 +463,35 @@ function tg(id,k){ TG[k]=!TG[k]; utg(id,TG[k]); }
 function utg(id,s){ const e=$(id);if(e)e.className='tog'+(s?' on':''); }
 
 function rDots(){ const c=$('sDots');if(!c)return;c.innerHTML='';for(let i=1;i<=4;i++){const d=document.createElement('div');d.className='dot'+(i===obStep?' on':i<obStep?' dn':'');c.appendChild(d);} }
-function obSh(n){ document.querySelectorAll('.ob').forEach(e=>e.classList.remove('on')); const e=$('ob'+n);if(e)e.classList.add('on'); obStep=n;rDots(); }
+function obSh(n){
+  document.querySelectorAll('.ob').forEach(e=>e.classList.remove('on'));
+  const e=$('ob'+n);if(e)e.classList.add('on'); obStep=n;rDots();
+  // Hide EFRIS-only Sandbox controls in step 3 when not registered on EFRIS
+  if(n===3){
+    const show=TG.efrisEnabled!==false;
+    const sr=$('obSandboxRow'); if(sr) sr.style.display=show?'':'none';
+    const sw=$('obSandboxWarn'); if(sw) sw.style.display=show?'':'none';
+  }
+}
 function obn(from){
   if(from===1&&(!gvi('o1a')||!gvi('o1c'))){alert('Legal Name and Address are required');return;}
   if(from===2&&(!gvi('o2a')||!gvi('o2b')||!gvi('o2c'))){alert('TIN, Device No. and Password are required');return;}
+  // Non-EFRIS users skip the EFRIS Credentials step (step 2)
+  if(from===1 && TG.efrisEnabled===false){ obSh(3); return; }
   obSh(from+1);
 }
-function obb(from){ obSh(from-1); }
+function obb(from){
+  // Mirror the skip on the way back
+  if(from===3 && TG.efrisEnabled===false){ obSh(1); return; }
+  obSh(from-1);
+}
 function finOB(){
   if(!gvi('o4a')||!gvi('o4b')){alert('Manager endpoint and access token are required');return;}
   CFG={ legalName:gvi('o1a'), tradeName:gvi('o1b')||gvi('o1a'), address:gvi('o1c'), phone:gvi('o1d'), email:gvi('o1e'), tin:gvi('o2a'), deviceNo:gvi('o2b'), efrisPassword:gvi('o2c'), brn:gvi('o2d'), managerEndpoint:gvi('o4a').replace(/\/+$/,''), accessToken:gvi('o4b'), vatReg:TG.vatReg, sandbox:TG.sandbox, efrisEnabled:TG.efrisEnabled };
-  sv2(CFG); apCFG();
-  if(INV){renderInv(INV);showScr('sMain');} else showScr('sNone');
+  sv2(CFG); apCFG(); gApplyEfrisMode();
+  if(CFG.efrisEnabled===false){ showScr('sMain'); showT('tGds',$('tabGds')); }
+  else if(INV){renderInv(INV);showScr('sMain');}
+  else showScr('sNone');
 }
 function apCFG(){
   const b=$('mBadge');
@@ -485,7 +502,7 @@ function apCFG(){
   TG.vatReg=!!CFG.vatReg;TG.sandbox=CFG.sandbox!==false;TG.efrisEnabled=CFG.efrisEnabled!==false;
   ['sTV','t3v'].forEach(id=>utg(id,TG.vatReg));
   ['sTS','t3s'].forEach(id=>utg(id,TG.sandbox));
-  ['sEfris','t3e'].forEach(id=>utg(id,TG.efrisEnabled));
+  ['sEfris','t1e'].forEach(id=>utg(id,TG.efrisEnabled));
 }
 function saveSt(){
   CFG.legalName=gvi('sLeg');CFG.tradeName=gvi('sTrd');CFG.address=gvi('sAdr');CFG.phone=gvi('sPh');CFG.email=gvi('sEm');
@@ -1215,10 +1232,15 @@ function init(){
   gLoadItems();
   if(gItems.length) gRefreshList();
   const saved=ld();
-  if(saved&&saved.tin&&saved.managerEndpoint){
+  // Onboarded = has Manager connection AND (either registered on EFRIS with a TIN, or explicitly not on EFRIS)
+  const onboarded = saved && saved.managerEndpoint && (saved.tin || saved.efrisEnabled===false);
+  if(onboarded){
     CFG=saved;TG.vatReg=!!CFG.vatReg;TG.sandbox=CFG.sandbox!==false;TG.efrisEnabled=CFG.efrisEnabled!==false;apCFG();gApplyEfrisMode();
     try{ if(window.parent&&window.parent!==window){ window.parent.postMessage({type:'request_context'},'*'); window.parent.postMessage({type:'efris-extension-ready'},'*'); } }catch(e){}
-    if(readParams()){
+    if(CFG.efrisEnabled===false){
+      // Non-EFRIS users go straight to the Goods configurator — no invoice flow
+      showScr('sMain'); showT('tGds',$('tabGds'));
+    } else if(readParams()){
       loadInv(DKEY);
     } else {
       setTimeout(()=>{
