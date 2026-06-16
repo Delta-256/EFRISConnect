@@ -670,14 +670,22 @@ app.post('/api/efris/register-goods', async (req, res) => {
     const session = await getSession(tin, deviceNo, efrisPassword, eu);
     if (!session.aesKey) throw new Error('No AES key available — check private key path');
 
-    // Resolve UOM text → URA code (e.g. "Per Person" → "PP").
-    // If not found, send the raw text — EFRIS supports custom units when enabled on the account.
-    let uomCode = item.uom || 'UN';
+    // Resolve UOM text → URA code (e.g. "Per Person" → "PP", max 3 bytes).
+    // If not in standard list: accept if already ≤3 chars (custom EFRIS code);
+    // otherwise fall back to UN — EFRIS rejects codes longer than 3 bytes (rc:2234).
+    let uomCode = 'UN';
     try {
       const units = getUnits();
       const match = units.find(u => u.name.toLowerCase() === (item.uom || '').toLowerCase());
-      if (match) { uomCode = match.code; }
-      else { console.log(`   ℹ UOM "${item.uom}" not in standard list — sending as custom unit`); }
+      if (match) {
+        uomCode = match.code;
+      } else if (item.uom && item.uom.length <= 3) {
+        uomCode = item.uom; // custom code registered in EFRIS portal
+        console.log(`   ℹ UOM "${item.uom}" treated as custom EFRIS code`);
+      } else {
+        uomCode = 'UN';
+        console.log(`   ⚠ UOM "${item.uom}" exceeds 3-byte EFRIS limit — using UN. Register a short code in EFRIS portal first.`);
+      }
     } catch(_) {}
 
     // VAT tax item — taxCategoryCode: '01'=standard(18%), '02'=zero-rated, '03'=exempt
