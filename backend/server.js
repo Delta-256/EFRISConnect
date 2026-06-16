@@ -706,13 +706,15 @@ app.post('/api/efris/register-goods', async (req, res) => {
     // currency: EFRIS accepts ISO codes (USD, EUR, GBP…) for foreign-currency items.
     // UGX is the default base currency — omit the field entirely when pricing in UGX.
     // taxItems are for invoices (T109), not goods registration — exclude here.
-    const isForeignCurrency = item.cur && item.cur !== 'UGX';
+    // currency is required by T130 — always send it explicitly
+    const t130Currency = (item.cur && item.cur.trim()) ? item.cur.trim().toUpperCase() : 'UGX';
     const t130Payload = {
       goodsCode:          item.code,
       goodsName:          item.name,
       goodsTypeCode,
       measureUnit:        uomCode,
       unitPrice:             String(parseFloat(item.price) || 0),
+      currency:              t130Currency,
       commodityCategoryId:   item.comCode || '',
       commodityCategoryName: item.comName || '',
       haveExciseTax:         item.excise === 'Yes' ? '101' : '102',
@@ -725,10 +727,9 @@ app.post('/api/efris/register-goods', async (req, res) => {
       scaledValue:           '1',
       discountTaxRate:       '',
     };
-    if (isForeignCurrency) t130Payload.currency = item.cur;
 
     console.log(`\n📦 Registering goods with EFRIS T130: ${item.code} — ${item.name}`);
-    console.log(`   Payload: goodsCode=${t130Payload.goodsCode}, categoryId=${t130Payload.commodityCategoryId}, measureUnit=${uomCode}, price=${t130Payload.unitPrice}, currency=${t130Payload.currency||'UGX(default)'}, vatCat=${vatCat}, type=${goodsTypeCode}`);
+    console.log(`   Payload: goodsCode=${t130Payload.goodsCode}, categoryId=${t130Payload.commodityCategoryId}, measureUnit=${uomCode}, price=${t130Payload.unitPrice}, currency=${t130Currency}, vatCat=${vatCat}, type=${goodsTypeCode}`);
 
     // T130 is a BATCH interface — payload must be an array even for a single item
     const t130 = await efrisCall(eu, efrisEnvEnc('T130', [t130Payload], tin, deviceNo, session.aesKey, session.privatePem));

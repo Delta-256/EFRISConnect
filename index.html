@@ -1171,7 +1171,16 @@ async function gImportManagerItem(idx){
     if(d.success) detail=d.item;
   }catch(e){}
   gSwSub('cfg');
-  if(CFG.efrisEnabled===false){ gGoStep(5); } else { gGoStep(1); }
+  // Restore commodity context from existing gItems entry if available
+  const existingItem = gItems.find(x=>(x.code||'').toLowerCase()===(i.code||'').toLowerCase());
+  const alreadyConfigured = !!(i.comCode || (existingItem||{}).comCode);
+  if(alreadyConfigured && existingItem){
+    if(existingItem.comCode) gCOM={k:existingItem.comCode, n:existingItem.comName||''};
+    if(existingItem.segCode) gSEG={k:existingItem.segCode, n:existingItem.segment||''};
+    if(existingItem.famCode) gFAM={k:existingItem.famCode, n:existingItem.family||''};
+    if(existingItem.clsCode) gCLS={k:existingItem.clsCode, n:existingItem.cls||''};
+  }
+  if(CFG.efrisEnabled===false || alreadyConfigured){ gGoStep(5); } else { gGoStep(1); }
   setTimeout(()=>{
     const code=(detail&&detail.code)||i.code||'';
     const name=(detail&&detail.name)||i.name||'';
@@ -1190,7 +1199,9 @@ async function gImportManagerItem(idx){
   },50);
   const priceNote=detail&&detail.hasSalesUnitPrice?' · Price: '+(detail.salesUnitPrice||0).toLocaleString():'';
   const efrisOn=CFG.efrisEnabled!==false;
-  const nextStep=efrisOn?'Complete the commodity wizard steps 1–4, then review Step 5 and click Sync.':'Review the details in Step 5 and click Sync to add to Manager.io.';
+  const nextStep=(efrisOn&&!alreadyConfigured)
+    ?'Pick the commodity category (steps 1–4), then review Step 5 and click Sync.'
+    :'Review the details in Step 5 and click Sync.';
   listEl.innerHTML='<div class="al as">&#10003; Imported <strong>'+esc(i.code||i.name)+'</strong>'+(priceNote)+'<br>'+nextStep+'</div>';
 }
 
