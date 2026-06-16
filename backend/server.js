@@ -243,14 +243,17 @@ function aesDecryptStr(b64, keyBytes) {
   const d = crypto.createDecipheriv(aesAlgo(keyBytes), keyBytes, null);
   return d.update(b64, 'base64', 'utf8') + d.final('utf8');
 }
-// AES-decrypt to raw bytes, then gunzip if the payload is gzip-compressed
-// (large EFRIS responses like the T115 dictionary are returned gzipped).
+// AES-decrypt to raw bytes, then gunzip if the payload is gzip-compressed.
+// NOTE: some EFRIS responses (e.g. the T115 dictionary) are gzip+base64 with
+// NO AES layer at all, so check for the gzip magic on the raw base64-decoded
+// buffer BEFORE attempting AES (which would throw "wrong final block length").
 function aesDecryptMaybeGzip(b64, keyBytes) {
+  const rawBuf = Buffer.from(b64, 'base64');
+  const isGzip = b => b.length >= 2 && b[0] === 0x1f && b[1] === 0x8b;
+  if (isGzip(rawBuf)) return zlib.gunzipSync(rawBuf).toString('utf8');
   const d = crypto.createDecipheriv(aesAlgo(keyBytes), keyBytes, null);
-  const buf = Buffer.concat([d.update(Buffer.from(b64, 'base64')), d.final()]);
-  if (buf.length >= 2 && buf[0] === 0x1f && buf[1] === 0x8b) {
-    return zlib.gunzipSync(buf).toString('utf8');
-  }
+  const buf = Buffer.concat([d.update(rawBuf), d.final()]);
+  if (isGzip(buf)) return zlib.gunzipSync(buf).toString('utf8');
   return buf.toString('utf8');
 }
 function signSha1(content, privatePem) {
