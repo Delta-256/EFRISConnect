@@ -2,6 +2,7 @@
 const http   = require('http');
 const https  = require('https');
 const crypto = require('crypto');
+const zlib   = require('zlib');
 const { URL } = require('url');
 const express = require('express');
 const cors    = require('cors');
@@ -242,6 +243,16 @@ function aesDecryptStr(b64, keyBytes) {
   const d = crypto.createDecipheriv(aesAlgo(keyBytes), keyBytes, null);
   return d.update(b64, 'base64', 'utf8') + d.final('utf8');
 }
+// AES-decrypt to raw bytes, then gunzip if the payload is gzip-compressed
+// (large EFRIS responses like the T115 dictionary are returned gzipped).
+function aesDecryptMaybeGzip(b64, keyBytes) {
+  const d = crypto.createDecipheriv(aesAlgo(keyBytes), keyBytes, null);
+  const buf = Buffer.concat([d.update(Buffer.from(b64, 'base64')), d.final()]);
+  if (buf.length >= 2 && buf[0] === 0x1f && buf[1] === 0x8b) {
+    return zlib.gunzipSync(buf).toString('utf8');
+  }
+  return buf.toString('utf8');
+}
 function signSha1(content, privatePem) {
   return crypto.createSign('RSA-SHA1').update(content, 'utf8').sign(privatePem, 'base64');
 }
@@ -318,8 +329,9 @@ async function getEfrisDictionary(tin, deviceNo, session, eu) {
     console.log(`   T115 outer rc: ${rc} — ${rm}`);
     if (t115.data && t115.data.data && t115.data.data.content) {
       let raw = null;
-      // Successful responses are AES-encrypted; error envelopes are plain base64.
-      try { raw = aesDecryptStr(t115.data.data.content, session.aesKey); }
+      // Successful responses are AES-encrypted (and often gzip-compressed);
+      // error envelopes are plain base64.
+      try { raw = aesDecryptMaybeGzip(t115.data.data.content, session.aesKey); }
       catch(_) { try { raw = Buffer.from(t115.data.data.content, 'base64').toString('utf8'); } catch(__) {} }
       if (raw) {
         console.log(`   T115 raw content (first 300): ${raw.slice(0, 300)}`);
