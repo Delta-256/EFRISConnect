@@ -622,12 +622,13 @@ app.post('/api/efris/register-goods', async (req, res) => {
     if (!session.aesKey) throw new Error('No AES key available — check private key path');
 
     // Resolve UOM text → URA code (e.g. "Per Person" → "PP").
-    // Fall back to the raw text if not found (URA rejects unknown codes, but at least the error is clear).
-    let uomCode = item.uom || 'UN';
+    // If not found, fall back to 'UN' (Unit) — passing free text causes rc:2066.
+    let uomCode = 'UN';
     try {
       const units = getUnits();
       const match = units.find(u => u.name.toLowerCase() === (item.uom || '').toLowerCase());
-      if (match) uomCode = match.code;
+      if (match) { uomCode = match.code; }
+      else { console.log(`   ⚠ UOM "${item.uom}" not found in uom.json — using UN (Unit)`); }
     } catch(_) {}
 
     // VAT tax item — taxCategoryCode: '01'=standard(18%), '02'=zero-rated, '03'=exempt
@@ -664,15 +665,38 @@ app.post('/api/efris/register-goods', async (req, res) => {
 
     console.log(`\n📦 Registering goods with EFRIS T130: ${item.code} — ${item.name}`);
     console.log(`   Payload: goodsCode=${t130Payload.goodsCode}, categoryId=${t130Payload.goodsCategoryId}, measureUnit=${uomCode}, price=${t130Payload.unitPrice}, currency=${t130Payload.currency||'UGX(default)'}, vatCat=${vatCat}, type=${goodsTypeCode}`);
-    const t130 = await efrisCall(eu, efrisEnvEnc('T130', t130Payload, tin, deviceNo, session.aesKey, session.privatePem));
-    const rc = t130.data && t130.data.returnStateInfo ? t130.data.returnStateInfo.returnCode : null;
-    const rm = t130.data && t130.data.returnStateInfo ? t130.data.returnStateInfo.returnMessage : '';
-    // Log full response body to help diagnose partial failures
-    console.log(`   T130 rc: ${rc} (${rm})`);
-    if (rc !== '00') console.log(`   T130 full response:`, JSON.stringify(t130.data || '').slice(0, 500));
-    const ok = rc === '00';
-    res.json({ success: ok, returnCode: rc, returnMessage: rm,
-      error: ok ? undefined : `EFRIS T130: ${rc} — ${rm}` });
+
+    // T130 is a BATCH interface — payload must be an array even for a single item
+    const t130 = await efrisCall(eu, efrisEnvEnc('T130', [t130Payload], tin, deviceNo, session.aesKey, session.privatePem));
+    const outerRc = t130.data && t130.data.returnStateInfo ? t130.data.returnStateInfo.returnCode : null;
+    const outerRm = t130.data && t130.data.returnStateInfo ? t130.data.returnStateInfo.returnMessage : '';
+    console.log(`   T130 outer rc: ${outerRc} (${outerRm})`);
+
+    // Decrypt per-item results from response content
+    let itemRc = outerRc, itemRm = outerRm;
+    if (t130.data && t130.data.data && t130.data.data.content) {
+      try {
+        const raw = aesDecryptStr(t130.data.data.content, session.aesKey);
+        const results = JSON.parse(raw);
+        const r0 = Array.isArray(results) ? results[0] : results;
+        if (r0) {
+          itemRc = r0.returnCode || r0.returnStateInfo?.returnCode || outerRc;
+          itemRm = r0.returnMessage || r0.returnStateInfo?.returnMessage || outerRm;
+          console.log(`   T130 item rc: ${itemRc} — ${itemRm}`);
+        }
+      } catch(e) { console.log(`   (could not decrypt T130 item response: ${e.message})`); }
+    }
+
+    // rc:00 = success; rc:602 = already exists (treat as success — item is registered)
+    const ok = itemRc === '00' || itemRc === '602';
+    const alreadyExists = itemRc === '602';
+    if (ok) {
+      console.log(alreadyExists ? `   ✓ Item already registered in EFRIS` : `   ✅ Registered successfully`);
+    } else {
+      console.log(`   ❌ T130 failed: ${itemRc} — ${itemRm}`);
+    }
+    res.json({ success: ok, returnCode: itemRc, returnMessage: itemRm, alreadyExists,
+      error: ok ? undefined : `EFRIS T130: ${itemRc} — ${itemRm}` });
   } catch(e) {
     console.log(`   ❌ register-goods error: ${e.message}`);
     res.status(500).json({ success: false, error: e.message });
