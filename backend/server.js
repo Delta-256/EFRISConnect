@@ -673,8 +673,11 @@ app.post('/api/efris/register-goods', async (req, res) => {
     // Use pre-resolved efrisUom if provided (set in frontend from auto-detection)
     // Otherwise fall back to name lookup against uom.json
     let uomCode = 'UN';
-    if (item.efrisUom && item.efrisUom.trim()) {
-      uomCode = item.efrisUom.trim().toUpperCase().slice(0, 5);
+    // Only use efrisUom if it looks like a code (no spaces, ≤5 chars)
+    const rawEfrisUom = (item.efrisUom || '').trim();
+    const efrisUomIsCode = rawEfrisUom && !rawEfrisUom.includes(' ') && rawEfrisUom.length <= 5;
+    if (efrisUomIsCode) {
+      uomCode = rawEfrisUom.toUpperCase();
       console.log(`   UOM: "${item.uom}" → EFRIS code "${uomCode}" (from item)`);
     } else {
       try {

@@ -660,7 +660,10 @@ function openVerify(){
 // ══════════════════════════════════════════════════════════════
 //  GOODS TAB
 // ══════════════════════════════════════════════════════════════
-let gItems=[], gSEG=null, gFAM=null, gCLS=null, gCOM=null;
+const GKEY='efris_goods_v1';
+let gItems=[], gSEG=null, gFAM=null, gCLS=null, gCOM=null, gEditingIdx=-1;
+function gSaveItems(){ try{localStorage.setItem(GKEY,JSON.stringify(gItems));}catch(e){} }
+function gLoadItems(){ try{const r=localStorage.getItem(GKEY);if(r){const p=JSON.parse(r);if(Array.isArray(p))gItems=p;}}catch(e){} }
 // Default priority UOMs — shown immediately before API data loads
 let gUnits=['Per Person','Per Pax','Per Adult','Per Child','Per Couple','Per Group',
   'Per Family','Per Student','Per Participant','Per Guest','Per Infant',
@@ -960,7 +963,7 @@ async function gSyncItem(){
     family:gFAM?gFAM.n:'', famCode:gFAM?gFAM.k:'',
     cls:gCLS?gCLS.n:'', clsCode:gCLS?gCLS.k:'',
     uom, price:parseFloat(price)||0, cur,
-    efrisUom:($('gFldEfrisUom')?$('gFldEfrisUom').value.trim().toUpperCase()||uom:''),
+    efrisUom:($('gFldEfrisUom')?$('gFldEfrisUom').value.trim().toUpperCase():''),
     type:$('gFldType').value, vat:$('gFldVat').value,
     excise:$('gFldExcise').value,
     remarks:$('gFldRemarks')?$('gFldRemarks').value.trim():'',
@@ -1006,6 +1009,8 @@ async function gSyncItem(){
   }
   const existingIdx=gItems.findIndex(i=>(i.code||'').toLowerCase()===(item.code||'').toLowerCase());
   if(existingIdx>=0){ gItems[existingIdx]=item; } else { gItems.push(item); }
+  gEditingIdx=-1;
+  gSaveItems();
   gRefreshList();
 }
 
@@ -1026,7 +1031,7 @@ function gRefreshList(){
     const efrPill=it.efrisSync==='ok'?'<span class="pill pill-ok">✓ Done</span>':it.efrisSync==='error'?'<span class="pill pill-err">Error</span>':'<span class="pill pill-pend">—</span>';
     const needsMgr=it.managerSync!=='ok';
     const needsEfr=it.efrisSync!=='ok';
-    let actions='';
+    let actions='<button onclick="gEditItem('+i+')" title="Edit item" style="font-size:10px;padding:2px 6px;background:#546e7a;color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:2px;">✏ Edit</button>';
     if(needsMgr) actions+='<button onclick="gRetrySyncMgr('+i+')" style="font-size:10px;padding:2px 6px;background:var(--g);color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:2px;">↑ Mgr</button>';
     if(efris&&needsEfr&&it.comCode) actions+='<button onclick="gRetrySyncEfris('+i+')" style="font-size:10px;padding:2px 6px;background:#1565c0;color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:2px;">↑ EFRIS</button>';
     actions+='<button onclick="gDeleteItem('+i+')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;">🗑</button>';
@@ -1046,7 +1051,47 @@ function gRefreshList(){
   }).join('');
 }
 
-function gDeleteItem(i){ if(!confirm('Delete "'+gItems[i].name+'"?'))return; gItems.splice(i,1); gRefreshList(); }
+function gDeleteItem(i){ if(!confirm('Delete "'+gItems[i].name+'"?'))return; gItems.splice(i,1); gSaveItems(); gRefreshList(); }
+
+function gEditItem(i){
+  const it=gItems[i]; if(!it)return;
+  gEditingIdx=i;
+  // Restore commodity context so step 5 works without re-doing the wizard
+  if(it.comCode&&it.comName){ gCOM={k:it.comCode,n:it.comName}; } else { gCOM=null; }
+  if(it.segCode&&it.segment){ gSEG={k:it.segCode,n:it.segment}; } else { gSEG=null; }
+  if(it.famCode&&it.family){ gFAM={k:it.famCode,n:it.family}; } else { gFAM=null; }
+  if(it.clsCode&&it.cls){ gCLS={k:it.clsCode,n:it.cls}; } else { gCLS=null; }
+  gSwSub('cfg');
+  // Show step 5 directly — no wizard needed
+  const efris=CFG.efrisEnabled!==false;
+  for(let s=1;s<=5;s++){
+    const el=$('gstep'+s); if(el) el.style.display=(s===5)?'':'none';
+    const ws=$('gws'+s); if(ws) ws.className='g-step'+(s===5?' act':s<5?' dn':'');
+  }
+  const step5=document.querySelector('#gstep5 .row button.bo');
+  if(step5) step5.style.display=efris&&gCOM?'':'none';
+  // Pre-fill summary if commodity known
+  if(gCOM&&efris){
+    const el=$('gComSummary');
+    if(el) el.innerHTML='<span class="g-sel-code">('+esc(gCOM.k)+')</span><span class="g-sel-name">'+esc(gCOM.n)+'</span>';
+    const gEl=$('gFldGrouping'); if(gEl) gEl.value=(gSEG?gSEG.n:'')+' >> '+(gFAM?gFAM.n:'')+' >> '+(gCLS?gCLS.n:'');
+    const cEl=$('gFldComCode'); if(cEl) cEl.value=gCOM.k;
+  }
+  // Fill all step 5 fields
+  sv('gFldCode', it.code||'');
+  sv('gFldName', it.name||'');
+  sv('gFldPrice', it.price?String(it.price):'');
+  sv('gFldUom', it.uom||'');
+  sv('gFldEfrisUom', it.efrisUom||'');
+  if(it.efrisUom) gShowEfrisUomDesc(it.efrisUom);
+  const curEl=$('gFldCur'); if(curEl) curEl.value=it.cur||'UGX';
+  const typeEl=$('gFldType'); if(typeEl) typeEl.value=it.type||'Service';
+  const vatEl=$('gFldVat'); if(vatEl) vatEl.value=it.vat||'Standard';
+  const excEl=$('gFldExcise'); if(excEl) excEl.value=it.excise||'No';
+  const remEl=$('gFldRemarks'); if(remEl) remEl.value=it.remarks||'';
+  const s=$('gSyncStatus');
+  if(s) s.innerHTML='<div class="al ai">&#9998; Editing <strong>'+esc(it.name)+'</strong> — update fields then click Sync.</div>';
+}
 
 async function gRetrySyncMgr(i){
   const it=gItems[i]; if(!it)return;
@@ -1056,7 +1101,7 @@ async function gRetrySyncMgr(i){
   try{
     const r=await fetch(RELAY+'/api/goods/sync-to-manager',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,item:it})});
     const d=await r.json();
-    if(d.success){ it.managerSync='ok'; it.managerId=d.managerId||null; gRefreshList(); }
+    if(d.success){ it.managerSync='ok'; it.managerId=d.managerId||null; gSaveItems(); gRefreshList(); }
     else{ alert('Manager sync failed: '+(d.error||'Unknown error')); btn.disabled=false; btn.textContent='↑ Mgr'; }
   }catch(e){ alert('Network error: '+e.message); btn.disabled=false; btn.textContent='↑ Mgr'; }
 }
@@ -1069,7 +1114,7 @@ async function gRetrySyncEfris(i){
   try{
     const r=await fetch(RELAY+'/api/efris/register-goods',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',item:it})});
     const d=await r.json();
-    if(d.success){ it.efrisSync='ok'; gRefreshList(); }
+    if(d.success){ it.efrisSync='ok'; gSaveItems(); gRefreshList(); }
     else{ alert('EFRIS registration failed: '+(d.error||d.returnMessage||'Unknown error')); btn.disabled=false; btn.textContent='↑ EFRIS'; }
   }catch(e){ alert('Network error: '+e.message); btn.disabled=false; btn.textContent='↑ EFRIS'; }
 }
@@ -1126,7 +1171,7 @@ async function gImportManagerItem(idx){
     if(d.success) detail=d.item;
   }catch(e){}
   gSwSub('cfg');
-  gGoStep(1);
+  if(CFG.efrisEnabled===false){ gGoStep(5); } else { gGoStep(1); }
   setTimeout(()=>{
     const code=(detail&&detail.code)||i.code||'';
     const name=(detail&&detail.name)||i.name||'';
@@ -1144,13 +1189,16 @@ async function gImportManagerItem(idx){
     window._importedManagerKey=i.key;
   },50);
   const priceNote=detail&&detail.hasSalesUnitPrice?' · Price: '+(detail.salesUnitPrice||0).toLocaleString():'';
-  const remarkNote=detail&&(detail.defaultLineDescription||detail.description)?' · Remarks pre-filled':'';
-  listEl.innerHTML='<div class="al as">✅ Importing <strong>'+esc(i.code||i.name)+'</strong>'+priceNote+remarkNote+'<br>Complete the commodity wizard steps 1–4, then review Step 5 and click Sync.</div>';
+  const efrisOn=CFG.efrisEnabled!==false;
+  const nextStep=efrisOn?'Complete the commodity wizard steps 1–4, then review Step 5 and click Sync.':'Review the details in Step 5 and click Sync to add to Manager.io.';
+  listEl.innerHTML='<div class="al as">&#10003; Imported <strong>'+esc(i.code||i.name)+'</strong>'+(priceNote)+'<br>'+nextStep+'</div>';
 }
 
 // ── Init ──────────────────────────────────────────────────────
 function init(){
   rDots();
+  gLoadItems();
+  if(gItems.length) gRefreshList();
   const saved=ld();
   if(saved&&saved.tin&&saved.managerEndpoint){
     CFG=saved;TG.vatReg=!!CFG.vatReg;TG.sandbox=CFG.sandbox!==false;TG.efrisEnabled=CFG.efrisEnabled!==false;apCFG();gApplyEfrisMode();
