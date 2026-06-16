@@ -126,6 +126,29 @@ async function mgrTextCustomFields(ep, tk) {
   return { byName, byKey };
 }
 
+// Cache tax code list per endpoint to avoid repeated fetches
+const _taxCodeCache = {};
+async function mgrTaxCodeGuid(ep, tk, vatType) {
+  const cacheKey = ep + '_taxcodes';
+  if (!_taxCodeCache[cacheKey]) {
+    try {
+      const r = await managerCall(ep, tk, 'GET', '/tax-codes');
+      _taxCodeCache[cacheKey] = (r.data && r.data.taxCodes) || [];
+    } catch(e) { _taxCodeCache[cacheKey] = []; }
+  }
+  const codes = _taxCodeCache[cacheKey];
+  // Match by VAT type: Standard=18%, Zero=0%, Exempt
+  const query = vatType === 'Exempt' ? 'exempt'
+    : vatType === 'Zero' ? ['zero', '0%', 'zero rated', 'zero-rated']
+    : ['18%', 'standard', 'vat']; // Standard
+  const q = Array.isArray(query) ? query : [query];
+  const match = codes.find(c => {
+    const nm = (c.name || c.Name || '').toLowerCase();
+    return q.some(term => nm.includes(term));
+  });
+  return match ? (match.key || match.Key) : null;
+}
+
 async function normalizeInvoice(ep, tk, key) {
   const formR = await managerCall(ep, tk, 'GET', '/sales-invoice-form/' + key);
   if (formR.status !== 200) return { _error: 'Manager returned HTTP ' + formR.status, _status: formR.status };
@@ -489,14 +512,34 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
       if (formR.status !== 200) {
         return res.json({ success: false, error: `Could not fetch item form: HTTP ${formR.status}` });
       }
-      // Merge our fields into the form (preserving all other Manager fields)
+      // Merge our fields into the form (preserving all other Manager fields).
+      // Non-inventory and inventory items use different field names in Manager API.
       const form = Object.assign({}, formR.data || {});
-      form.Code              = item.code;
-      form.Name              = item.name;
-      form.UnitName          = item.uom;
-      form.HasSalesUnitPrice = parseFloat(item.price) > 0;
-      form.SalesUnitPrice    = parseFloat(item.price) || 0;
+      console.log(`   Form fields available: ${Object.keys(form).join(', ')}`);
+      const price = parseFloat(item.price) || 0;
+      form.Code     = item.code;
+      form.UnitName = item.uom;
       if (item.remarks) form.DefaultLineDescription = item.remarks;
+      if (isService) {
+        // Non-inventory items
+        form.Name              = item.name;
+        form.HasSalesUnitPrice = price > 0;
+        form.SalesUnitPrice    = price;
+      } else {
+        // Inventory items use ItemName and DefaultSalesPrice
+        form.ItemName          = item.name;
+        form.Name              = item.name; // set both to be safe
+        form.DefaultSalesPrice = price;
+        form.HasDefaultSalesPrice = price > 0;
+      }
+      // Tax code — look up Manager tax code GUID matching the VAT designation
+      if (item.vat) {
+        try {
+          const taxGuid = await mgrTaxCodeGuid(ep, accessToken, item.vat);
+          if (taxGuid) { form.TaxCode = taxGuid; console.log(`   Tax code GUID → ${taxGuid} (${item.vat})`); }
+          else { console.log(`   ⚠ No matching tax code found for VAT type: ${item.vat}`); }
+        } catch(_) {}
+      }
       // Merge custom fields — preserve existing, add/overwrite ours
       const cfStrings = Object.assign({}, (form.CustomFields2 && form.CustomFields2.Strings) || {});
       if (comCodeFieldKey && item.comCode) cfStrings[comCodeFieldKey] = item.comCode;
@@ -519,14 +562,20 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
       const cfStrings = {};
       if (comCodeFieldKey && item.comCode) cfStrings[comCodeFieldKey] = item.comCode;
       if (catPathFieldKey && catPath)      cfStrings[catPathFieldKey] = catPath;
-      const payload = {
-        Code:              item.code,
-        Name:              item.name,
-        UnitName:          item.uom,
-        DefaultLineDescription: item.remarks || '',
-        HasSalesUnitPrice: parseFloat(item.price) > 0,
-        SalesUnitPrice:    parseFloat(item.price) || 0,
-      };
+      const price = parseFloat(item.price) || 0;
+      const payload = { Code: item.code, Name: item.name, UnitName: item.uom, DefaultLineDescription: item.remarks || '' };
+      if (isService) {
+        payload.HasSalesUnitPrice = price > 0;
+        payload.SalesUnitPrice    = price;
+      } else {
+        payload.ItemName             = item.name;
+        payload.DefaultSalesPrice    = price;
+        payload.HasDefaultSalesPrice = price > 0;
+      }
+      // Tax code for create
+      if (item.vat) {
+        try { const tg = await mgrTaxCodeGuid(ep, accessToken, item.vat); if (tg) payload.TaxCode = tg; } catch(_) {}
+      }
       if (Object.keys(cfStrings).length) payload.CustomFields2 = { Strings: cfStrings };
       r = await managerCall(ep, accessToken, 'POST', listPath, payload);
       action = 'created';
