@@ -303,7 +303,60 @@ async function getSession(tin, deviceNo, password, efrisBaseUrl) {
   return session;
 }
 
-// ── Build T109 ────────────────────────────────────────────────
+// ── EFRIS data dictionary (T115) — used to resolve currency codes ──
+// T130's `currency` field wants the EFRIS internal currency code, NOT the ISO
+// string ("UGX" is rejected with rc:680). We fetch the dictionary once, cache it
+// on the session, and map ISO → EFRIS code.
+const _dictCache = {};
+async function getEfrisDictionary(tin, deviceNo, session, eu) {
+  const key = tin + '_' + deviceNo;
+  if (_dictCache[key]) return _dictCache[key];
+  try {
+    const t115 = await efrisCall(eu, efrisEnvEnc('T115', {}, tin, deviceNo, session.aesKey, session.privatePem));
+    if (t115.data && t115.data.data && t115.data.data.content) {
+      const raw = aesDecryptStr(t115.data.data.content, session.aesKey);
+      const dict = JSON.parse(raw);
+      console.log(`   T115 dictionary loaded — top-level keys: ${Object.keys(dict).join(', ')}`);
+      _dictCache[key] = dict;
+      return dict;
+    }
+  } catch(e) { console.log(`   (T115 dictionary fetch failed: ${e.message})`); }
+  return null;
+}
+
+// Resolve an ISO currency (e.g. "UGX") to the EFRIS currency code expected by T130.
+async function resolveEfrisCurrency(isoCode, tin, deviceNo, session, eu) {
+  const iso = (isoCode || 'UGX').trim().toUpperCase();
+  const dict = await getEfrisDictionary(tin, deviceNo, session, eu);
+  if (!dict) return iso; // fallback to ISO if dictionary unavailable
+  // Log currency-like sections so the exact format is visible in server logs.
+  for (const [section, val] of Object.entries(dict)) {
+    if (Array.isArray(val) && /rate|curr/i.test(section)) {
+      console.log(`   T115 section "${section}" sample: ${JSON.stringify(val.slice(0, 2))}`);
+    }
+  }
+  // Search every array for an entry matching this ISO code (exact value match first,
+  // then substring within any field), and return its internal code.
+  const pickCode = row => row.currencyCode || row.code || row.value || row.id || row.key;
+  let exact = null, partial = null;
+  for (const [section, val] of Object.entries(dict)) {
+    if (!Array.isArray(val)) continue;
+    for (const row of val) {
+      if (!row || typeof row !== 'object') continue;
+      const vals = Object.values(row).map(x => String(x).toUpperCase());
+      if (vals.includes(iso)) { exact = exact || { section, code: pickCode(row), row }; }
+      else if (!partial && vals.some(v => v.includes(iso))) { partial = { section, code: pickCode(row), row }; }
+    }
+  }
+  const hit = exact || partial;
+  if (hit) {
+    console.log(`   Currency "${iso}" → EFRIS code "${hit.code}" (section: ${hit.section}, ${exact?'exact':'partial'} match)`);
+    return String(hit.code);
+  }
+  console.log(`   Currency "${iso}" not found in T115 dictionary — sending ISO as-is`);
+  return iso;
+}
+
 function buildT109(invoice, cfg) {
   const vat = !!cfg.vatRegistered;
   const r2 = n => (Math.round((parseFloat(n) || 0) * 100) / 100).toFixed(2);
@@ -706,8 +759,9 @@ app.post('/api/efris/register-goods', async (req, res) => {
     // currency: EFRIS accepts ISO codes (USD, EUR, GBP…) for foreign-currency items.
     // UGX is the default base currency — omit the field entirely when pricing in UGX.
     // taxItems are for invoices (T109), not goods registration — exclude here.
-    // currency is required by T130 — always send it explicitly
-    const t130Currency = (item.cur && item.cur.trim()) ? item.cur.trim().toUpperCase() : 'UGX';
+    // currency is required by T130, but it wants the EFRIS dictionary code (not "UGX").
+    // Resolve via the T115 data dictionary.
+    const t130Currency = await resolveEfrisCurrency(item.cur || 'UGX', tin, deviceNo, session, eu);
     const t130Payload = {
       goodsCode:          item.code,
       goodsName:          item.name,
