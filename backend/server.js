@@ -526,11 +526,11 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
         form.HasSalesUnitPrice = price > 0;
         form.SalesUnitPrice    = price;
       } else {
-        // Inventory items use ItemName and DefaultSalesPrice
-        form.ItemName          = item.name;
-        form.Name              = item.name; // set both to be safe
-        form.DefaultSalesPrice = price;
-        form.HasDefaultSalesPrice = price > 0;
+        // Inventory items — confirmed field names from GET form response
+        form.ItemName                 = item.name;
+        form.DefaultSalesUnitPrice    = price;
+        form.HasDefaultSalesUnitPrice = price > 0;
+        // Note: inventory items have no Code field in the form API
       }
       // Tax code — look up Manager tax code GUID matching the VAT designation
       if (item.vat) {
@@ -568,9 +568,9 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
         payload.HasSalesUnitPrice = price > 0;
         payload.SalesUnitPrice    = price;
       } else {
-        payload.ItemName             = item.name;
-        payload.DefaultSalesPrice    = price;
-        payload.HasDefaultSalesPrice = price > 0;
+        payload.ItemName                 = item.name;
+        payload.DefaultSalesUnitPrice    = price;
+        payload.HasDefaultSalesUnitPrice = price > 0;
       }
       // Tax code for create
       if (item.vat) {
@@ -697,23 +697,23 @@ app.post('/api/efris/register-goods', async (req, res) => {
       goodsName:          item.name,
       goodsTypeCode,
       measureUnit:        uomCode,
-      unitPrice:          String(parseFloat(item.price) || 0),
-      goodsCategoryId:    item.comCode || '',
-      goodsCategoryName:  item.comName || '',
-      haveExciseTax:      item.excise === 'Yes' ? '101' : '102',
-      description:        item.remarks || '',
-      stockPrewarning:    '0',
-      pricingMode:        '1',
-      havePieceUnit:      '102',
-      pieceUnit:          '',
-      packageScaledValue: '1',
-      scaledValue:        '1',
-      discountTaxRate:    '',
+      unitPrice:             String(parseFloat(item.price) || 0),
+      commodityCategoryId:   item.comCode || '',
+      commodityCategoryName: item.comName || '',
+      haveExciseTax:         item.excise === 'Yes' ? '101' : '102',
+      description:           item.remarks || '',
+      stockPrewarning:       '0',
+      pricingMode:           '1',
+      havePieceUnit:         '102',
+      pieceUnit:             '',
+      packageScaledValue:    '1',
+      scaledValue:           '1',
+      discountTaxRate:       '',
     };
     if (isForeignCurrency) t130Payload.currency = item.cur;
 
     console.log(`\n📦 Registering goods with EFRIS T130: ${item.code} — ${item.name}`);
-    console.log(`   Payload: goodsCode=${t130Payload.goodsCode}, categoryId=${t130Payload.goodsCategoryId}, measureUnit=${uomCode}, price=${t130Payload.unitPrice}, currency=${t130Payload.currency||'UGX(default)'}, vatCat=${vatCat}, type=${goodsTypeCode}`);
+    console.log(`   Payload: goodsCode=${t130Payload.goodsCode}, categoryId=${t130Payload.commodityCategoryId}, measureUnit=${uomCode}, price=${t130Payload.unitPrice}, currency=${t130Payload.currency||'UGX(default)'}, vatCat=${vatCat}, type=${goodsTypeCode}`);
 
     // T130 is a BATCH interface — payload must be an array even for a single item
     const t130 = await efrisCall(eu, efrisEnvEnc('T130', [t130Payload], tin, deviceNo, session.aesKey, session.privatePem));
