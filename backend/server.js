@@ -837,8 +837,8 @@ app.post('/api/efris/register-goods', async (req, res) => {
       pricingMode:           '1',
       havePieceUnit:         '102',
       pieceUnit:             '',
-      packageScaledValue:    '1',
-      scaledValue:           '1',
+      packageScaledValue:    '',
+      scaledValue:           '',
       discountTaxRate:       '',
     };
 
