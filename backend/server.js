@@ -410,6 +410,35 @@ app.get('/api/commodity/:code', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/commodity/search', (req, res) => {
+  try {
+    const q = (req.query.q || '').toLowerCase().trim();
+    if (q.length < 2) return res.json([]);
+    const tree = getTree();
+    const results = [];
+    for (const [sc, seg] of Object.entries(tree)) {
+      for (const [fc, fam] of Object.entries(seg.f)) {
+        for (const [cc, cls] of Object.entries(fam.c)) {
+          if (!cls.d) continue;
+          for (const [dc, com] of Object.entries(cls.d)) {
+            const comName = typeof com === 'string' ? com : com.n;
+            if (comName.toLowerCase().includes(q) || dc.includes(q)) {
+              results.push({ commodityCode: dc, commodityName: comName,
+                classCode: cc, className: cls.n, familyCode: fc, familyName: fam.n,
+                segmentCode: sc, segmentName: seg.n });
+              if (results.length >= 20) break;
+            }
+          }
+          if (results.length >= 20) break;
+        }
+        if (results.length >= 20) break;
+      }
+      if (results.length >= 20) break;
+    }
+    res.json(results);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ══════════════════════════════════════════════════════════════
 //  GOODS SYNC ROUTES (new)
 // ══════════════════════════════════════════════════════════════
@@ -421,26 +450,162 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
   }
   const ep = normEp(managerEndpoint);
   const isService = (item.type || 'Service') !== 'Goods';
-  const docPath = isService ? '/non-inventory-items' : '/inventory-items';
-  // Manager.io API v2 uses SalesUnitPrice (not UnitPrice) and Name (not ItemName).
-  const payload = {
-    Code:           item.code,
-    Name:           item.name,
-    SalesUnitPrice: parseFloat(item.price) || 0,
-    UnitName:       item.uom,
-    Description:    item.remarks || ''
-  };
-  console.log(`\n🔗 Syncing to Manager.io: POST ${ep}${docPath} — ${item.code} ${item.name}`);
+  const listPath = isService ? '/non-inventory-items' : '/inventory-items';
+  const listKey  = isService ? 'nonInventoryItems' : 'inventoryItems';
+  const formBase = isService ? '/non-inventory-item-form' : '/inventory-item-form';
+
   try {
-    const r = await managerCall(ep, accessToken, 'POST', docPath, payload);
-    console.log(`   Manager response: HTTP ${r.status}`, JSON.stringify(r.data || '').slice(0, 200));
-    const ok = r.status >= 200 && r.status < 300;
-    const managerId = ok && r.data ? (r.data.Key || r.data.key || r.data.id || null) : null;
-    res.json(ok
-      ? { success: true, managerId }
-      : { success: false, error: `Manager returned HTTP ${r.status} — check access token and that the business is open` });
+    // Look up custom field GUIDs for "EFRIS Commodity Code" and "EFRIS Category Path"
+    let comCodeFieldKey = null, catPathFieldKey = null;
+    try {
+      const cf = await mgrTextCustomFields(ep, accessToken);
+      comCodeFieldKey = cf.byName['EFRIS Commodity Code'] || null;
+      catPathFieldKey = cf.byName['EFRIS Category Path'] || cf.byName['EFRIS Segment'] || null;
+    } catch(_) {}
+
+    const catPath = [item.segment, item.family, item.cls].filter(Boolean).join(' >> ');
+    const codeLower = (item.code || '').toLowerCase();
+    const nameLower = (item.name || '').toLowerCase();
+
+    // Step 1: Find existing item key by fetching the list
+    console.log(`\n🔗 Syncing to Manager.io: ${ep} — ${item.code} ${item.name}`);
+    const listR = await managerCall(ep, accessToken, 'GET', listPath, null);
+    const existingList = (listR.status === 200 && listR.data && listR.data[listKey]) || [];
+    const match = existingList.find(i => {
+      const cd = (i.code || i.Code || '').toLowerCase();
+      return codeLower && cd && cd === codeLower;
+    }) || existingList.find(i => {
+      const nm = (i.itemName || i.name || i.Name || '').toLowerCase();
+      return nm === nameLower;
+    });
+
+    let r, action, existingKey = null;
+
+    if (match) {
+      // Step 2a: UPDATE — GET the full form, merge our fields, POST back to form endpoint
+      existingKey = match.key || match.Key;
+      console.log(`   Existing item (key ${existingKey}) — GET form → mutate → POST form`);
+      const formR = await managerCall(ep, accessToken, 'GET', `${formBase}/${existingKey}`, null);
+      if (formR.status !== 200) {
+        return res.json({ success: false, error: `Could not fetch item form: HTTP ${formR.status}` });
+      }
+      // Merge our fields into the form (preserving all other Manager fields)
+      const form = Object.assign({}, formR.data || {});
+      form.Code              = item.code;
+      form.Name              = item.name;
+      form.UnitName          = item.uom;
+      form.HasSalesUnitPrice = parseFloat(item.price) > 0;
+      form.SalesUnitPrice    = parseFloat(item.price) || 0;
+      if (item.remarks) form.DefaultLineDescription = item.remarks;
+      // Merge custom fields — preserve existing, add/overwrite ours
+      const cfStrings = Object.assign({}, (form.CustomFields2 && form.CustomFields2.Strings) || {});
+      if (comCodeFieldKey && item.comCode) cfStrings[comCodeFieldKey] = item.comCode;
+      if (catPathFieldKey && catPath)      cfStrings[catPathFieldKey] = catPath;
+      if (Object.keys(cfStrings).length)   form.CustomFields2 = { Strings: cfStrings };
+      r = await managerCall(ep, accessToken, 'POST', `${formBase}/${existingKey}`, form);
+      action = 'updated';
+      const written = Object.keys(cfStrings).length;
+      console.log(`   Manager form POST: HTTP ${r.status}`);
+      if (comCodeFieldKey) console.log(`   EFRIS Commodity Code → ${item.comCode}`);
+      if (catPathFieldKey) console.log(`   EFRIS Category Path  → ${catPath}`);
+      const ok = r.status >= 200 && r.status < 300;
+      return res.json(ok
+        ? { success: true, action, managerId: existingKey, comCodeWritten: !!(comCodeFieldKey && item.comCode), fieldsWritten: written }
+        : { success: false, error: `Manager form POST returned HTTP ${r.status}: ${JSON.stringify(r.data||'').slice(0,200)}` });
+
+    } else {
+      // Step 2b: CREATE — POST to the list endpoint (standard creation path)
+      console.log(`   No existing item found — creating via POST ${listPath}`);
+      const cfStrings = {};
+      if (comCodeFieldKey && item.comCode) cfStrings[comCodeFieldKey] = item.comCode;
+      if (catPathFieldKey && catPath)      cfStrings[catPathFieldKey] = catPath;
+      const payload = {
+        Code:              item.code,
+        Name:              item.name,
+        UnitName:          item.uom,
+        DefaultLineDescription: item.remarks || '',
+        HasSalesUnitPrice: parseFloat(item.price) > 0,
+        SalesUnitPrice:    parseFloat(item.price) || 0,
+      };
+      if (Object.keys(cfStrings).length) payload.CustomFields2 = { Strings: cfStrings };
+      r = await managerCall(ep, accessToken, 'POST', listPath, payload);
+      action = 'created';
+      // POST returns the full list; find the new item's key
+      if (r.status === 200 && r.data && r.data[listKey]) {
+        const created = r.data[listKey].find(i => {
+          const cd = (i.code || i.Code || '').toLowerCase();
+          const nm = (i.itemName || i.name || i.Name || '').toLowerCase();
+          return (codeLower && cd === codeLower) || nm === nameLower;
+        });
+        if (created) existingKey = created.key || created.Key;
+      }
+      console.log(`   Manager POST: HTTP ${r.status}`, JSON.stringify(r.data || '').slice(0, 200));
+      const ok = r.status >= 200 && r.status < 300;
+      const written = Object.keys(cfStrings).length;
+      return res.json(ok
+        ? { success: true, action, managerId: existingKey || null, comCodeWritten: !!(comCodeFieldKey && item.comCode), fieldsWritten: written }
+        : { success: false, error: `Manager returned HTTP ${r.status}: ${JSON.stringify(r.data||'').slice(0,200)}` });
+    }
   } catch(e) {
     res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/goods/manager-items', async (req, res) => {
+  const ep = normEp(req.query.ep || '');
+  const tk = req.query.tk || '';
+  if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk required' });
+  try {
+    const [niR, invR] = await Promise.all([
+      managerCall(ep, tk, 'GET', '/non-inventory-items', null),
+      managerCall(ep, tk, 'GET', '/inventory-items', null)
+    ]);
+    const services = (niR.status === 200 && niR.data && niR.data.nonInventoryItems) || [];
+    const goods    = (invR.status === 200 && invR.data && invR.data.inventoryItems) || [];
+    const normalize = (arr, type) => arr.map(i => ({
+      key:            i.key || i.Key,
+      code:           i.code || i.Code || '',
+      name:           i.itemName || i.name || i.Name || '',
+      unitName:       i.unitName || i.UnitName || '',
+      salesUnitPrice: i.salesUnitPrice || i.SalesUnitPrice || 0,
+      description:    i.description || i.Description || '',
+      type
+    }));
+    res.json({ success: true, items: [...normalize(services,'Service'), ...normalize(goods,'Goods')] });
+  } catch(e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// Full details for a single Manager.io item (for import prefill)
+app.get('/api/goods/manager-item-detail', async (req, res) => {
+  const ep = normEp(req.query.ep || '');
+  const tk = req.query.tk || '';
+  const key = req.query.key || '';
+  const type = req.query.type || 'Service';
+  if (!ep || !tk || !key) return res.status(400).json({ success: false, error: 'ep, tk and key are required' });
+  const itemPath = type === 'Goods' ? `/inventory-item-form/${key}` : `/non-inventory-item-form/${key}`;
+  try {
+    const r = await managerCall(ep, tk, 'GET', itemPath, null);
+    if (r.status !== 200) return res.json({ success: false, error: `Manager returned HTTP ${r.status}` });
+    const d = r.data || {};
+    // Manager returns camelCase on GET; normalize both cases
+    const cf2 = d.customFields2 || d.CustomFields2 || {};
+    const cfStrings = cf2.strings || cf2.Strings || {};
+    console.log(`   Detail for ${key}:`, JSON.stringify(d).slice(0, 300));
+    res.json({ success: true, item: {
+      key,
+      code:                   d.code || d.Code || '',
+      name:                   d.name || d.Name || d.itemName || '',
+      unitName:               d.unitName || d.UnitName || '',
+      salesUnitPrice:         d.salesUnitPrice || d.SalesUnitPrice || 0,
+      hasSalesUnitPrice:      !!(d.hasSalesUnitPrice || d.HasSalesUnitPrice),
+      description:            d.description || d.Description || '',
+      defaultLineDescription: d.defaultLineDescription || d.DefaultLineDescription || '',
+      customFieldStrings:     cfStrings,
+    }});
+  } catch(e) {
+    res.json({ success: false, error: e.message });
   }
 });
 
@@ -469,42 +634,45 @@ app.post('/api/efris/register-goods', async (req, res) => {
     const vatCat = item.vat === 'Exempt' ? '03' : item.vat === 'Zero' ? '02' : '01';
     const taxRate = vatCat === '01' ? '0.18' : '0.00';
 
-    // T127 = UploadGoods (goods registration). Field names are URA-specific.
-    // goodsTypeCode is NOT sent — URA derives type from goodsCategoryId.
-    const t127Payload = {
-      goodsCode:         item.code,
-      goodsName:         item.name,
-      measureUnit:       uomCode,
-      currency:          item.cur || 'UGX',
-      unitPrice:         String(parseFloat(item.price) || 0),
-      goodsCategoryId:   item.comCode || '',
-      goodsCategoryName: item.comName || '',
-      haveExciseTax:     item.excise === 'Yes' ? '101' : '102',  // 101=yes, 102=no
-      description:       item.remarks || '',
-      stockPrewarning:   0,
-      pricingMode:       1,
-      havePieceUnit:     '102',
-      pieceUnit:         '',
-      packageScaledValue: 1,
-      scaledValue:       1,
-      discountTaxRate:   '',
-      taxItems: [{
-        taxCategoryCode: vatCat,
-        taxRateCode:     '1',
-        taxRate:         taxRate,
-        taxAmount:       '',
-        taxAmountUsd:    ''
-      }]
-    };
+    // goodsTypeCode: '101'=Goods, '102'=Service (URA numeric codes)
+    const goodsTypeCode = (item.type || 'Service') === 'Goods' ? '101' : '102';
 
-    console.log(`\n📦 Registering goods with EFRIS T127: ${item.code} — ${item.name}`);
-    const t127 = await efrisCall(eu, efrisEnvEnc('T127', t127Payload, tin, deviceNo, session.aesKey, session.privatePem));
-    const rc = t127.data && t127.data.returnStateInfo ? t127.data.returnStateInfo.returnCode : null;
-    const rm = t127.data && t127.data.returnStateInfo ? t127.data.returnStateInfo.returnMessage : '';
-    console.log(`   T127 rc: ${rc} (${rm})`);
+    // T130 = Goods Registration (Add Product Code).
+    // currency: EFRIS accepts ISO codes (USD, EUR, GBP…) for foreign-currency items.
+    // UGX is the default base currency — omit the field entirely when pricing in UGX.
+    // taxItems are for invoices (T109), not goods registration — exclude here.
+    const isForeignCurrency = item.cur && item.cur !== 'UGX';
+    const t130Payload = {
+      goodsCode:          item.code,
+      goodsName:          item.name,
+      goodsTypeCode,
+      measureUnit:        uomCode,
+      unitPrice:          String(parseFloat(item.price) || 0),
+      goodsCategoryId:    item.comCode || '',
+      goodsCategoryName:  item.comName || '',
+      haveExciseTax:      item.excise === 'Yes' ? '101' : '102',
+      description:        item.remarks || '',
+      stockPrewarning:    '0',
+      pricingMode:        '1',
+      havePieceUnit:      '102',
+      pieceUnit:          '',
+      packageScaledValue: '1',
+      scaledValue:        '1',
+      discountTaxRate:    '',
+    };
+    if (isForeignCurrency) t130Payload.currency = item.cur;
+
+    console.log(`\n📦 Registering goods with EFRIS T130: ${item.code} — ${item.name}`);
+    console.log(`   Payload: goodsCode=${t130Payload.goodsCode}, categoryId=${t130Payload.goodsCategoryId}, measureUnit=${uomCode}, price=${t130Payload.unitPrice}, currency=${t130Payload.currency||'UGX(default)'}, vatCat=${vatCat}, type=${goodsTypeCode}`);
+    const t130 = await efrisCall(eu, efrisEnvEnc('T130', t130Payload, tin, deviceNo, session.aesKey, session.privatePem));
+    const rc = t130.data && t130.data.returnStateInfo ? t130.data.returnStateInfo.returnCode : null;
+    const rm = t130.data && t130.data.returnStateInfo ? t130.data.returnStateInfo.returnMessage : '';
+    // Log full response body to help diagnose partial failures
+    console.log(`   T130 rc: ${rc} (${rm})`);
+    if (rc !== '00') console.log(`   T130 full response:`, JSON.stringify(t130.data || '').slice(0, 500));
     const ok = rc === '00';
     res.json({ success: ok, returnCode: rc, returnMessage: rm,
-      error: ok ? undefined : `EFRIS T127: ${rc} — ${rm}` });
+      error: ok ? undefined : `EFRIS T130: ${rc} — ${rm}` });
   } catch(e) {
     console.log(`   ❌ register-goods error: ${e.message}`);
     res.status(500).json({ success: false, error: e.message });

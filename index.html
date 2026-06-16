@@ -254,19 +254,22 @@
         <div id="gstep2" style="display:none">
           <div class="ct">Step 2 &mdash; Family</div>
           <div id="gTrail2" style="font-size:11px;color:var(--gray);margin-bottom:7px;"></div>
-          <div class="fg"><label>Family within selected segment *</label><select id="gFamSel" onchange="gOnFamChange()"><option value="">— Select family —</option></select></div>
+          <div class="fg"><label>Filter families</label><input type="text" id="gFamFilter" placeholder="Type to filter families…" oninput="gFilterFams(this.value)" autocomplete="off"/></div>
+          <div class="fg"><label>Family within selected segment *</label><select id="gFamSel" onchange="gOnFamChange()" size="6" style="height:auto;"><option value="">— Select family —</option></select></div>
           <div class="row"><button class="btn bo" onclick="gGoStep(1)">&larr; Back</button><button class="btn bg" id="gBtnS2" disabled onclick="gGoStep(3)">Next: Class &rarr;</button></div>
         </div>
         <div id="gstep3" style="display:none">
           <div class="ct">Step 3 &mdash; Class</div>
           <div id="gTrail3" style="font-size:11px;color:var(--gray);margin-bottom:7px;"></div>
-          <div class="fg"><label>Class within selected family *</label><select id="gClsSel" onchange="gOnClsChange()"><option value="">— Select class —</option></select></div>
+          <div class="fg"><label>Filter classes</label><input type="text" id="gClsFilter" placeholder="Type to filter classes…" oninput="gFilterCls(this.value)" autocomplete="off"/></div>
+          <div class="fg"><label>Class within selected family *</label><select id="gClsSel" onchange="gOnClsChange()" size="6" style="height:auto;"><option value="">— Select class —</option></select></div>
           <div class="row"><button class="btn bo" onclick="gGoStep(2)">&larr; Back</button><button class="btn bg" id="gBtnS3" disabled onclick="gGoStep(4)">Next: Commodity &rarr;</button></div>
         </div>
         <div id="gstep4" style="display:none">
           <div class="ct">Step 4 &mdash; Commodity</div>
           <div id="gTrail4" style="font-size:11px;color:var(--gray);margin-bottom:7px;"></div>
-          <div class="fg"><label>Commodity *</label><select id="gComSel" onchange="gOnComChange()"><option value="">— Select commodity —</option></select></div>
+          <div class="fg"><label>Filter commodities</label><input type="text" id="gComFilter" placeholder="Type to filter commodities…" oninput="gFilterComs(this.value)" autocomplete="off"/></div>
+          <div class="fg"><label>Commodity *</label><select id="gComSel" onchange="gOnComChange()" size="6" style="height:auto;"><option value="">— Select commodity —</option></select></div>
           <div id="gComCodeWrap" style="display:none"><div class="fg"><label>Commodity Code (UNSPSC &mdash; auto-filled)</label><input type="text" id="gComCodeVal" readonly/></div></div>
           <div class="row"><button class="btn bo" onclick="gGoStep(3)">&larr; Back</button><button class="btn bg" id="gBtnS4" disabled onclick="gGoStep(5)">Next: Details &rarr;</button></div>
         </div>
@@ -313,14 +316,14 @@
             </div>
           </div>
           <div class="fg"><label>Remarks</label><textarea id="gFldRemarks" placeholder="Optional notes..."></textarea></div>
-          <div class="trow mt">
+          <div id="gSyncStatus"></div>
+          <div class="trow mt" style="cursor:pointer;" onclick="tg('gTogEfris','gRegEfris')">
             <div>
               <div class="tlbl">Also register in EFRIS goods registry</div>
               <div class="tdsc">Requires EFRIS credentials in Settings. Optional — you can sync to Manager.io only.</div>
             </div>
-            <div class="tog" id="gTogEfris" onclick="tg('gTogEfris','gRegEfris')"></div>
+            <div class="tog" id="gTogEfris"></div>
           </div>
-          <div id="gSyncStatus"></div>
           <div class="row mt">
             <button class="btn bo" style="width:auto;flex:0 0 auto;" onclick="gGoStep(4)">&larr; Back</button>
             <button class="btn bg" onclick="gSyncItem()">&#128228; Sync Item Profile to Manager.io Workspace</button>
@@ -335,9 +338,15 @@
           <div class="ct" style="margin:0;border:none;padding:0;">&#128203; My Items <span id="gItemCount" style="font-size:10px;font-weight:400;color:var(--gray)">0 items</span></div>
           <button class="btn bg bsm" onclick="gSwSub('cfg');gGoStep(1)">&#10133; Add New</button>
         </div>
+        <div class="card" style="margin-bottom:9px;">
+          <div class="ct">&#128229; Import Existing Manager.io Items</div>
+          <p style="font-size:11px;color:var(--gray);margin-bottom:8px;">Pull items already in Manager.io and configure their EFRIS commodity codes here.</p>
+          <button class="btn bo bsm" onclick="gLoadManagerItems()" id="gBtnImport">&#128260; Load Manager Items</button>
+          <div id="gManagerItemsList" style="margin-top:8px;max-height:250px;overflow-y:auto;"></div>
+        </div>
         <div class="g-tbl">
           <table>
-            <thead><tr><th>Code</th><th>Name</th><th>Commodity</th><th>UOM</th><th>Price</th><th>Cur</th><th>Type</th><th>VAT</th><th>Mgr</th><th>EFRIS</th><th>Del</th></tr></thead>
+            <thead><tr><th>Code</th><th>Name</th><th>Commodity</th><th>UOM</th><th>Price</th><th>Cur</th><th>Type</th><th>VAT</th><th>Mgr</th><th>EFRIS</th><th>Actions</th></tr></thead>
             <tbody id="gItemsTbody"><tr><td colspan="11" style="text-align:center;color:var(--gray);padding:20px;">No items yet. Use Configure tab.</td></tr></tbody>
           </table>
         </div>
@@ -718,17 +727,36 @@ function gClearSegment(){
   $('gBtnS1').disabled=true;
 }
 
+let _gFamsData=[], _gClsData=[], _gComsData=[];
+
+function gRenderFamOpts(list){
+  const sel=$('gFamSel');
+  sel.innerHTML='<option value="">— Select family —</option>'+
+    list.map(f=>'<option value="'+esc(f.code)+'">('+esc(f.code)+') '+esc(f.name)+'</option>').join('');
+}
+function gRenderClsOpts(list){
+  const sel=$('gClsSel');
+  sel.innerHTML='<option value="">— Select class —</option>'+
+    list.map(c=>'<option value="'+esc(c.code)+'">('+esc(c.code)+') '+esc(c.name)+'</option>').join('');
+}
+function gRenderComOpts(list){
+  const sel=$('gComSel');
+  sel.innerHTML='<option value="">— Select commodity —</option>'+
+    list.map(c=>'<option value="'+esc(c.code)+'">'+esc(c.code)+' — '+esc(c.name)+'</option>').join('');
+}
+function gFilterFams(q){ gRenderFamOpts(q?_gFamsData.filter(f=>f.name.toLowerCase().includes(q.toLowerCase())||f.code.includes(q)):_gFamsData); }
+function gFilterCls(q){ gRenderClsOpts(q?_gClsData.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())||c.code.includes(q)):_gClsData); }
+function gFilterComs(q){ gRenderComOpts(q?_gComsData.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())||c.code.includes(q)):_gComsData); }
+
 function gBuildFamilySelect(){
   const sel=$('gFamSel');
   sel.innerHTML='<option value="">Loading…</option>';
   $('gTrail2').textContent=gSEG?gSEG.n:'';
   $('gBtnS2').disabled=true;
+  const fi=$('gFamFilter'); if(fi) fi.value='';
   fetch(RELAY+'/api/segments/'+encodeURIComponent(gSEG.k)+'/families')
     .then(r=>r.json())
-    .then(fams=>{
-      sel.innerHTML='<option value="">— Select family —</option>'+
-        fams.map(f=>'<option value="'+esc(f.code)+'">('+esc(f.code)+') '+esc(f.name)+'</option>').join('');
-    })
+    .then(fams=>{ _gFamsData=fams; gRenderFamOpts(fams); })
     .catch(()=>{ sel.innerHTML='<option value="">Failed to load</option>'; });
 }
 
@@ -743,12 +771,10 @@ function gBuildClassSelect(){
   sel.innerHTML='<option value="">Loading…</option>';
   $('gTrail3').textContent=(gSEG?gSEG.n:'')+' › '+(gFAM?gFAM.n:'');
   $('gBtnS3').disabled=true;
+  const fi=$('gClsFilter'); if(fi) fi.value='';
   fetch(RELAY+'/api/segments/'+encodeURIComponent(gSEG.k)+'/families/'+encodeURIComponent(gFAM.k)+'/classes')
     .then(r=>r.json())
-    .then(cls=>{
-      sel.innerHTML='<option value="">— Select class —</option>'+
-        cls.map(c=>'<option value="'+esc(c.code)+'">('+esc(c.code)+') '+esc(c.name)+'</option>').join('');
-    })
+    .then(cls=>{ _gClsData=cls; gRenderClsOpts(cls); })
     .catch(()=>{ sel.innerHTML='<option value="">Failed to load</option>'; });
 }
 
@@ -764,12 +790,10 @@ function gBuildCommoditySelect(){
   $('gTrail4').textContent=(gSEG?gSEG.n:'')+' › '+(gFAM?gFAM.n:'')+' › '+(gCLS?gCLS.n:'');
   $('gBtnS4').disabled=true;
   $('gComCodeWrap').style.display='none';
+  const fi=$('gComFilter'); if(fi) fi.value='';
   fetch(RELAY+'/api/segments/'+encodeURIComponent(gSEG.k)+'/families/'+encodeURIComponent(gFAM.k)+'/classes/'+encodeURIComponent(gCLS.k)+'/commodities')
     .then(r=>r.json())
-    .then(coms=>{
-      sel.innerHTML='<option value="">— Select commodity —</option>'+
-        coms.map(c=>'<option value="'+esc(c.code)+'">'+esc(c.code)+' — '+esc(c.name)+'</option>').join('');
-    })
+    .then(coms=>{ _gComsData=coms; gRenderComOpts(coms); })
     .catch(()=>{ sel.innerHTML='<option value="">Failed to load</option>'; });
 }
 
@@ -832,27 +856,40 @@ async function gSyncItem(){
   if(!ep||!tk){
     item.managerSync='error';
     statusEl.innerHTML='<div class="st se">❌ Manager.io not configured. Go to Settings first.</div>';
-    gItems.push(item); gRefreshList(); return;
+    const xi=gItems.findIndex(i=>(i.code||'').toLowerCase()===(item.code||'').toLowerCase());
+    if(xi>=0){gItems[xi]=item;}else{gItems.push(item);}
+    gRefreshList(); return;
   }
+  let mgrAction='created';
   try{
     const r=await fetch(RELAY+'/api/goods/sync-to-manager',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,item})});
     const d=await r.json();
-    if(d.success){ item.managerSync='ok'; item.managerId=d.managerId; statusEl.innerHTML='<div class="st ss">✅ Synced to Manager.io successfully!</div>'; }
-    else{ item.managerSync='error'; statusEl.innerHTML='<div class="st se">❌ Manager sync failed: '+esc(d.error||'Unknown error')+'</div>'; }
+    if(d.success){
+      item.managerSync='ok'; item.managerId=d.managerId||null; mgrAction=d.action||'created';
+      const actionLabel=mgrAction==='updated'?'✏️ Updated in Manager.io':'✅ Created in Manager.io';
+      const cfNote=d.fieldsWritten?' + '+d.fieldsWritten+' EFRIS field(s) saved':'';
+      statusEl.innerHTML='<div class="st ss">'+actionLabel+cfNote+'</div>';
+    } else {
+      item.managerSync='error';
+      statusEl.innerHTML='<div class="st se">❌ Manager sync failed: '+esc(d.error||'Unknown error')+'</div>';
+    }
   }catch(e){ item.managerSync='error'; statusEl.innerHTML='<div class="st se">❌ Network error: '+esc(e.message)+'</div>'; }
 
   if(item.managerSync==='ok' && TG.gRegEfris && CFG.tin && CFG.deviceNo){
-    statusEl.innerHTML+='<div class="st si"><span class="sp">⏳</span> Registering in EFRIS goods registry…</div>';
+    const mgrLabel=mgrAction==='updated'?'✏️ Updated in Manager.io':'✅ Created in Manager.io';
+    statusEl.innerHTML='<div class="st ss">'+mgrLabel+'</div><div class="st si"><span class="sp">⏳</span> Registering in EFRIS goods registry…</div>';
     try{
       const r2=await fetch(RELAY+'/api/efris/register-goods',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',item})});
       const d2=await r2.json();
-      if(d2.success){ item.efrisSync='ok'; statusEl.innerHTML+='<div class="st ss">✅ Registered in EFRIS goods registry!</div>'; }
-      else{ item.efrisSync='error'; statusEl.innerHTML+='<div class="al aw">⚠ EFRIS registration: '+esc(d2.error||d2.returnMessage||'Failed')+'<br><small>The item was saved in Manager.io. You can retry EFRIS registration later from the My Items tab.</small></div>'; }
-    }catch(e2){ item.efrisSync='error'; statusEl.innerHTML+='<div class="al aw">⚠ Could not reach EFRIS. Item saved in Manager.io — retry EFRIS later.</div>'; }
+      if(d2.success){ item.efrisSync='ok'; statusEl.innerHTML='<div class="st ss">'+mgrLabel+' &amp; Registered in EFRIS!</div>'; }
+      else{ item.efrisSync='error'; statusEl.innerHTML='<div class="st ss">'+mgrLabel+'</div><div class="al aw">⚠ EFRIS: '+esc(d2.error||d2.returnMessage||'Failed')+'<br><small>Retry EFRIS registration later from My Items tab.</small></div>'; }
+    }catch(e2){ item.efrisSync='error'; statusEl.innerHTML='<div class="st ss">'+mgrLabel+'</div><div class="al aw">⚠ Could not reach EFRIS. Retry later.</div>'; }
   } else if(item.managerSync==='ok' && TG.gRegEfris && (!CFG.tin||!CFG.deviceNo)){
-    statusEl.innerHTML+='<div class="al aw">ℹ️ EFRIS registration skipped — add TIN and Device No. in Settings first.</div>';
+    statusEl.innerHTML='<div class="st ss">✅ Saved in Manager.io</div><div class="al aw">ℹ️ EFRIS skipped — add TIN and Device No. in Settings first.</div>';
   }
-  gItems.push(item); gRefreshList();
+  const existingIdx=gItems.findIndex(i=>(i.code||'').toLowerCase()===(item.code||'').toLowerCase());
+  if(existingIdx>=0){ gItems[existingIdx]=item; } else { gItems.push(item); }
+  gRefreshList();
 }
 
 function gRefreshList(){
@@ -860,23 +897,131 @@ function gRefreshList(){
   const el=$('gItemCount'); if(el) el.textContent=n+' item'+(n!==1?'s':'');
   const tbody=$('gItemsTbody'); if(!tbody) return;
   if(!n){ tbody.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--gray);padding:20px;">No items yet.</td></tr>'; return; }
-  tbody.innerHTML=gItems.map((it,i)=>'<tr>'
-    +'<td style="font-family:monospace;font-size:10px;">'+esc(it.code)+'</td>'
-    +'<td><strong>'+esc(it.name)+'</strong></td>'
-    +'<td style="font-size:10px;color:var(--gray);">'+esc(it.comCode)+'</td>'
-    +'<td>'+esc(it.uom)+'</td>'
-    +'<td style="font-weight:600;">'+(it.price||0).toLocaleString()+'</td>'
-    +'<td>'+esc(it.cur)+'</td>'
-    +'<td><span class="pill '+(it.type==='Service'?'pill-svc':'pill-gds')+'">'+esc(it.type)+'</span></td>'
-    +'<td style="font-size:10px;">'+esc(it.vat)+'</td>'
-    +'<td>'+(it.managerSync==='ok'?'<span class="pill pill-ok">✓ Synced</span>':it.managerSync==='error'?'<span class="pill pill-err">Error</span>':'<span class="pill pill-pend">Pending</span>')+'</td>'
-    +'<td>'+(it.efrisSync==='ok'?'<span class="pill pill-ok">✓ Done</span>':it.efrisSync==='error'?'<span class="pill pill-err">Error</span>':'<span class="pill pill-pend">—</span>')+'</td>'
-    +'<td><button onclick="gDeleteItem('+i+')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;">🗑</button></td>'
-    +'</tr>'
-  ).join('');
+  tbody.innerHTML=gItems.map((it,i)=>{
+    const mgrPill=it.managerSync==='ok'?'<span class="pill pill-ok">✓ Synced</span>':it.managerSync==='error'?'<span class="pill pill-err">Error</span>':'<span class="pill pill-pend">Pending</span>';
+    const efrPill=it.efrisSync==='ok'?'<span class="pill pill-ok">✓ Done</span>':it.efrisSync==='error'?'<span class="pill pill-err">Error</span>':'<span class="pill pill-pend">—</span>';
+    const needsMgr=it.managerSync!=='ok';
+    const needsEfr=it.efrisSync!=='ok';
+    let actions='';
+    if(needsMgr) actions+='<button onclick="gRetrySyncMgr('+i+')" style="font-size:10px;padding:2px 6px;background:var(--g);color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:2px;">↑ Mgr</button>';
+    if(needsEfr&&it.comCode) actions+='<button onclick="gRetrySyncEfris('+i+')" style="font-size:10px;padding:2px 6px;background:#1565c0;color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:2px;">↑ EFRIS</button>';
+    actions+='<button onclick="gDeleteItem('+i+')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;">🗑</button>';
+    return '<tr>'
+      +'<td style="font-family:monospace;font-size:10px;">'+esc(it.code)+'</td>'
+      +'<td><strong>'+esc(it.name)+'</strong></td>'
+      +'<td style="font-size:10px;color:var(--gray);">'+esc(it.comCode)+'</td>'
+      +'<td>'+esc(it.uom)+'</td>'
+      +'<td style="font-weight:600;">'+(it.price||0).toLocaleString()+'</td>'
+      +'<td>'+esc(it.cur)+'</td>'
+      +'<td><span class="pill '+(it.type==='Service'?'pill-svc':'pill-gds')+'">'+esc(it.type)+'</span></td>'
+      +'<td style="font-size:10px;">'+esc(it.vat)+'</td>'
+      +'<td>'+mgrPill+'</td>'
+      +'<td>'+efrPill+'</td>'
+      +'<td style="white-space:nowrap;">'+actions+'</td>'
+      +'</tr>';
+  }).join('');
 }
 
 function gDeleteItem(i){ if(!confirm('Delete "'+gItems[i].name+'"?'))return; gItems.splice(i,1); gRefreshList(); }
+
+async function gRetrySyncMgr(i){
+  const it=gItems[i]; if(!it)return;
+  const ep=CFG.managerEndpoint, tk=CFG.accessToken;
+  if(!ep||!tk){ alert('Manager.io not configured — go to Settings first.'); return; }
+  const btn=event.target; btn.disabled=true; btn.textContent='…';
+  try{
+    const r=await fetch(RELAY+'/api/goods/sync-to-manager',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,item:it})});
+    const d=await r.json();
+    if(d.success){ it.managerSync='ok'; it.managerId=d.managerId||null; gRefreshList(); }
+    else{ alert('Manager sync failed: '+(d.error||'Unknown error')); btn.disabled=false; btn.textContent='↑ Mgr'; }
+  }catch(e){ alert('Network error: '+e.message); btn.disabled=false; btn.textContent='↑ Mgr'; }
+}
+
+async function gRetrySyncEfris(i){
+  const it=gItems[i]; if(!it)return;
+  if(!CFG.tin||!CFG.deviceNo){ alert('EFRIS credentials not set — go to Settings first.'); return; }
+  if(!it.comCode){ alert('No commodity code — configure this item first.'); return; }
+  const btn=event.target; btn.disabled=true; btn.textContent='…';
+  try{
+    const r=await fetch(RELAY+'/api/efris/register-goods',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',item:it})});
+    const d=await r.json();
+    if(d.success){ it.efrisSync='ok'; gRefreshList(); }
+    else{ alert('EFRIS registration failed: '+(d.error||d.returnMessage||'Unknown error')); btn.disabled=false; btn.textContent='↑ EFRIS'; }
+  }catch(e){ alert('Network error: '+e.message); btn.disabled=false; btn.textContent='↑ EFRIS'; }
+}
+
+let _mgrItems=[];
+async function gLoadManagerItems(){
+  const btn=$('gBtnImport');
+  const el=$('gManagerItemsList');
+  if(!el)return;
+  btn.disabled=true;btn.textContent='Loading…';
+  el.innerHTML='<div class="al ai"><span class="sp">⏳</span> Fetching from Manager.io…</div>';
+  try{
+    const ep=encodeURIComponent(CFG.managerEndpoint||'');
+    const tk=encodeURIComponent(CFG.accessToken||'');
+    const r=await fetch(RELAY+'/api/goods/manager-items?ep='+ep+'&tk='+tk);
+    const d=await r.json();
+    if(!d.success){el.innerHTML='<div class="al ae">'+esc(d.error||'Failed')+'</div>';return;}
+    if(!d.items||!d.items.length){el.innerHTML='<div class="al ai">No items found in Manager.io.</div>';return;}
+    // Match by code (if available) or name to detect already-imported items
+    const imported=new Set(gItems.map(i=>(i.code||i.name||'').toLowerCase()).filter(Boolean));
+    const key=i=>(i.code||i.name||'').toLowerCase();
+    const fresh=d.items.filter(i=>!imported.has(key(i)));
+    const already=d.items.filter(i=>imported.has(key(i)));
+    let h='';
+    if(already.length) h+='<div class="al as" style="margin-bottom:6px;">'+already.length+' item(s) already configured: '+already.map(i=>esc(i.code||i.name)).join(', ')+'</div>';
+    if(!fresh.length&&already.length){el.innerHTML=h+'<div class="al ai">All Manager items are already imported.</div>';return;}
+    if(!fresh.length){el.innerHTML='<div class="al ai">No items found in Manager.io to import.</div>';return;}
+    h+='<div style="font-size:10px;color:var(--gray);margin-bottom:5px;">Click an item to import it and configure its EFRIS commodity code:</div>';
+    _mgrItems=fresh;
+    fresh.forEach(function(i,idx){
+      h+='<div onclick="gImportManagerItem('+idx+')" style="cursor:pointer;border:1px solid var(--bdr);border-radius:5px;padding:7px 10px;margin-bottom:5px;background:white;font-size:12px;">'
+        +'<strong>'+esc(i.code||'—')+'</strong> — '+esc(i.name)
+        +'<span class="pill '+(i.type==='Goods'?'pill-gds':'pill-svc')+'" style="margin-left:6px;">'+esc(i.type)+'</span>'
+        +(i.unitName?'<span style="color:var(--gray);font-size:10px;margin-left:6px;">'+esc(i.unitName)+'</span>':'')
+        +'</div>';
+    });
+    el.innerHTML=h;
+  }catch(e){el.innerHTML='<div class="al ae">Network error: '+esc(e.message)+'</div>';}
+  finally{btn.disabled=false;btn.textContent='🔄 Reload Manager Items';}
+}
+
+async function gImportManagerItem(idx){
+  const i=_mgrItems[idx];
+  if(!i)return;
+  const listEl=$('gManagerItemsList');
+  listEl.innerHTML='<div class="al ai"><span class="sp">⏳</span> Loading full item details from Manager.io…</div>';
+  // Fetch full item details (price, code, description, custom fields)
+  let detail=null;
+  try{
+    const ep=encodeURIComponent(CFG.managerEndpoint||'');
+    const tk=encodeURIComponent(CFG.accessToken||'');
+    const r=await fetch(RELAY+'/api/goods/manager-item-detail?ep='+ep+'&tk='+tk+'&key='+encodeURIComponent(i.key)+'&type='+encodeURIComponent(i.type));
+    const d=await r.json();
+    if(d.success) detail=d.item;
+  }catch(e){}
+  gSwSub('cfg');
+  gGoStep(1);
+  setTimeout(()=>{
+    const code=(detail&&detail.code)||i.code||'';
+    const name=(detail&&detail.name)||i.name||'';
+    const unitName=(detail&&detail.unitName)||i.unitName||'';
+    const price=(detail&&detail.hasSalesUnitPrice)?detail.salesUnitPrice:0;
+    const remarks=(detail&&(detail.defaultLineDescription||detail.description))||'';
+    sv('gFldCode', code);
+    sv('gFldName', name);
+    sv('gFldUom',  unitName);
+    if(price>0) sv('gFldPrice', String(price));
+    if(remarks){ const rEl=$('gFldRemarks'); if(rEl) rEl.value=remarks; }
+    const typeEl=$('gFldType');
+    if(typeEl) typeEl.value=i.type==='Goods'?'Goods':'Service';
+    window._importedManagerKey=i.key;
+  },50);
+  const priceNote=detail&&detail.hasSalesUnitPrice?' · Price: '+(detail.salesUnitPrice||0).toLocaleString():'';
+  const remarkNote=detail&&(detail.defaultLineDescription||detail.description)?' · Remarks pre-filled':'';
+  listEl.innerHTML='<div class="al as">✅ Importing <strong>'+esc(i.code||i.name)+'</strong>'+priceNote+remarkNote+'<br>Complete the commodity wizard steps 1–4, then review Step 5 and click Sync.</div>';
+}
 
 // ── Init ──────────────────────────────────────────────────────
 function init(){
