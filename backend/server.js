@@ -671,13 +671,13 @@ app.post('/api/efris/register-goods', async (req, res) => {
     if (!session.aesKey) throw new Error('No AES key available — check private key path');
 
     // Resolve UOM text → URA code (e.g. "Per Person" → "PP").
-    // If not found, fall back to 'UN' (Unit) — passing free text causes rc:2066.
-    let uomCode = 'UN';
+    // If not found, send the raw text — EFRIS supports custom units when enabled on the account.
+    let uomCode = item.uom || 'UN';
     try {
       const units = getUnits();
       const match = units.find(u => u.name.toLowerCase() === (item.uom || '').toLowerCase());
       if (match) { uomCode = match.code; }
-      else { console.log(`   ⚠ UOM "${item.uom}" not found in uom.json — using UN (Unit)`); }
+      else { console.log(`   ℹ UOM "${item.uom}" not in standard list — sending as custom unit`); }
     } catch(_) {}
 
     // VAT tax item — taxCategoryCode: '01'=standard(18%), '02'=zero-rated, '03'=exempt
