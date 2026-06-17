@@ -188,7 +188,14 @@ async function normalizeInvoice(ep, tk, key) {
       let it = null;
       try { it = (await managerCall(ep, tk, 'GET', '/non-inventory-item-form/' + l.Item)).data; } catch (e) {}
       if (!it || it.error) { try { it = (await managerCall(ep, tk, 'GET', '/inventory-item-form/' + l.Item)).data; } catch (e) {} }
-      if (it && !it.error) { itemName = it.Name || it.ItemName || itemName; code = it.Code || ''; unit = it.UnitName || unit; }
+      if (it && !it.error) {
+        itemName = it.Name || it.ItemName || itemName;
+        code = it.Code || it.code || '';
+        unit = it.UnitName || unit;
+        console.log(`   Line item resolved: name="${itemName}" code="${code}" (Manager Code field)`);
+      } else {
+        console.log(`   Line item ${l.Item}: could not resolve from Manager (no code)`);
+      }
     }
     let rate = 0, taxName = '';
     if (l.TaxCode) {
@@ -1000,9 +1007,23 @@ app.post('/api/efris/submit-invoice', async (req, res) => {
     ? 'https://efrisws.ura.go.ug/ws/taapp/getInformation'
     : 'https://efristest.ura.go.ug/efrisws/ws/taapp/getInformation';
   try {
+    // Guard: a receipt that clears an invoice has no goods lines — EFRIS can't
+    // process it. The original invoice should be submitted instead.
+    const lines = invoice.Lines || [];
+    if (lines.length === 0) {
+      return res.json({ success: false, error: 'This document has no line items. If this is a payment receipt that clears an invoice, submit the original sales invoice to EFRIS instead.' });
+    }
+    // Warn if any line is falling back to the auto-generated ITEM code (means the
+    // Manager item has no EFRIS product code set, and EFRIS will reject it as rc:41).
+    const t109data = buildT109(invoice, config);
+    const missingCodes = t109data.goodsDetails.filter(g => /^ITEM\d+$/.test(g.itemCode));
+    if (missingCodes.length) {
+      console.log(`   ⚠ T109: ${missingCodes.length} line(s) have auto-generated itemCode (no EFRIS product code on Manager item): ${missingCodes.map(g=>g.item).join(', ')}`);
+    }
+    t109data.goodsDetails.forEach(g => console.log(`   T109 line: item="${g.item}" itemCode="${g.itemCode}" taxRule="${g.taxRule}"`));
     const session = await getSession(config.tin, config.deviceNo, config.efrisPassword, eu);
     if (!session.aesKey) throw new Error('No AES key available to encrypt T109');
-    const t109 = await efrisCall(eu, efrisEnvEnc('T109', buildT109(invoice, config), config.tin, config.deviceNo, session.aesKey, session.privatePem));
+    const t109 = await efrisCall(eu, efrisEnvEnc('T109', t109data, config.tin, config.deviceNo, session.aesKey, session.privatePem));
     const rc = t109.data && t109.data.returnStateInfo ? t109.data.returnStateInfo.returnCode : null;
     const rm = t109.data && t109.data.returnStateInfo ? t109.data.returnStateInfo.returnMessage : '';
     let contentStr = null;
