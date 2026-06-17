@@ -151,47 +151,63 @@ async function mgrTaxCodeGuid(ep, tk, vatType) {
 }
 
 async function normalizeInvoice(ep, tk, key) {
-  const formR = await managerCall(ep, tk, 'GET', '/sales-invoice-form/' + key);
-  if (formR.status !== 200) return { _error: 'Manager returned HTTP ' + formR.status, _status: formR.status };
-  const form = formR.data || {};
+  // A document key belongs to either a sales invoice or a receipt. Probe invoice
+  // first, fall back to receipt. (Non-VAT businesses often record cash sales as
+  // Manager "Receipts".)
+  let form = null, docType = 'invoice', formBase = '/sales-invoice-form', listBase = '/sales-invoices', listProp = 'salesInvoices';
+  let formR = await managerCall(ep, tk, 'GET', '/sales-invoice-form/' + key);
+  if (formR.status === 200 && formR.data && !formR.data.error && (formR.data.Lines || formR.data.Reference || formR.data.IssueDate)) {
+    form = formR.data;
+  } else {
+    // Try receipt
+    const rcptR = await managerCall(ep, tk, 'GET', '/receipt-form/' + key);
+    if (rcptR.status === 200 && rcptR.data && !rcptR.data.error) {
+      form = rcptR.data; docType = 'receipt'; formBase = '/receipt-form'; listBase = '/receipts'; listProp = 'receipts';
+      console.log(`   Loaded Manager RECEIPT ${key} — fields: ${Object.keys(form).join(', ')}`);
+    }
+  }
+  if (!form) return { _error: 'Manager returned HTTP ' + formR.status + ' (not found as invoice or receipt)', _status: formR.status };
   let disp = {};
   try {
-    const l = (await managerCall(ep, tk, 'GET', '/sales-invoices/' + key)).data;
-    disp = (l && l.salesInvoices && l.salesInvoices[0]) || {};
+    const l = (await managerCall(ep, tk, 'GET', listBase + '/' + key)).data;
+    disp = (l && l[listProp] && l[listProp][0]) || {};
   } catch (e) {}
   const cf = await mgrTextCustomFields(ep, tk);
   const strs = (form.CustomFields2 && form.CustomFields2.Strings) || {};
   const cfVals = {};
   Object.keys(strs).forEach(k => { cfVals[cf.byKey[k] || k] = strs[k]; });
-  let custName = disp.customer || '';
-  if (form.Customer) {
-    try { const c = (await managerCall(ep, tk, 'GET', '/customer-form/' + form.Customer)).data; if (c && c.Name) custName = c.Name; } catch (e) {}
+  let custName = disp.customer || disp.payer || '';
+  const contactKey = form.PaidBy || form.Customer || form.Payer || form.Contact;
+  if (contactKey) {
+    try { const c = (await managerCall(ep, tk, 'GET', '/customer-form/' + contactKey)).data; if (c && c.Name) custName = c.Name; } catch (e) {}
   }
   const lines = [];
   for (const l of (form.Lines || [])) {
-    let itemName = (l.LineDescription || '').split('\n')[0] || 'Service', code = '', unit = 'Each';
+    let itemName = (l.LineDescription || l.Description || '').split('\n')[0] || 'Service', code = '', unit = 'Each';
     if (l.Item) {
       let it = null;
       try { it = (await managerCall(ep, tk, 'GET', '/non-inventory-item-form/' + l.Item)).data; } catch (e) {}
       if (!it || it.error) { try { it = (await managerCall(ep, tk, 'GET', '/inventory-item-form/' + l.Item)).data; } catch (e) {} }
-      if (it && !it.error) { itemName = it.Name || itemName; code = it.Code || ''; unit = it.UnitName || unit; }
+      if (it && !it.error) { itemName = it.Name || it.ItemName || itemName; code = it.Code || ''; unit = it.UnitName || unit; }
     }
     let rate = 0, taxName = '';
     if (l.TaxCode) {
       try { const tc = (await managerCall(ep, tk, 'GET', '/tax-code-form/' + l.TaxCode)).data; if (tc) { rate = (tc.Rates && tc.Rates[0]) || 0; taxName = tc.Name || ''; } } catch (e) {}
     }
-    const qty = parseFloat(l.Qty || 1), price = parseFloat(l.SalesUnitPrice || 0);
+    const qty = parseFloat(l.Qty || l.Quantity || 1) || 1;
+    const price = parseFloat(l.SalesUnitPrice || l.UnitPrice || l.Amount || 0) || 0;
     const lineTotal = qty * price, taxAmount = lineTotal * (rate / 100);
     lines.push({ ItemName: itemName, ItemCode: code, Qty: qty, UnitPrice: price, LineTotal: lineTotal,
       TaxAmount: taxAmount, TaxRate: rate, TaxName: taxName, Unit: unit,
       EFRISCategoryId: '', EFRISCategoryName: '' });
   }
   const totalTax = lines.reduce((s, l) => s + l.TaxAmount, 0);
-  const total = (disp.invoiceAmount && disp.invoiceAmount.value) || lines.reduce((s, l) => s + l.LineTotal, 0);
-  const currency = (disp.invoiceAmount && disp.invoiceAmount.currency) || 'UGX';
+  const total = (disp.invoiceAmount && disp.invoiceAmount.value) || (disp.amount && disp.amount.value) || lines.reduce((s, l) => s + l.LineTotal, 0);
+  const currency = (disp.invoiceAmount && disp.invoiceAmount.currency) || (disp.amount && disp.amount.currency) || 'UGX';
   return {
+    DocType: docType,
     Reference: form.Reference || disp.reference || '',
-    IssueDate: (form.IssueDate || '').slice(0, 10) || disp.issueDate || '',
+    IssueDate: (form.IssueDate || form.Date || '').slice(0, 10) || disp.issueDate || disp.date || '',
     Customer: { Name: custName, Address: '', TIN: '' },
     CustomerName: custName, Currency: currency,
     ExchangeRate: form.ExchangeRate || 1, Total: total,
@@ -463,15 +479,23 @@ function buildT109(invoice, cfg) {
     else if (vat && /exempt/.test(taxName)) { taxRate = '-'; tax = '0'; vatFlag = '1'; catCode = '03'; }
     else if (vat && /zero/.test(taxName)) { taxRate = '0'; tax = '0'; vatFlag = '1'; catCode = '02'; }
     else if (vat) { taxRate = '-'; tax = '0'; vatFlag = '1'; catCode = '03'; }
-    // Non-VAT-registered taxpayer: issues e-receipts, not tax invoices.
-    // Zero-rate (02) is a VAT concept and is rejected on receipts (URA 3087),
-    // so non-VAT lines are treated as Exempt (03) with no applicable VAT.
-    else { taxRate = '-'; tax = '0'; vatFlag = '2'; catCode = '03'; }
+    // Non-VAT-registered taxpayer: issues e-receipts (invoiceKind=2).
+    // Per EFRIS developer docs taxRule field: OOS = Out of Scope (correct for
+    // non-VAT businesses). catCode '05' = OOS in taxCategoryCode (01=Standard,
+    // 02=Zero, 03=Exempt, 04=Deemed, 05=OOS). Codes 03/04 are rejected on
+    // e-receipts with URA 3087 "Exempt/Deemed not allowed for receipt".
+    else { taxRate = '-'; tax = '0'; vatFlag = '2'; catCode = '05'; }
+    // taxRule per developer.efris.dev: STANDARD | EXEMPT | ZERORATED | OOS | DIM
+    let taxRule;
+    if (!vat) taxRule = 'OOS';
+    else if (catCode === '01') taxRule = 'STANDARD';
+    else if (catCode === '02') taxRule = 'ZERORATED';
+    else taxRule = 'EXEMPT';
     return {
       item: String(l.ItemName || l.Description || 'Service').slice(0, 100),
       itemCode: String(l.ItemCode || l.Code || ('ITEM' + (i + 1))).slice(0, 50),
       qty: String(qty), unitOfMeasure: l.EFRISUnitOfMeasure || cfg.defaultUnitOfMeasure || '101',
-      unitPrice: r2(unitPrice), total: r2(total), taxRate, tax: String(tax),
+      unitPrice: r2(unitPrice), total: r2(total), taxRate, taxRule, tax: String(tax),
       discountTotal: '', discountTaxRate: '', orderNumber: String(i),
       discountFlag: '2', deemedFlag: '2', exciseFlag: '2',
       categoryId: '', categoryName: '',
@@ -484,7 +508,7 @@ function buildT109(invoice, cfg) {
   const taxAmount = goodsDetails.reduce((s, g) => s + (parseFloat(g.tax) || 0), 0);
   const net = gross - taxAmount;
   const anyVat = goodsDetails.some(g => g.taxRate === '0.18');
-  const catCode = goodsDetails[0] ? goodsDetails[0]._catCode : (anyVat ? '01' : '03');
+  const catCode = goodsDetails[0] ? goodsDetails[0]._catCode : (anyVat ? '01' : '05');
   goodsDetails.forEach(g => delete g._catCode);
   const now = new Date();
   const d = invoice.IssueDate ? new Date(invoice.IssueDate) : now;
@@ -625,12 +649,14 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
   const formBase = isService ? '/non-inventory-item-form' : '/inventory-item-form';
 
   try {
-    // Look up custom field GUIDs for "EFRIS Commodity Code" and "EFRIS Category Path"
+    // Look up custom field GUIDs. Accept several common names so renaming the
+    // Manager custom fields (e.g. to "Commodity Code") keeps working.
     let comCodeFieldKey = null, catPathFieldKey = null;
     try {
       const cf = await mgrTextCustomFields(ep, accessToken);
-      comCodeFieldKey = cf.byName['EFRIS Commodity Code'] || null;
-      catPathFieldKey = cf.byName['EFRIS Category Path'] || cf.byName['EFRIS Segment'] || null;
+      const find = (...names) => { for (const n of names) { if (cf.byName[n]) return cf.byName[n]; } return null; };
+      comCodeFieldKey = find('EFRIS Commodity Code', 'Commodity Code', 'EFRIS Commodity', 'Commodity');
+      catPathFieldKey = find('EFRIS Category Path', 'Segment / Class Grouping', 'EFRIS Segment / Class Grouping', 'EFRIS Segment', 'Category Path', 'Class Grouping');
     } catch(_) {}
 
     const catPath = [item.segment, item.family, item.cls].filter(Boolean).join(' >> ');
@@ -877,7 +903,9 @@ app.post('/api/efris/register-goods', async (req, res) => {
       goodsCode:          item.code,
       goodsName:          item.name,
       goodsTypeCode,
-      measureUnit:        uomCode,
+      // Services (goodsTypeCode=102) must use measureUnit '102' — physical unit
+      // codes are rejected with rc:2981 "default measure unit should be '102'"
+      measureUnit:        goodsTypeCode === '102' ? '102' : uomCode,
       unitPrice:             String(parseFloat(item.price) || 0),
       currency:              t130Currency,
       commodityCategoryId:   item.comCode || '',
@@ -996,8 +1024,14 @@ app.post('/api/efris/save-to-manager', async (req, res) => {
   const ep = normEp(managerEndpoint);
   const key = bareKey(documentKey);
   try {
-    const getR = await managerCall(ep, accessToken, 'GET', '/sales-invoice-form/' + key, null);
-    if (getR.status !== 200) return res.json({ success: false, error: 'Manager GET returned ' + getR.status, hint: 'Token rejected or invoice key not found' });
+    // Write back to whichever document this key belongs to (invoice or receipt)
+    let formBase = '/sales-invoice-form';
+    let getR = await managerCall(ep, accessToken, 'GET', '/sales-invoice-form/' + key, null);
+    if (getR.status !== 200 || (getR.data && getR.data.error)) {
+      const rcptR = await managerCall(ep, accessToken, 'GET', '/receipt-form/' + key, null);
+      if (rcptR.status === 200 && rcptR.data && !rcptR.data.error) { getR = rcptR; formBase = '/receipt-form'; }
+    }
+    if (getR.status !== 200) return res.json({ success: false, error: 'Manager GET returned ' + getR.status, hint: 'Token rejected or document key not found' });
     const form = getR.data;
     const cf = await mgrTextCustomFields(ep, accessToken);
     form.CustomFields2 = form.CustomFields2 || {};
@@ -1008,7 +1042,7 @@ app.post('/api/efris/save-to-manager', async (req, res) => {
     setCF('EFRIS QR Code URL', efrisData.qrCode);
     setCF('EFRIS Status', 'Submitted');
     setCF('EFRIS Submission Date', new Date().toISOString().slice(0,10));
-    const postR = await managerCall(ep, accessToken, 'POST', '/sales-invoice-form/' + key, form);
+    const postR = await managerCall(ep, accessToken, 'POST', formBase + '/' + key, form);
     const ok = postR.status === 200 || postR.status === 201 || postR.status === 204;
     res.json(ok ? { success: true } : { success: false, error: 'Manager POST returned ' + postR.status, fdn: efrisData.fdn });
   } catch(e) {
@@ -1038,7 +1072,13 @@ app.get('/api/manager/invoices', async (req, res) => {
   try {
     const r = await managerCall(ep, tk, 'GET', '/sales-invoices', null);
     if (r.status !== 200) return res.json({ success: false, error: 'Manager returned HTTP ' + r.status, hint: r.status === 401 ? 'Token rejected' : 'Check endpoint URL' });
-    const list = ((r.data && r.data.salesInvoices) || []).map(i => ({ key: i.key, reference: i.reference, customer: i.customer, amount: (i.invoiceAmount && i.invoiceAmount.value) || 0, currency: (i.invoiceAmount && i.invoiceAmount.currency) || '', date: i.issueDate, status: i.status }));
+    const list = ((r.data && r.data.salesInvoices) || []).map(i => ({ key: i.key, reference: i.reference, customer: i.customer, amount: (i.invoiceAmount && i.invoiceAmount.value) || 0, currency: (i.invoiceAmount && i.invoiceAmount.currency) || '', date: i.issueDate, status: i.status, docType: 'invoice' }));
+    // Also include receipts (non-VAT cash sales). Tolerate absence / different shape.
+    try {
+      const rr = await managerCall(ep, tk, 'GET', '/receipts', null);
+      const rcpts = (rr.status === 200 && rr.data && (rr.data.receipts || rr.data.receiptsAndPayments)) || [];
+      rcpts.forEach(i => list.push({ key: i.key, reference: i.reference || i.payee || '(receipt)', customer: i.payer || i.customer || i.contact || '', amount: (i.amount && i.amount.value) || i.amount || 0, currency: (i.amount && i.amount.currency) || '', date: i.date || i.issueDate, status: i.status, docType: 'receipt' }));
+    } catch(_) {}
     res.json({ success: true, business: (r.data && r.data.business && r.data.business.name) || '', invoices: list });
   } catch(e) {
     res.json({ success: false, error: e.message });

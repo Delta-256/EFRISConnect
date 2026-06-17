@@ -316,7 +316,7 @@
             </select>
           </div>
           <div class="g2 efris-only">
-            <div class="fg"><label>EFRIS Tax Designation</label>
+            <div class="fg vat-only"><label>EFRIS Tax Designation</label>
               <select id="gFldVat">
                 <option value="Standard">Standard Rate (18%)</option>
                 <option value="Exempt">Exempt</option>
@@ -601,8 +601,8 @@ async function loadList(){
     if(!d.success){ el.innerHTML='<div class="al aw">'+(d.error||'Failed to load')+'</div>'; return; }
     window.__invList=d.invoices||[];
     if(!window.__invList.length){ el.innerHTML='<div class="al ai">No sales invoices found.</div>'; return; }
-    var h='<div style="font-size:11px;color:var(--gray);margin:4px 0 8px;">'+(d.business||'')+' — tap an invoice:</div>';
-    window.__invList.forEach(function(i,idx){ h+='<div onclick="pick('+idx+')" style="cursor:pointer;border:1px solid var(--bdr);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:white;"><strong>'+(i.reference||'(no ref)')+'</strong> — '+(i.customer||'')+'<br><span style="color:var(--gray);font-size:11px;">'+(i.currency||'')+' '+fn(i.amount)+' · '+fd(i.date)+'</span></div>'; });
+    var h='<div style="font-size:11px;color:var(--gray);margin:4px 0 8px;">'+(d.business||'')+' — tap an invoice or receipt:</div>';
+    window.__invList.forEach(function(i,idx){ var badge=i.docType==='receipt'?'<span class="pill pill-svc" style="margin-left:5px;">Receipt</span>':'<span class="pill pill-gds" style="margin-left:5px;">Invoice</span>'; h+='<div onclick="pick('+idx+')" style="cursor:pointer;border:1px solid var(--bdr);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:white;"><strong>'+(i.reference||'(no ref)')+'</strong> — '+(i.customer||'')+badge+'<br><span style="color:var(--gray);font-size:11px;">'+(i.currency||'')+' '+fn(i.amount)+' · '+fd(i.date)+'</span></div>'; });
     el.innerHTML=h;
   }catch(e){ el.innerHTML='<div class="al aw">Network error: '+e.message+'</div>'; }
 }
@@ -688,6 +688,10 @@ let gUnits=['Per Person','Per Pax','Per Adult','Per Child','Per Couple','Per Gro
 function gApplyEfrisMode(){
   const on=CFG.efrisEnabled!==false;
   document.querySelectorAll('.efris-only').forEach(el=>{ el.style.display=on?'':'none'; });
+  // VAT-only fields (e.g. EFRIS Tax Designation) hide for non-VAT taxpayers —
+  // a non-VAT business issues e-receipts with no VAT rate.
+  const vatOn = on && !!CFG.vatReg;
+  document.querySelectorAll('.vat-only').forEach(el=>{ el.style.display=vatOn?'':'none'; });
   const banner=$('gNoEfrisBanner'); if(banner) banner.style.display=on?'none':'';
   // Step visibility is owned by gGoStep — reset so steps don't all show stacked.
   // Only reset if the Configure view is the active sub-tab.
@@ -996,7 +1000,7 @@ function gBuildItemFromForm(){
     cls:gCLS?gCLS.n:(existing.cls||''), clsCode:gCLS?gCLS.k:(existing.clsCode||''),
     uom, price:parseFloat(price)||0, cur,
     efrisUom:($('gFldEfrisUom')?$('gFldEfrisUom').value.trim().toUpperCase():''),
-    type:$('gFldType').value, vat:$('gFldVat').value,
+    type:$('gFldType').value, vat:CFG.vatReg?$('gFldVat').value:'Non-VAT',
     excise:$('gFldExcise').value,
     remarks:$('gFldRemarks')?$('gFldRemarks').value.trim():''
   });
@@ -1117,13 +1121,28 @@ function gRefreshList(){
     const efrPill=it.efrisSync==='ok'?'<span class="pill pill-ok">✓ Done</span>':it.efrisSync==='error'?'<span class="pill pill-err">Error</span>':'<span class="pill pill-pend">—</span>';
     const needsMgr=it.managerSync!=='ok';
     const needsEfr=it.efrisSync!=='ok';
+    // Audit each item for configuration gaps
+    const issues=[];
+    if(!it.code) issues.push('Missing product code');
+    if(!(it.price>0)) issues.push('No price set');
+    if(!it.uom) issues.push('No unit of measure');
+    if(it.managerSync!=='ok') issues.push('Not synced to Manager.io');
+    if(efris){
+      if(!it.comCode) issues.push('No EFRIS commodity category selected');
+      if(!it.efrisUom) issues.push('No EFRIS unit code');
+      if(it.efrisSync==='error') issues.push('EFRIS registration failed — open to fix');
+      else if(it.efrisSync!=='ok'&&it.comCode) issues.push('Not yet registered on EFRIS');
+    }
+    const flag=issues.length
+      ? '<span title="'+esc(issues.join(' • '))+'" style="cursor:help;margin-right:4px;">⚠️</span>'
+      : '<span title="Fully configured" style="margin-right:4px;">✅</span>';
     let actions='<button onclick="gEditItem('+i+')" title="Edit item" style="font-size:10px;padding:2px 6px;background:#546e7a;color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:2px;">✏ Edit</button>';
     if(needsMgr) actions+='<button onclick="gRetrySyncMgr('+i+')" style="font-size:10px;padding:2px 6px;background:var(--g);color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:2px;">↑ Mgr</button>';
     if(efris&&needsEfr&&it.comCode) actions+='<button onclick="gRetrySyncEfris('+i+')" style="font-size:10px;padding:2px 6px;background:#1565c0;color:#fff;border:none;border-radius:4px;cursor:pointer;margin-right:2px;">↑ EFRIS</button>';
     actions+='<button onclick="gDeleteItem('+i+')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;">🗑</button>';
     return '<tr>'
       +'<td style="font-family:monospace;font-size:10px;">'+esc(it.code)+'</td>'
-      +'<td><strong>'+esc(it.name)+'</strong></td>'
+      +'<td>'+flag+'<strong>'+esc(it.name)+'</strong></td>'
       +(efris?'<td style="font-size:10px;color:var(--gray);">'+esc(it.comCode)+'</td>':'')
       +'<td>'+esc(it.uom)+'</td>'
       +'<td style="font-weight:600;">'+(it.price||0).toLocaleString()+'</td>'
