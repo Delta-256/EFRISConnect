@@ -306,6 +306,7 @@
             <div style="display:flex;align-items:center;gap:6px;">
               <input type="text" id="gFldEfrisUom" maxlength="5" placeholder="e.g. PP" style="width:80px;font-family:monospace;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"/>
               <span id="gEfrisUomDesc" style="font-size:11px;color:var(--gray);"></span>
+              <button type="button" class="btn bo bsm" onclick="gOpenUnitPicker()">&#128203; Pick from valid EFRIS units</button>
             </div>
           </div>
           <div class="fg"><label>&#9881; Item Profile Category</label>
@@ -1049,9 +1050,54 @@ async function gSyncToEfris(){
         statusEl.innerHTML='<div class="st ss">✅ Registered in EFRIS goods registry!</div>';
       }
     }
+    else if(d2.unitProblem){ item.efrisSync='error'; gRenderUnitHelp(statusEl, d2); }
     else{ item.efrisSync='error'; statusEl.innerHTML='<div class="al aw">⚠ EFRIS: '+esc(d2.error||d2.returnMessage||'Failed')+'</div>'; }
   }catch(e2){ item.efrisSync='error'; statusEl.innerHTML='<div class="al aw">⚠ Could not reach EFRIS. Retry later.</div>'; }
   gUpsertItem(item);
+}
+
+// ── Valid EFRIS measure units (live from T115 dictionary) ──────
+let _validUnits=[];
+async function gOpenUnitPicker(){
+  const statusEl=$('gSyncStatus');
+  if(!CFG.tin||!CFG.deviceNo){ alert('Add your TIN and Device No. in Settings first to load EFRIS units.'); return; }
+  statusEl.innerHTML='<div class="st si"><span class="sp">⏳</span> Loading valid EFRIS units…</div>';
+  try{
+    const r=await fetch(RELAY+'/api/efris/measure-units',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production'})});
+    const d=await r.json();
+    if(!d.success||!d.units||!d.units.length){ statusEl.innerHTML='<div class="al aw">Could not load EFRIS units'+(d.error?': '+esc(d.error):'')+'. Check Settings / connection.</div>'; return; }
+    gRenderUnitHelp(statusEl, {validUnits:d.units, sentUnit:gvi('gFldEfrisUom'), picker:true});
+  }catch(e){ statusEl.innerHTML='<div class="al aw">Network error loading units: '+esc(e.message)+'</div>'; }
+}
+
+function gRenderUnitHelp(statusEl, d2){
+  _validUnits=d2.validUnits||[];
+  let h='';
+  if(!d2.picker){
+    h+='<div class="al ae">⚠ EFRIS rejected the unit code "<strong>'+esc(d2.sentUnit||'')+'</strong>" — it is not a valid EFRIS measure unit.</div>';
+    h+='<div class="al ai" style="margin-top:4px;"><strong>How to fix:</strong><br>1. Search the official EFRIS unit list below by name (e.g. <em>person</em>, <em>metre</em>, <em>each</em>).<br>2. Click the matching unit to set the correct code.<br>3. Click <strong>Register on EFRIS</strong> again.</div>';
+  } else {
+    h+='<div class="al ai">Search the official EFRIS unit list and click one to set your EFRIS Unit Code.</div>';
+  }
+  if(_validUnits.length){
+    h+='<input type="text" id="gUnitSearch" placeholder="Search EFRIS units…" oninput="gFilterValidUnits(this.value)" style="width:100%;padding:6px 8px;margin-top:6px;border:1px solid var(--bdr);border-radius:4px;"/>';
+    h+='<div id="gValidUnitList" style="max-height:170px;overflow:auto;border:1px solid var(--bdr);border-radius:4px;margin-top:4px;"></div>';
+  } else {
+    h+='<div class="al aw" style="margin-top:4px;">Could not load the EFRIS unit list. In the EFRIS portal → Goods/Services → Add Product Code, check the valid Package Measure Units and type the matching short code here.</div>';
+  }
+  statusEl.innerHTML=h;
+  gFilterValidUnits('');
+}
+function gFilterValidUnits(q){
+  const el=$('gValidUnitList'); if(!el)return;
+  const ql=(q||'').toLowerCase();
+  const list=_validUnits.filter(u=>!ql||(u.name||'').toLowerCase().includes(ql)||(u.code||'').toLowerCase().includes(ql)).slice(0,50);
+  el.innerHTML=list.map(u=>'<div onclick="gPickValidUnit(\''+esc((u.code||'').replace(/'/g,"\\'"))+'\')" style="padding:5px 8px;cursor:pointer;border-bottom:1px solid #f0f0f0;font-size:12px;"><strong style="font-family:monospace;">'+esc(u.code)+'</strong> &mdash; '+esc(u.name)+'</div>').join('')||'<div style="padding:6px;color:var(--gray);font-size:11px;">No match</div>';
+}
+function gPickValidUnit(code){
+  sv('gFldEfrisUom',code);
+  gShowEfrisUomDesc(code);
+  const s=$('gSyncStatus'); if(s) s.innerHTML='<div class="al as">✅ EFRIS Unit Code set to <strong>'+esc(code)+'</strong>. Now click <strong>Register on EFRIS</strong>.</div>';
 }
 
 function gRefreshList(){
@@ -1155,6 +1201,7 @@ async function gRetrySyncEfris(i){
     const r=await fetch(RELAY+'/api/efris/register-goods',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',item:it})});
     const d=await r.json();
     if(d.success){ it.efrisSync='ok'; gSaveItems(); gRefreshList(); if(d.alreadyExists){ alert('Goods code "'+it.code+'" is already registered in EFRIS. EFRIS does not allow editing a registered item via the API — edit it in the EFRIS portal (Goods/Services → Modify) if you need to change its details.'); } }
+    else if(d.unitProblem){ btn.disabled=false; btn.textContent='↑ EFRIS'; alert('EFRIS rejected the unit code "'+(d.sentUnit||'')+'" for "'+it.name+'".\n\nClick ✏ Edit on this item, then use "📋 Pick from valid EFRIS units" to choose a valid unit, and register again.'); }
     else{ alert('EFRIS registration failed: '+(d.error||d.returnMessage||'Unknown error')); btn.disabled=false; btn.textContent='↑ EFRIS'; }
   }catch(e){ alert('Network error: '+e.message); btn.disabled=false; btn.textContent='↑ EFRIS'; }
 }
