@@ -481,9 +481,10 @@ function buildT109(invoice, cfg) {
     else if (vat) { taxRate = '-'; tax = '0'; vatFlag = '1'; catCode = '03'; }
     // Non-VAT-registered taxpayer: issues e-receipts (invoiceKind=2).
     // Per EFRIS developer docs taxRule field: OOS = Out of Scope (correct for
-    // non-VAT businesses). Exempt (03) and ZeroRated (02) are VAT concepts and
-    // are both rejected on e-receipts with URA 3087.
-    else { taxRate = '-'; tax = '0'; vatFlag = '2'; catCode = '04'; }
+    // non-VAT businesses). catCode '05' = OOS in taxCategoryCode (01=Standard,
+    // 02=Zero, 03=Exempt, 04=Deemed, 05=OOS). Codes 03/04 are rejected on
+    // e-receipts with URA 3087 "Exempt/Deemed not allowed for receipt".
+    else { taxRate = '-'; tax = '0'; vatFlag = '2'; catCode = '05'; }
     // taxRule per developer.efris.dev: STANDARD | EXEMPT | ZERORATED | OOS | DIM
     let taxRule;
     if (!vat) taxRule = 'OOS';
@@ -507,7 +508,7 @@ function buildT109(invoice, cfg) {
   const taxAmount = goodsDetails.reduce((s, g) => s + (parseFloat(g.tax) || 0), 0);
   const net = gross - taxAmount;
   const anyVat = goodsDetails.some(g => g.taxRate === '0.18');
-  const catCode = goodsDetails[0] ? goodsDetails[0]._catCode : (anyVat ? '01' : '04');
+  const catCode = goodsDetails[0] ? goodsDetails[0]._catCode : (anyVat ? '01' : '05');
   goodsDetails.forEach(g => delete g._catCode);
   const now = new Date();
   const d = invoice.IssueDate ? new Date(invoice.IssueDate) : now;
