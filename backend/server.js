@@ -1032,7 +1032,25 @@ app.post('/api/efris/submit-invoice', async (req, res) => {
       catch(e) { try { contentStr = Buffer.from(t109.data.data.content, 'base64').toString('utf8'); } catch(_) {} }
     }
     let fdn = null, qrCode = null, antifakeCode = null;
-    try { if (contentStr) { const d = JSON.parse(contentStr); const bi = d.basicInformation || {}; fdn = d.fdn || d.fiscalDocumentNumber || bi.invoiceNo || bi.fdn; qrCode = d.qrCode || d.qrCodeBase64 || bi.qrCode; antifakeCode = d.antiFakeCode || d.antifakeCode || bi.antifakeCode; } } catch(e) {}
+    try {
+      if (contentStr) {
+        const d = JSON.parse(contentStr);
+        console.log(`   T109 response content keys: ${Object.keys(d).join(', ')}`);
+        console.log(`   T109 basicInformation: ${JSON.stringify(d.basicInformation || {})}`);
+        const bi = d.basicInformation || {};
+        fdn = d.fdn || d.fiscalDocumentNumber || bi.invoiceNo || bi.fdn;
+        antifakeCode = d.antiFakeCode || d.antifakeCode || bi.antifakeCode || bi.antiFakeCode;
+        qrCode = d.qrCode || d.qrCodeBase64 || bi.qrCode;
+        // URA doesn't return a QR URL — construct it from the antifake code
+        if (!qrCode && antifakeCode) {
+          const base = config.mode === 'production'
+            ? 'https://efris.ura.go.ug/efrisui/app/home/efrisVerify'
+            : 'https://efristest.ura.go.ug/efrisui/app/home/efrisVerify';
+          qrCode = `${base}?antifakeCode=${antifakeCode}`;
+        }
+        console.log(`   T109 result — FDN: ${fdn}, antifakeCode: ${antifakeCode}, qrCode: ${qrCode}`);
+      }
+    } catch(e) { console.log(`   T109 content parse error: ${e.message}`); }
     const ok = rc === '00' || !!fdn;
     res.json(ok
       ? { success: true, fdn, qrCode, antifakeCode, returnCode: rc, returnMessage: rm }
