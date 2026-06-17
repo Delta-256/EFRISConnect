@@ -625,12 +625,14 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
   const formBase = isService ? '/non-inventory-item-form' : '/inventory-item-form';
 
   try {
-    // Look up custom field GUIDs for "EFRIS Commodity Code" and "EFRIS Category Path"
+    // Look up custom field GUIDs. Accept several common names so renaming the
+    // Manager custom fields (e.g. to "Commodity Code") keeps working.
     let comCodeFieldKey = null, catPathFieldKey = null;
     try {
       const cf = await mgrTextCustomFields(ep, accessToken);
-      comCodeFieldKey = cf.byName['EFRIS Commodity Code'] || null;
-      catPathFieldKey = cf.byName['EFRIS Category Path'] || cf.byName['EFRIS Segment'] || null;
+      const find = (...names) => { for (const n of names) { if (cf.byName[n]) return cf.byName[n]; } return null; };
+      comCodeFieldKey = find('EFRIS Commodity Code', 'Commodity Code', 'EFRIS Commodity', 'Commodity');
+      catPathFieldKey = find('EFRIS Category Path', 'Segment / Class Grouping', 'EFRIS Segment / Class Grouping', 'EFRIS Segment', 'Category Path', 'Class Grouping');
     } catch(_) {}
 
     const catPath = [item.segment, item.family, item.cls].filter(Boolean).join(' >> ');
