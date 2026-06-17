@@ -615,8 +615,9 @@ function buildInv(){
     CustomerAddress:(inv.Customer&&inv.Customer.Address)||'', Currency:'UGX', ExchangeRate:'1',
     Total:(inv.Total||0)*fx, AmountExcludingTax:(inv.AmountExcludingTax||0)*fx, TaxAmount:(inv.TaxAmount||0)*fx, Notes:inv.Notes||'',
     Lines:(inv.Lines||inv.Items||[]).map(l=>({ ItemName:l.ItemName||l.Description||l.Account||'Service',
+      ItemCode:l.ItemCode||l.Code||'',
       Qty:l.Qty||l.Quantity||1, UnitPrice:(l.UnitPrice||0)*fx, LineTotal:(l.LineTotal||l.Amount||0)*fx,
-      TaxAmount:(l.TaxAmount||0)*fx, Unit:l.Unit||'Each', EFRISCategoryId:l.EFRISCategoryId||'101', EFRISCategoryName:l.EFRISCategoryName||'Miscellaneous' }))
+      TaxAmount:(l.TaxAmount||0)*fx, TaxName:l.TaxName||'', Unit:l.Unit||'Each', EFRISCategoryId:l.EFRISCategoryId||'101', EFRISCategoryName:l.EFRISCategoryName||'Miscellaneous' }))
   };
 }
 
