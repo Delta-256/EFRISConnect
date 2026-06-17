@@ -321,6 +321,40 @@ async function getSession(tin, deviceNo, password, efrisBaseUrl) {
 // T130's `currency` field wants the EFRIS internal currency code, NOT the ISO
 // string ("UGX" is rejected with rc:680). We fetch the dictionary once, cache it
 // on the session, and map ISO → EFRIS code.
+// Brute-force decoder: EFRIS signals encryption/compression in the response's
+// dataDescription, but it varies by interface. Try every combination and keep
+// whichever yields valid JSON.
+function efrisDecodeJson(b64, keyBytes) {
+  const rawBuf = Buffer.from(b64, 'base64');
+  const okJson = s => {
+    if (!s || s.length < 2) return null;
+    try { JSON.parse(s); return s; } catch(_) {}
+    // Tolerate trailing bytes: trim to the last closing brace/bracket and retry.
+    const cut = Math.max(s.lastIndexOf('}'), s.lastIndexOf(']'));
+    if (cut > 0) { const t = s.slice(0, cut + 1); try { JSON.parse(t); return t; } catch(_) {} }
+    return null;
+  };
+  // EFRIS gzip streams (Java GZIPOutputStream) are often not cleanly terminated,
+  // so Node's gunzip needs Z_SYNC_FLUSH to avoid "unexpected end of file".
+  const Z = { finishFlush: zlib.constants.Z_SYNC_FLUSH };
+  const aesDec = buf => {
+    const d = crypto.createDecipheriv(aesAlgo(keyBytes), keyBytes, null);
+    return Buffer.concat([d.update(buf), d.final()]);
+  };
+  const attempts = [];
+  attempts.push(() => zlib.gunzipSync(rawBuf, Z).toString('utf8'));              // gzip(json)
+  attempts.push(() => aesDec(zlib.gunzipSync(rawBuf, Z)).toString('utf8'));      // gzip(AES(json)) ← EFRIS dictionary
+  attempts.push(() => zlib.inflateSync(rawBuf, Z).toString('utf8'));            // zlib deflate
+  attempts.push(() => zlib.inflateRawSync(rawBuf, Z).toString('utf8'));         // raw deflate
+  attempts.push(() => rawBuf.toString('utf8'));                                  // plain
+  attempts.push(() => aesDec(rawBuf).toString('utf8'));                          // AES(json)
+  attempts.push(() => zlib.gunzipSync(aesDec(rawBuf), Z).toString('utf8'));      // AES(gzip(json))
+  for (const fn of attempts) {
+    try { const s = okJson(fn()); if (s) return s; } catch(_) {}
+  }
+  return null;
+}
+
 const _dictCache = {};
 async function getEfrisDictionary(tin, deviceNo, session, eu) {
   const key = tin + '_' + deviceNo;
@@ -330,20 +364,20 @@ async function getEfrisDictionary(tin, deviceNo, session, eu) {
     const rc = t115.data && t115.data.returnStateInfo ? t115.data.returnStateInfo.returnCode : null;
     const rm = t115.data && t115.data.returnStateInfo ? t115.data.returnStateInfo.returnMessage : '';
     console.log(`   T115 outer rc: ${rc} — ${rm}`);
-    if (t115.data && t115.data.data && t115.data.data.content) {
-      let raw = null;
-      // Successful responses are AES-encrypted (and often gzip-compressed);
-      // error envelopes are plain base64.
-      try { raw = aesDecryptMaybeGzip(t115.data.data.content, session.aesKey); }
-      catch(_) { try { raw = Buffer.from(t115.data.data.content, 'base64').toString('utf8'); } catch(__) {} }
-      if (raw) {
-        console.log(`   T115 raw content (first 300): ${raw.slice(0, 300)}`);
-        try {
+    if (t115.data && t115.data.data) {
+      // Log how EFRIS says the response is encoded + the raw byte signature
+      console.log(`   T115 dataDescription: ${JSON.stringify(t115.data.data.dataDescription || {})}`);
+      if (t115.data.data.content) {
+        const sig = Buffer.from(t115.data.data.content, 'base64').slice(0, 6).toString('hex');
+        console.log(`   T115 content byte signature (hex): ${sig}`);
+        const raw = efrisDecodeJson(t115.data.data.content, session.aesKey);
+        if (raw) {
           const dict = JSON.parse(raw);
           console.log(`   T115 dictionary loaded — top-level keys: ${Object.keys(dict).join(', ')}`);
           _dictCache[key] = dict;
           return dict;
-        } catch(e) { console.log(`   (T115 content not JSON: ${e.message})`); }
+        }
+        console.log(`   (T115 content could not be decoded to JSON by any method)`);
       }
     }
   } catch(e) { console.log(`   (T115 dictionary fetch failed: ${e.message})`); }
@@ -383,6 +417,37 @@ async function resolveEfrisCurrency(isoCode, tin, deviceNo, session, eu) {
   return iso;
 }
 
+// Return the list of valid EFRIS measure units from the T115 dictionary.
+// The authoritative source is the "rateUnit" section (value=code, name=label) —
+// we do NOT hardcode this so it always matches what the taxpayer's EFRIS accepts.
+async function getEfrisMeasureUnits(tin, deviceNo, session, eu) {
+  const dict = await getEfrisDictionary(tin, deviceNo, session, eu);
+  if (!dict) return [];
+  // The units live in a section keyed by something like "rateUnit". Be tolerant:
+  // pick the array whose rows have short {value} codes and a descriptive name.
+  const candidates = ['rateUnit', 'measureUnit', 'unit', 'goodsUnit'];
+  let list = null;
+  for (const k of candidates) { if (Array.isArray(dict[k])) { list = dict[k]; break; } }
+  if (!list) {
+    // Fallback: any section whose rows look like {value, name} unit entries
+    for (const v of Object.values(dict)) {
+      if (Array.isArray(v) && v.length && v[0] && v[0].value && v[0].name && String(v[0].value).length <= 4) { list = v; break; }
+    }
+  }
+  if (!list) return [];
+  return list.map(r => ({ code: String(r.value || r.code || ''), name: String(r.name || r.description || '') }))
+             .filter(u => u.code);
+}
+
+// Is a given unit code valid per the EFRIS dictionary?
+async function isValidEfrisUnit(code, tin, deviceNo, session, eu) {
+  if (!code) return false;
+  const units = await getEfrisMeasureUnits(tin, deviceNo, session, eu);
+  if (!units.length) return null; // unknown — dictionary unavailable
+  const c = String(code).trim().toUpperCase();
+  return units.some(u => u.code.toUpperCase() === c);
+}
+
 function buildT109(invoice, cfg) {
   const vat = !!cfg.vatRegistered;
   const r2 = n => (Math.round((parseFloat(n) || 0) * 100) / 100).toFixed(2);
@@ -398,7 +463,10 @@ function buildT109(invoice, cfg) {
     else if (vat && /exempt/.test(taxName)) { taxRate = '-'; tax = '0'; vatFlag = '1'; catCode = '03'; }
     else if (vat && /zero/.test(taxName)) { taxRate = '0'; tax = '0'; vatFlag = '1'; catCode = '02'; }
     else if (vat) { taxRate = '-'; tax = '0'; vatFlag = '1'; catCode = '03'; }
-    else { taxRate = '0'; tax = '0'; vatFlag = '1'; catCode = '02'; }
+    // Non-VAT-registered taxpayer: issues e-receipts, not tax invoices.
+    // Zero-rate (02) is a VAT concept and is rejected on receipts (URA 3087),
+    // so non-VAT lines are treated as Exempt (03) with no applicable VAT.
+    else { taxRate = '-'; tax = '0'; vatFlag = '2'; catCode = '03'; }
     return {
       item: String(l.ItemName || l.Description || 'Service').slice(0, 100),
       itemCode: String(l.ItemCode || l.Code || ('ITEM' + (i + 1))).slice(0, 50),
@@ -737,6 +805,23 @@ app.get('/api/goods/manager-item-detail', async (req, res) => {
   }
 });
 
+// Live, valid EFRIS measure units for the taxpayer (from T115 dictionary).
+// The frontend uses this to let the user pick a guaranteed-valid unit code.
+app.post('/api/efris/measure-units', async (req, res) => {
+  const { tin, deviceNo, efrisPassword, mode } = req.body || {};
+  if (!tin || !deviceNo) return res.status(400).json({ success: false, error: 'tin and deviceNo are required' });
+  const eu = mode === 'production'
+    ? 'https://efrisws.ura.go.ug/ws/taapp/getInformation'
+    : 'https://efristest.ura.go.ug/efrisws/ws/taapp/getInformation';
+  try {
+    const session = await getSession(tin, deviceNo, efrisPassword, eu);
+    const units = await getEfrisMeasureUnits(tin, deviceNo, session, eu);
+    res.json({ success: true, units });
+  } catch(e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
 app.post('/api/efris/register-goods', async (req, res) => {
   const { tin, deviceNo, efrisPassword, mode, item } = req.body || {};
   if (!tin || !deviceNo || !item) {
@@ -803,8 +888,8 @@ app.post('/api/efris/register-goods', async (req, res) => {
       pricingMode:           '1',
       havePieceUnit:         '102',
       pieceUnit:             '',
-      packageScaledValue:    '1',
-      scaledValue:           '1',
+      packageScaledValue:    '',
+      scaledValue:           '',
       discountTaxRate:       '',
     };
 
@@ -840,7 +925,14 @@ app.post('/api/efris/register-goods', async (req, res) => {
     } else {
       console.log(`   ❌ T130 failed: ${itemRc} — ${itemRm}`);
     }
+    // For an invalid measure unit, attach a few valid options to guide the user.
+    let unitProblem = false, validUnits = [];
+    if (!ok && (itemRc === '2235' || itemRc === '2234' || /measureunit/i.test(itemRm || ''))) {
+      unitProblem = true;
+      try { validUnits = await getEfrisMeasureUnits(tin, deviceNo, session, eu); } catch(_) {}
+    }
     res.json({ success: ok, returnCode: itemRc, returnMessage: itemRm, alreadyExists,
+      unitProblem, sentUnit: uomCode, validUnits,
       error: ok ? undefined : `EFRIS T130: ${itemRc} — ${itemRm}` });
   } catch(e) {
     console.log(`   ❌ register-goods error: ${e.message}`);

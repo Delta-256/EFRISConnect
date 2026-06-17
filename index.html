@@ -137,7 +137,8 @@
     <p style="font-size:11px;color:var(--gray);margin-bottom:9px;">Complete once &mdash; settings are saved automatically.</p>
     <div class="dots" id="sDots"></div>
     <div class="ob on" id="ob1">
-      <div class="al ai"><strong>Step 1 of 4 &mdash; Business Details</strong></div>
+      <div class="al ai"><strong>Step 1 &mdash; About Your Business</strong></div>
+      <div class="trow" style="border:1px solid var(--bdr);border-radius:6px;padding:9px 11px;background:var(--bg);margin-bottom:10px;"><div><div class="tlbl">Are you registered on EFRIS?</div><div class="tdsc">Turn ON if you have a URA TIN &amp; EFRIS account. OFF = use for Manager.io item setup only.</div></div><div class="tog on" id="t1e" onclick="tg('t1e','efrisEnabled')"></div></div>
       <div class="fg"><label>Legal Business Name *</label><input id="o1a" placeholder="e.g. Two Servants Tours &amp; Safaris Ltd"/><div class="hint">As registered with URSB</div></div>
       <div class="fg"><label>Trade / Receipt Name</label><input id="o1b" placeholder="Name shown on receipts (if different)"/></div>
       <div class="fg"><label>Business Address *</label><input id="o1c" placeholder="e.g. Plot 14 Kimaka Road, Entebbe"/></div>
@@ -146,7 +147,7 @@
       <button class="btn bg" onclick="obn(1)">Next &rarr;</button>
     </div>
     <div class="ob" id="ob2">
-      <div class="al aw"><strong>Step 2 of 4 &mdash; EFRIS Credentials (from URA)</strong></div>
+      <div class="al aw"><strong>EFRIS Credentials (from URA)</strong></div>
       <div class="fg"><label>TIN *</label><input id="o2a" placeholder="e.g. 1015292010"/><div class="hint">Your 10-digit URA number</div></div>
       <div class="fg"><label>Device Number (DSN) *</label><input id="o2b" placeholder="e.g. 1015292010_01"/><div class="hint">EFRIS portal &rarr; Device Management</div></div>
       <div class="fg"><label>EFRIS Password *</label><input id="o2c" type="password" placeholder="Your URA EFRIS portal password"/></div>
@@ -154,15 +155,14 @@
       <div class="row"><button class="btn bo" onclick="obb(2)">&larr; Back</button><button class="btn bg" onclick="obn(2)">Next &rarr;</button></div>
     </div>
     <div class="ob" id="ob3">
-      <div class="al ai"><strong>Step 3 of 4 &mdash; Tax &amp; Mode</strong></div>
-      <div class="trow"><div><div class="tlbl">Registered on EFRIS</div><div class="tdsc">You have a URA TIN and EFRIS account</div></div><div class="tog on" id="t3e" onclick="tg('t3e','efrisEnabled')"></div></div>
+      <div class="al ai"><strong>Tax &amp; Mode</strong></div>
       <div class="trow"><div><div class="tlbl">VAT Registered</div><div class="tdsc">Business charges 18% VAT</div></div><div class="tog" id="t3v" onclick="tg('t3v','vatReg')"></div></div>
-      <div class="trow"><div><div class="tlbl">Sandbox / Test Mode &#10003;</div><div class="tdsc">Recommended until you go live</div></div><div class="tog on" id="t3s" onclick="tg('t3s','sandbox')"></div></div>
-      <div class="al aw mt">&#9888; Keep Sandbox ON until you have tested 3+ invoices.</div>
+      <div class="trow" id="obSandboxRow"><div><div class="tlbl">Sandbox / Test Mode &#10003;</div><div class="tdsc">Recommended until you go live</div></div><div class="tog on" id="t3s" onclick="tg('t3s','sandbox')"></div></div>
+      <div class="al aw mt" id="obSandboxWarn">&#9888; Keep Sandbox ON until you have tested 3+ invoices.</div>
       <div class="row mt"><button class="btn bo" onclick="obb(3)">&larr; Back</button><button class="btn bg" onclick="obn(3)">Next &rarr;</button></div>
     </div>
     <div class="ob" id="ob4">
-      <div class="al ai"><strong>Step 4 of 4 &mdash; Manager.io Connection</strong></div>
+      <div class="al ai"><strong>Manager.io Connection</strong></div>
       <div class="al as">&#10003; Relay server is running &mdash; this page is served by it.</div>
       <div class="fg"><label>Manager.io API Endpoint *</label><input id="o4a" value="http://localhost:8090/api2"/><div class="hint">Docker/Server: <code>http://localhost:8090/api2</code></div></div>
       <div class="fg"><label>Access Token *</label><input id="o4b" placeholder="Paste your Manager access token"/><div class="hint">Manager &rarr; Settings &rarr; API Keys &rarr; New Key</div></div>
@@ -175,9 +175,9 @@
 
 <div class="scr" id="sMain">
   <div class="tabs">
-    <button class="tab on" onclick="showT('tSub',this)">&#128228; Submit</button>
-    <button class="tab" onclick="showT('tStat',this)">&#128203; Status</button>
-    <button class="tab" onclick="showT('tGds',this)">&#128230; Goods</button>
+    <button class="tab on efris-only" id="tabSub" onclick="showT('tSub',this)">&#128228; Submit</button>
+    <button class="tab efris-only" id="tabStat" onclick="showT('tStat',this)">&#128203; Status</button>
+    <button class="tab" id="tabGds" onclick="showT('tGds',this)">&#128230; Goods</button>
     <button class="tab" onclick="showT('tGd',this)">&#10067; Guide</button>
     <button class="tab" onclick="showT('tSet',this)">&#9881;&#65039; Settings</button>
   </div>
@@ -281,6 +281,7 @@
           <div id="gComSummary" class="g-sel-badge efris-only" style="margin-bottom:10px"></div>
           <div class="fg efris-only"><label>EFRIS Segment / Class Grouping</label><input type="text" id="gFldGrouping" readonly/></div>
           <div class="fg efris-only"><label>Target URA Commodity Code *</label><input type="text" id="gFldComCode" readonly/></div>
+          <button class="btn bo efris-only" id="gPickComBtn" style="margin-bottom:8px;" onclick="gStartCommodityPicker()">&#128194; Choose / change EFRIS commodity category</button>
           <div class="fg"><label>My Product Code (Internal Code) *</label><input type="text" id="gFldCode" placeholder="e.g. Test 002"/></div>
           <div class="fg"><label>Item Description Name (Invoice Display Value) *</label><input type="text" id="gFldName" placeholder="e.g. Sipi Falls Easter Excursion"/></div>
           <div class="g2">
@@ -305,6 +306,7 @@
             <div style="display:flex;align-items:center;gap:6px;">
               <input type="text" id="gFldEfrisUom" maxlength="5" placeholder="e.g. PP" style="width:80px;font-family:monospace;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"/>
               <span id="gEfrisUomDesc" style="font-size:11px;color:var(--gray);"></span>
+              <button type="button" class="btn bo bsm" onclick="gOpenUnitPicker()">&#128203; Pick from valid EFRIS units</button>
             </div>
           </div>
           <div class="fg"><label>&#9881; Item Profile Category</label>
@@ -327,16 +329,11 @@
           </div>
           <div class="fg"><label>Remarks</label><textarea id="gFldRemarks" placeholder="Optional notes..."></textarea></div>
           <div id="gSyncStatus"></div>
-          <div class="trow mt efris-only" style="cursor:pointer;" onclick="tg('gTogEfris','gRegEfris')">
-            <div>
-              <div class="tlbl">Also register in EFRIS goods registry</div>
-              <div class="tdsc">Requires EFRIS credentials in Settings. Optional — you can sync to Manager.io only.</div>
-            </div>
-            <div class="tog" id="gTogEfris"></div>
-          </div>
+          <div class="al ai efris-only" style="margin-top:6px;">&#128161; Sync to Manager.io to make the item usable on invoices. Register on EFRIS to add it to the URA goods registry (requires EFRIS credentials in Settings). You can do either or both.</div>
           <div class="row mt">
             <button class="btn bo" style="width:auto;flex:0 0 auto;" onclick="gGoStep(4)">&larr; Back</button>
-            <button class="btn bg" onclick="gSyncItem()">&#128228; Sync Item Profile to Manager.io Workspace</button>
+            <button class="btn bg" onclick="gSyncToManager()">&#128228; Sync to Manager.io</button>
+            <button class="btn bgld efris-only" onclick="gSyncToEfris()">&#128230; Register on EFRIS</button>
           </div>
         </div>
       </div>
@@ -468,18 +465,35 @@ function tg(id,k){ TG[k]=!TG[k]; utg(id,TG[k]); }
 function utg(id,s){ const e=$(id);if(e)e.className='tog'+(s?' on':''); }
 
 function rDots(){ const c=$('sDots');if(!c)return;c.innerHTML='';for(let i=1;i<=4;i++){const d=document.createElement('div');d.className='dot'+(i===obStep?' on':i<obStep?' dn':'');c.appendChild(d);} }
-function obSh(n){ document.querySelectorAll('.ob').forEach(e=>e.classList.remove('on')); const e=$('ob'+n);if(e)e.classList.add('on'); obStep=n;rDots(); }
+function obSh(n){
+  document.querySelectorAll('.ob').forEach(e=>e.classList.remove('on'));
+  const e=$('ob'+n);if(e)e.classList.add('on'); obStep=n;rDots();
+  // Hide EFRIS-only Sandbox controls in step 3 when not registered on EFRIS
+  if(n===3){
+    const show=TG.efrisEnabled!==false;
+    const sr=$('obSandboxRow'); if(sr) sr.style.display=show?'':'none';
+    const sw=$('obSandboxWarn'); if(sw) sw.style.display=show?'':'none';
+  }
+}
 function obn(from){
   if(from===1&&(!gvi('o1a')||!gvi('o1c'))){alert('Legal Name and Address are required');return;}
   if(from===2&&(!gvi('o2a')||!gvi('o2b')||!gvi('o2c'))){alert('TIN, Device No. and Password are required');return;}
+  // Non-EFRIS users skip the EFRIS Credentials step (step 2)
+  if(from===1 && TG.efrisEnabled===false){ obSh(3); return; }
   obSh(from+1);
 }
-function obb(from){ obSh(from-1); }
+function obb(from){
+  // Mirror the skip on the way back
+  if(from===3 && TG.efrisEnabled===false){ obSh(1); return; }
+  obSh(from-1);
+}
 function finOB(){
   if(!gvi('o4a')||!gvi('o4b')){alert('Manager endpoint and access token are required');return;}
   CFG={ legalName:gvi('o1a'), tradeName:gvi('o1b')||gvi('o1a'), address:gvi('o1c'), phone:gvi('o1d'), email:gvi('o1e'), tin:gvi('o2a'), deviceNo:gvi('o2b'), efrisPassword:gvi('o2c'), brn:gvi('o2d'), managerEndpoint:gvi('o4a').replace(/\/+$/,''), accessToken:gvi('o4b'), vatReg:TG.vatReg, sandbox:TG.sandbox, efrisEnabled:TG.efrisEnabled };
-  sv2(CFG); apCFG();
-  if(INV){renderInv(INV);showScr('sMain');} else showScr('sNone');
+  sv2(CFG); apCFG(); gApplyEfrisMode();
+  if(CFG.efrisEnabled===false){ showScr('sMain'); showT('tGds',$('tabGds')); }
+  else if(INV){renderInv(INV);showScr('sMain');}
+  else showScr('sNone');
 }
 function apCFG(){
   const b=$('mBadge');
@@ -490,7 +504,7 @@ function apCFG(){
   TG.vatReg=!!CFG.vatReg;TG.sandbox=CFG.sandbox!==false;TG.efrisEnabled=CFG.efrisEnabled!==false;
   ['sTV','t3v'].forEach(id=>utg(id,TG.vatReg));
   ['sTS','t3s'].forEach(id=>utg(id,TG.sandbox));
-  ['sEfris','t3e'].forEach(id=>utg(id,TG.efrisEnabled));
+  ['sEfris','t1e'].forEach(id=>utg(id,TG.efrisEnabled));
 }
 function saveSt(){
   CFG.legalName=gvi('sLeg');CFG.tradeName=gvi('sTrd');CFG.address=gvi('sAdr');CFG.phone=gvi('sPh');CFG.email=gvi('sEm');
@@ -697,6 +711,17 @@ function gSwSub(t){
   $('gst-cfg').className='g-stab'+(t==='cfg'?' on':'');
   $('gst-lst').className='g-stab'+(t==='lst'?' on':'');
   if(t==='cfg'&&CFG.efrisEnabled===false){ gGoStep(5); }
+}
+
+// Launch the Segment→Commodity wizard from Step 5 without losing entered details.
+// Used when an item was synced to Manager only and now needs an EFRIS category.
+function gStartCommodityPicker(){
+  gSEG=gFAM=gCLS=gCOM=null;
+  const ss=$('gSegSel'); if(ss){ ss.style.display='none'; }
+  const si=$('gSegInp'); if(si){ si.value=''; }
+  const sr=$('gSegResults'); if(sr){ sr.innerHTML=''; }
+  const b1=$('gBtnS1'); if(b1){ b1.disabled=true; }
+  gGoStep(1);
 }
 
 function gOnGoodsTabOpen(){ if(!gUnitsLoaded) gLoadUnits(); }
@@ -955,67 +980,124 @@ document.addEventListener('click',function(e){
   if(dd&&!dd.contains(e.target)&&e.target.id!=='gFldUom') dd.style.display='none';
 });
 
-async function gSyncItem(){
+// Build an item object from the Step 5 form. Reuses an existing item with the
+// same code so sync status (managerSync/efrisSync) is preserved across the two
+// independent sync actions.
+function gBuildItemFromForm(){
   const code=gvi('gFldCode'), name=gvi('gFldName'), cur=gvi('gFldCur'),
         price=gvi('gFldPrice'), uom=gvi('gFldUom');
-  if(!code||!name||!cur||!price||!uom){ alert('Please fill all required fields: Code, Name, Currency, Price, Unit.'); return; }
-  const efrisOn=CFG.efrisEnabled!==false;
-  if(efrisOn&&!gCOM){ alert('Please complete the commodity wizard steps first.'); return; }
-  const item={
-    code, name, comCode:gCOM?gCOM.k:'', comName:gCOM?gCOM.n:'',
-    segment:gSEG?gSEG.n:'', segCode:gSEG?gSEG.k:'',
-    family:gFAM?gFAM.n:'', famCode:gFAM?gFAM.k:'',
-    cls:gCLS?gCLS.n:'', clsCode:gCLS?gCLS.k:'',
+  if(!code||!name||!cur||!price||!uom){ alert('Please fill all required fields: Code, Name, Currency, Price, Unit.'); return null; }
+  const existing=gItems.find(i=>(i.code||'').toLowerCase()===code.toLowerCase())||{};
+  const item=Object.assign({}, existing, {
+    code, name,
+    comCode:gCOM?gCOM.k:(existing.comCode||''), comName:gCOM?gCOM.n:(existing.comName||''),
+    segment:gSEG?gSEG.n:(existing.segment||''), segCode:gSEG?gSEG.k:(existing.segCode||''),
+    family:gFAM?gFAM.n:(existing.family||''), famCode:gFAM?gFAM.k:(existing.famCode||''),
+    cls:gCLS?gCLS.n:(existing.cls||''), clsCode:gCLS?gCLS.k:(existing.clsCode||''),
     uom, price:parseFloat(price)||0, cur,
     efrisUom:($('gFldEfrisUom')?$('gFldEfrisUom').value.trim().toUpperCase():''),
     type:$('gFldType').value, vat:$('gFldVat').value,
     excise:$('gFldExcise').value,
-    remarks:$('gFldRemarks')?$('gFldRemarks').value.trim():'',
-    managerSync:null, efrisSync:null,
-    id:Date.now()+'_'+Math.random().toString(36).slice(2)
-  };
+    remarks:$('gFldRemarks')?$('gFldRemarks').value.trim():''
+  });
+  if(!item.id) item.id=Date.now()+'_'+Math.random().toString(36).slice(2);
+  if(item.managerSync===undefined) item.managerSync=null;
+  if(item.efrisSync===undefined) item.efrisSync=null;
+  return item;
+}
+
+function gUpsertItem(item){
+  const idx=gItems.findIndex(i=>(i.code||'').toLowerCase()===(item.code||'').toLowerCase());
+  if(idx>=0){ gItems[idx]=item; } else { gItems.push(item); }
+  gEditingIdx=-1;
+  gSaveItems();
+  gRefreshList();
+}
+
+async function gSyncToManager(){
+  const item=gBuildItemFromForm(); if(!item) return;
   const statusEl=$('gSyncStatus');
-  statusEl.innerHTML='<div class="st si"><span class="sp">⏳</span> Syncing to Manager.io…</div>';
   const ep=CFG.managerEndpoint, tk=CFG.accessToken;
-  if(!ep||!tk){
-    item.managerSync='error';
-    statusEl.innerHTML='<div class="st se">❌ Manager.io not configured. Go to Settings first.</div>';
-    const xi=gItems.findIndex(i=>(i.code||'').toLowerCase()===(item.code||'').toLowerCase());
-    if(xi>=0){gItems[xi]=item;}else{gItems.push(item);}
-    gRefreshList(); return;
-  }
-  let mgrAction='created';
+  if(!ep||!tk){ item.managerSync='error'; statusEl.innerHTML='<div class="st se">❌ Manager.io not configured. Go to Settings first.</div>'; gUpsertItem(item); return; }
+  statusEl.innerHTML='<div class="st si"><span class="sp">⏳</span> Syncing to Manager.io…</div>';
   try{
     const r=await fetch(RELAY+'/api/goods/sync-to-manager',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,item})});
     const d=await r.json();
     if(d.success){
-      item.managerSync='ok'; item.managerId=d.managerId||null; mgrAction=d.action||'created';
-      const actionLabel=mgrAction==='updated'?'✏️ Updated in Manager.io':'✅ Created in Manager.io';
+      item.managerSync='ok'; item.managerId=d.managerId||null;
+      const actionLabel=(d.action==='updated')?'✏️ Updated in Manager.io':'✅ Created in Manager.io';
       const cfNote=d.fieldsWritten?' + '+d.fieldsWritten+' EFRIS field(s) saved':'';
       statusEl.innerHTML='<div class="st ss">'+actionLabel+cfNote+'</div>';
-    } else {
-      item.managerSync='error';
-      statusEl.innerHTML='<div class="st se">❌ Manager sync failed: '+esc(d.error||'Unknown error')+'</div>';
-    }
+    } else { item.managerSync='error'; statusEl.innerHTML='<div class="st se">❌ Manager sync failed: '+esc(d.error||'Unknown error')+'</div>'; }
   }catch(e){ item.managerSync='error'; statusEl.innerHTML='<div class="st se">❌ Network error: '+esc(e.message)+'</div>'; }
+  gUpsertItem(item);
+}
 
-  if(item.managerSync==='ok' && TG.gRegEfris && CFG.tin && CFG.deviceNo){
-    const mgrLabel=mgrAction==='updated'?'✏️ Updated in Manager.io':'✅ Created in Manager.io';
-    statusEl.innerHTML='<div class="st ss">'+mgrLabel+'</div><div class="st si"><span class="sp">⏳</span> Registering in EFRIS goods registry…</div>';
-    try{
-      const r2=await fetch(RELAY+'/api/efris/register-goods',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',item})});
-      const d2=await r2.json();
-      if(d2.success){ item.efrisSync='ok'; statusEl.innerHTML='<div class="st ss">'+mgrLabel+' &amp; Registered in EFRIS!</div>'; }
-      else{ item.efrisSync='error'; statusEl.innerHTML='<div class="st ss">'+mgrLabel+'</div><div class="al aw">⚠ EFRIS: '+esc(d2.error||d2.returnMessage||'Failed')+'<br><small>Retry EFRIS registration later from My Items tab.</small></div>'; }
-    }catch(e2){ item.efrisSync='error'; statusEl.innerHTML='<div class="st ss">'+mgrLabel+'</div><div class="al aw">⚠ Could not reach EFRIS. Retry later.</div>'; }
-  } else if(item.managerSync==='ok' && TG.gRegEfris && (!CFG.tin||!CFG.deviceNo)){
-    statusEl.innerHTML='<div class="st ss">✅ Saved in Manager.io</div><div class="al aw">ℹ️ EFRIS skipped — add TIN and Device No. in Settings first.</div>';
+async function gSyncToEfris(){
+  const item=gBuildItemFromForm(); if(!item) return;
+  const statusEl=$('gSyncStatus');
+  if(!gCOM && !item.comCode){ alert('Pick a commodity category first (steps 1–4) so EFRIS knows the goods category.'); return; }
+  if(!CFG.tin||!CFG.deviceNo){ statusEl.innerHTML='<div class="al aw">ℹ️ EFRIS skipped — add TIN and Device No. in Settings first.</div>'; return; }
+  statusEl.innerHTML='<div class="st si"><span class="sp">⏳</span> Registering in EFRIS goods registry…</div>';
+  try{
+    const r2=await fetch(RELAY+'/api/efris/register-goods',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',item})});
+    const d2=await r2.json();
+    if(d2.success){
+      item.efrisSync='ok';
+      if(d2.alreadyExists){
+        statusEl.innerHTML='<div class="al aw">ℹ️ Goods code <strong>'+esc(item.code)+'</strong> is <strong>already registered</strong> in EFRIS.<br>EFRIS does not allow changing a registered item’s details (price, unit, name) through the API. To edit it, log into the EFRIS portal &rarr; Goods/Services &rarr; Modify.<br><small>If this code actually belongs to a <em>different</em> product, give that product a unique code.</small></div>';
+      } else {
+        statusEl.innerHTML='<div class="st ss">✅ Registered in EFRIS goods registry!</div>';
+      }
+    }
+    else if(d2.unitProblem){ item.efrisSync='error'; gRenderUnitHelp(statusEl, d2); }
+    else{ item.efrisSync='error'; statusEl.innerHTML='<div class="al aw">⚠ EFRIS: '+esc(d2.error||d2.returnMessage||'Failed')+'</div>'; }
+  }catch(e2){ item.efrisSync='error'; statusEl.innerHTML='<div class="al aw">⚠ Could not reach EFRIS. Retry later.</div>'; }
+  gUpsertItem(item);
+}
+
+// ── Valid EFRIS measure units (live from T115 dictionary) ──────
+let _validUnits=[];
+async function gOpenUnitPicker(){
+  const statusEl=$('gSyncStatus');
+  if(!CFG.tin||!CFG.deviceNo){ alert('Add your TIN and Device No. in Settings first to load EFRIS units.'); return; }
+  statusEl.innerHTML='<div class="st si"><span class="sp">⏳</span> Loading valid EFRIS units…</div>';
+  try{
+    const r=await fetch(RELAY+'/api/efris/measure-units',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production'})});
+    const d=await r.json();
+    if(!d.success||!d.units||!d.units.length){ statusEl.innerHTML='<div class="al aw">Could not load EFRIS units'+(d.error?': '+esc(d.error):'')+'. Check Settings / connection.</div>'; return; }
+    gRenderUnitHelp(statusEl, {validUnits:d.units, sentUnit:gvi('gFldEfrisUom'), picker:true});
+  }catch(e){ statusEl.innerHTML='<div class="al aw">Network error loading units: '+esc(e.message)+'</div>'; }
+}
+
+function gRenderUnitHelp(statusEl, d2){
+  _validUnits=d2.validUnits||[];
+  let h='';
+  if(!d2.picker){
+    h+='<div class="al ae">⚠ EFRIS rejected the unit code "<strong>'+esc(d2.sentUnit||'')+'</strong>" — it is not a valid EFRIS measure unit.</div>';
+    h+='<div class="al ai" style="margin-top:4px;"><strong>How to fix:</strong><br>1. Search the official EFRIS unit list below by name (e.g. <em>person</em>, <em>metre</em>, <em>each</em>).<br>2. Click the matching unit to set the correct code.<br>3. Click <strong>Register on EFRIS</strong> again.</div>';
+  } else {
+    h+='<div class="al ai">Search the official EFRIS unit list and click one to set your EFRIS Unit Code.</div>';
   }
-  const existingIdx=gItems.findIndex(i=>(i.code||'').toLowerCase()===(item.code||'').toLowerCase());
-  if(existingIdx>=0){ gItems[existingIdx]=item; } else { gItems.push(item); }
-  gEditingIdx=-1;
-  gSaveItems();
-  gRefreshList();
+  if(_validUnits.length){
+    h+='<input type="text" id="gUnitSearch" placeholder="Search EFRIS units…" oninput="gFilterValidUnits(this.value)" style="width:100%;padding:6px 8px;margin-top:6px;border:1px solid var(--bdr);border-radius:4px;"/>';
+    h+='<div id="gValidUnitList" style="max-height:170px;overflow:auto;border:1px solid var(--bdr);border-radius:4px;margin-top:4px;"></div>';
+  } else {
+    h+='<div class="al aw" style="margin-top:4px;">Could not load the EFRIS unit list. In the EFRIS portal → Goods/Services → Add Product Code, check the valid Package Measure Units and type the matching short code here.</div>';
+  }
+  statusEl.innerHTML=h;
+  gFilterValidUnits('');
+}
+function gFilterValidUnits(q){
+  const el=$('gValidUnitList'); if(!el)return;
+  const ql=(q||'').toLowerCase();
+  const list=_validUnits.filter(u=>!ql||(u.name||'').toLowerCase().includes(ql)||(u.code||'').toLowerCase().includes(ql)).slice(0,50);
+  el.innerHTML=list.map(u=>'<div onclick="gPickValidUnit(\''+esc((u.code||'').replace(/'/g,"\\'"))+'\')" style="padding:5px 8px;cursor:pointer;border-bottom:1px solid #f0f0f0;font-size:12px;"><strong style="font-family:monospace;">'+esc(u.code)+'</strong> &mdash; '+esc(u.name)+'</div>').join('')||'<div style="padding:6px;color:var(--gray);font-size:11px;">No match</div>';
+}
+function gPickValidUnit(code){
+  sv('gFldEfrisUom',code);
+  gShowEfrisUomDesc(code);
+  const s=$('gSyncStatus'); if(s) s.innerHTML='<div class="al as">✅ EFRIS Unit Code set to <strong>'+esc(code)+'</strong>. Now click <strong>Register on EFRIS</strong>.</div>';
 }
 
 function gRefreshList(){
@@ -1118,7 +1200,8 @@ async function gRetrySyncEfris(i){
   try{
     const r=await fetch(RELAY+'/api/efris/register-goods',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',item:it})});
     const d=await r.json();
-    if(d.success){ it.efrisSync='ok'; gSaveItems(); gRefreshList(); }
+    if(d.success){ it.efrisSync='ok'; gSaveItems(); gRefreshList(); if(d.alreadyExists){ alert('Goods code "'+it.code+'" is already registered in EFRIS. EFRIS does not allow editing a registered item via the API — edit it in the EFRIS portal (Goods/Services → Modify) if you need to change its details.'); } }
+    else if(d.unitProblem){ btn.disabled=false; btn.textContent='↑ EFRIS'; alert('EFRIS rejected the unit code "'+(d.sentUnit||'')+'" for "'+it.name+'".\n\nClick ✏ Edit on this item, then use "📋 Pick from valid EFRIS units" to choose a valid unit, and register again.'); }
     else{ alert('EFRIS registration failed: '+(d.error||d.returnMessage||'Unknown error')); btn.disabled=false; btn.textContent='↑ EFRIS'; }
   }catch(e){ alert('Network error: '+e.message); btn.disabled=false; btn.textContent='↑ EFRIS'; }
 }
@@ -1215,10 +1298,15 @@ function init(){
   gLoadItems();
   if(gItems.length) gRefreshList();
   const saved=ld();
-  if(saved&&saved.tin&&saved.managerEndpoint){
+  // Onboarded = has Manager connection AND (either registered on EFRIS with a TIN, or explicitly not on EFRIS)
+  const onboarded = saved && saved.managerEndpoint && (saved.tin || saved.efrisEnabled===false);
+  if(onboarded){
     CFG=saved;TG.vatReg=!!CFG.vatReg;TG.sandbox=CFG.sandbox!==false;TG.efrisEnabled=CFG.efrisEnabled!==false;apCFG();gApplyEfrisMode();
     try{ if(window.parent&&window.parent!==window){ window.parent.postMessage({type:'request_context'},'*'); window.parent.postMessage({type:'efris-extension-ready'},'*'); } }catch(e){}
-    if(readParams()){
+    if(CFG.efrisEnabled===false){
+      // Non-EFRIS users go straight to the Goods configurator — no invoice flow
+      showScr('sMain'); showT('tGds',$('tabGds'));
+    } else if(readParams()){
       loadInv(DKEY);
     } else {
       setTimeout(()=>{
