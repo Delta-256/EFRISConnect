@@ -177,7 +177,7 @@ async function normalizeInvoice(ep, tk, key) {
   const cfVals = {};
   Object.keys(strs).forEach(k => { cfVals[cf.byKey[k] || k] = strs[k]; });
   let custName = disp.customer || disp.payer || '';
-  const contactKey = form.Customer || form.Payer || form.Contact;
+  const contactKey = form.PaidBy || form.Customer || form.Payer || form.Contact;
   if (contactKey) {
     try { const c = (await managerCall(ep, tk, 'GET', '/customer-form/' + contactKey)).data; if (c && c.Name) custName = c.Name; } catch (e) {}
   }
@@ -479,15 +479,22 @@ function buildT109(invoice, cfg) {
     else if (vat && /exempt/.test(taxName)) { taxRate = '-'; tax = '0'; vatFlag = '1'; catCode = '03'; }
     else if (vat && /zero/.test(taxName)) { taxRate = '0'; tax = '0'; vatFlag = '1'; catCode = '02'; }
     else if (vat) { taxRate = '-'; tax = '0'; vatFlag = '1'; catCode = '03'; }
-    // Non-VAT-registered taxpayer: issues e-receipts, not tax invoices.
-    // Zero-rate (02) is a VAT concept and is rejected on receipts (URA 3087),
-    // so non-VAT lines are treated as Exempt (03) with no applicable VAT.
-    else { taxRate = '-'; tax = '0'; vatFlag = '2'; catCode = '03'; }
+    // Non-VAT-registered taxpayer: issues e-receipts (invoiceKind=2).
+    // Per EFRIS developer docs taxRule field: OOS = Out of Scope (correct for
+    // non-VAT businesses). Exempt (03) and ZeroRated (02) are VAT concepts and
+    // are both rejected on e-receipts with URA 3087.
+    else { taxRate = '-'; tax = '0'; vatFlag = '2'; catCode = '04'; }
+    // taxRule per developer.efris.dev: STANDARD | EXEMPT | ZERORATED | OOS | DIM
+    let taxRule;
+    if (!vat) taxRule = 'OOS';
+    else if (catCode === '01') taxRule = 'STANDARD';
+    else if (catCode === '02') taxRule = 'ZERORATED';
+    else taxRule = 'EXEMPT';
     return {
       item: String(l.ItemName || l.Description || 'Service').slice(0, 100),
       itemCode: String(l.ItemCode || l.Code || ('ITEM' + (i + 1))).slice(0, 50),
       qty: String(qty), unitOfMeasure: l.EFRISUnitOfMeasure || cfg.defaultUnitOfMeasure || '101',
-      unitPrice: r2(unitPrice), total: r2(total), taxRate, tax: String(tax),
+      unitPrice: r2(unitPrice), total: r2(total), taxRate, taxRule, tax: String(tax),
       discountTotal: '', discountTaxRate: '', orderNumber: String(i),
       discountFlag: '2', deemedFlag: '2', exciseFlag: '2',
       categoryId: '', categoryName: '',
@@ -500,7 +507,7 @@ function buildT109(invoice, cfg) {
   const taxAmount = goodsDetails.reduce((s, g) => s + (parseFloat(g.tax) || 0), 0);
   const net = gross - taxAmount;
   const anyVat = goodsDetails.some(g => g.taxRate === '0.18');
-  const catCode = goodsDetails[0] ? goodsDetails[0]._catCode : (anyVat ? '01' : '03');
+  const catCode = goodsDetails[0] ? goodsDetails[0]._catCode : (anyVat ? '01' : '04');
   goodsDetails.forEach(g => delete g._catCode);
   const now = new Date();
   const d = invoice.IssueDate ? new Date(invoice.IssueDate) : now;
@@ -895,7 +902,9 @@ app.post('/api/efris/register-goods', async (req, res) => {
       goodsCode:          item.code,
       goodsName:          item.name,
       goodsTypeCode,
-      measureUnit:        uomCode,
+      // Services (goodsTypeCode=102) must use measureUnit '102' — physical unit
+      // codes are rejected with rc:2981 "default measure unit should be '102'"
+      measureUnit:        goodsTypeCode === '102' ? '102' : uomCode,
       unitPrice:             String(parseFloat(item.price) || 0),
       currency:              t130Currency,
       commodityCategoryId:   item.comCode || '',
