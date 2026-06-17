@@ -534,7 +534,9 @@ function buildT109(invoice, cfg) {
     goodsDetails,
     taxDetails,
     summary: { netAmount: r2(net), taxAmount: r2(taxAmount), grossAmount: r2(gross), itemCount: String(goodsDetails.length), modeCode: '1', remarks: invoice.Notes || '', qrCode: '' },
-    payWay: [{ paymentMode: String(invoice.PaymentMode || '101'), paymentAmount: r2(gross), orderNumber: '1' }],
+    payWay: (invoice.PayWays && invoice.PayWays.length)
+      ? invoice.PayWays.map((pw, i) => ({ paymentMode: String(pw.mode || '101'), paymentAmount: r2(pw.amount || 0), orderNumber: String(i + 1) }))
+      : [{ paymentMode: String(invoice.PaymentMode || '101'), paymentAmount: r2(gross), orderNumber: '1' }],
     extend: {}
   };
 }
@@ -730,6 +732,8 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
       if (comCodeFieldKey && item.comCode) cfStrings[comCodeFieldKey] = item.comCode;
       if (catPathFieldKey && catPath)      cfStrings[catPathFieldKey] = catPath;
       if (Object.keys(cfStrings).length)   form.CustomFields2 = { Strings: cfStrings };
+      if (item.whenSold) form.WhenSold = item.whenSold;
+      if (item.whenPurchased) form.WhenPurchased = item.whenPurchased;
       r = await managerCall(ep, accessToken, 'POST', `${formBase}/${existingKey}`, form);
       action = 'updated';
       const written = Object.keys(cfStrings).length;
@@ -761,6 +765,8 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
       if (item.vat) {
         try { const tg = await mgrTaxCodeGuid(ep, accessToken, item.vat); if (tg) payload.TaxCode = tg; } catch(_) {}
       }
+      if (isService && item.whenSold) payload.WhenSold = item.whenSold;
+      if (isService && item.whenPurchased) payload.WhenPurchased = item.whenPurchased;
       if (Object.keys(cfStrings).length) payload.CustomFields2 = { Strings: cfStrings };
       r = await managerCall(ep, accessToken, 'POST', listPath, payload);
       action = 'created';
@@ -809,6 +815,29 @@ app.get('/api/goods/manager-items', async (req, res) => {
   } catch(e) {
     res.json({ success: false, error: e.message });
   }
+});
+
+app.get('/api/manager/accounts', async (req, res) => {
+  const ep = normEp(req.query.ep || '');
+  const tk = req.query.tk || '';
+  if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk required' });
+  // Try several common Manager account-list endpoints
+  const paths = ['/profit-and-loss-accounts', '/income-statement-accounts', '/balance-sheet-accounts', '/accounts', '/chart-of-accounts'];
+  for (const path of paths) {
+    try {
+      const r = await managerCall(ep, tk, 'GET', path, null);
+      if (r.status === 200 && r.data) {
+        // Find the array inside the response object
+        const arr = Array.isArray(r.data) ? r.data : Object.values(r.data).find(v => Array.isArray(v) && v.length && v[0].key);
+        if (arr && arr.length) {
+          const accounts = arr.map(a => ({ key: a.key || a.Key, name: a.name || a.Name || a.accountName || '' })).filter(a => a.key);
+          console.log(`   Manager accounts from ${path}: ${accounts.length} items`);
+          return res.json({ success: true, accounts });
+        }
+      }
+    } catch(e) {}
+  }
+  res.json({ success: true, accounts: [] });
 });
 
 // Full details for a single Manager.io item (for import prefill)

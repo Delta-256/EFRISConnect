@@ -203,15 +203,11 @@
       </div>
       <div id="subDone" class="hidden"><div class="al as">&#10003; Already submitted &mdash; FDN: <strong id="exFDN"></strong></div></div>
       <div class="fg mt">
-        <label>Payment Mode</label>
-        <select id="payMode">
-          <option value="101">Cash</option>
-          <option value="102">Credit</option>
-          <option value="103">Debit Card</option>
-          <option value="104">Mobile Money</option>
-          <option value="105">Cheque</option>
-          <option value="106">Bank Transfer</option>
-        </select>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label style="margin:0;">Payment Ways</label>
+          <button type="button" class="btn bo bsm" onclick="addPayWay()" style="padding:2px 8px;font-size:11px;">+ Add</button>
+        </div>
+        <div id="payWaysList"></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;">
         <button class="btn bo bsm" onclick="doPreview()" style="flex:0 0 auto;">&#128065; Preview</button>
@@ -325,7 +321,7 @@
             </div>
           </div>
           <div class="fg"><label>&#9881; Item Profile Category</label>
-            <select id="gFldType">
+            <select id="gFldType" onchange="gLoadAccounts()">
               <option value="Service">Service (Non-inventory item)</option>
               <option value="Goods">Goods (Inventory item)</option>
             </select>
@@ -340,6 +336,12 @@
             </div>
             <div class="fg"><label>Excise Tax Regime</label>
               <select id="gFldExcise"><option value="No">No</option><option value="Yes">Yes</option></select>
+            </div>
+          </div>
+          <div id="gAcctWrap" style="display:none;">
+            <div class="g2">
+              <div class="fg"><label>Account When Sold</label><select id="gFldWhenSold"><option value="">— Select account —</option></select></div>
+              <div class="fg"><label>Account When Purchased</label><select id="gFldWhenPurchased"><option value="">— Select account —</option></select></div>
             </div>
           </div>
           <div class="fg"><label>Remarks</label><textarea id="gFldRemarks" placeholder="Optional notes..."></textarea></div>
@@ -436,6 +438,14 @@
       <strong>If you see a sad face icon</strong>, go to Manager &rarr; Settings &rarr; Custom Buttons &rarr; verify the URL is exactly as above.
     </div>
     <button class="btn bgld mt" onclick="showT('tSet',null);showScr('sMain')">&#9881; Go to Settings</button>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div id="prevModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:1000;overflow-y:auto;padding:20px;">
+  <div style="background:#fff;border-radius:8px;max-width:520px;margin:0 auto;padding:20px;font-size:12px;position:relative;">
+    <button onclick="$('prevModal').style.display='none'" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:18px;cursor:pointer;color:#666;">✕</button>
+    <div id="prevContent"></div>
   </div>
 </div>
 
@@ -591,6 +601,7 @@ function renderInv(inv){
   tx('dTot',(inv.Currency||'UGX')+' '+fn(inv.Total||inv.GrossAmount||0));
   const curr=inv.Currency||'UGX';
   if(curr!=='UGX'){sh('fxRow');tx('fxLbl',curr);sv('fxVal',inv.ExchangeRate||'');}else hd('fxRow');
+  _payWays=[{mode:'101',amount:''}]; renderPayWays();
   const fdn=(inv.CustomFields&&(inv.CustomFields['Fiscal Document Number']||inv.CustomFields['EFRIS FDN']))||'';
   if(fdn){sh('subDone');tx('exFDN',fdn);}else hd('subDone');
   const lines=inv.Lines||inv.Items||[];
@@ -633,7 +644,8 @@ function buildInv(){
   return{ Reference:inv.Reference||inv.Code||'INV-001', IssueDate:inv.IssueDate||inv.Date||new Date().toISOString().slice(0,10),
     CustomerName:(inv.Customer&&inv.Customer.Name)||inv.CustomerName||'', CustomerTIN:gvi('cTIN')||(inv.CustomFields&&inv.CustomFields['Customer TIN'])||'',
     CustomerAddress:(inv.Customer&&inv.Customer.Address)||'', Currency:inv.Currency||'UGX', ExchangeRate:fx,
-    PaymentMode:gvi('payMode')||'101',
+    PayWays:getPayWays(),
+    PaymentMode:(getPayWays()[0]||{}).mode||'101',
     Total:(inv.Total||0)*fx, AmountExcludingTax:(inv.AmountExcludingTax||0)*fx, TaxAmount:(inv.TaxAmount||0)*fx, Notes:inv.Notes||'',
     Lines:(inv.Lines||inv.Items||[]).map(l=>({ ItemName:l.ItemName||l.Description||l.Account||'Service',
       ItemCode:l.ItemCode||l.Code||'',
@@ -689,6 +701,47 @@ function showErr(msg){
 }
 function retry(){hd('errCard');doSubmit();}
 
+// ── Payment Ways ──────────────────────────────────────────────
+const PAY_MODES=[['101','Cash'],['102','Credit'],['103','Debit Card'],['104','Mobile Money'],['105','Cheque'],['106','Bank Transfer']];
+let _payWays=[{mode:'101',amount:''}];
+
+function renderPayWays(){
+  const el=$('payWaysList'); if(!el)return;
+  const total=INV?parseFloat(INV.Total||0):0;
+  const totalPaid=_payWays.reduce((s,pw)=>s+(parseFloat(pw.amount)||0),0);
+  const remaining=Math.round((total-totalPaid)*100)/100;
+  let h='';
+  _payWays.forEach((pw,i)=>{
+    const opts=PAY_MODES.map(([v,n])=>'<option value="'+v+'"'+(pw.mode===v?' selected':'')+'>'+n+'</option>').join('');
+    h+='<div style="display:flex;gap:5px;align-items:center;margin-bottom:4px;">'
+      +'<select style="flex:1;font-size:11px;" onchange="_payWays['+i+'].mode=this.value">'+opts+'</select>'
+      +'<input type="number" style="width:90px;font-size:11px;" placeholder="Amount" value="'+pw.amount+'" oninput="_payWays['+i+'].amount=this.value;renderPayWays()"'+(i===0&&_payWays.length===1?' title="Leave blank to use invoice total"':'')+'/>'
+      +(_payWays.length>1?'<button onclick="_payWays.splice('+i+',1);renderPayWays()" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:15px;">✕</button>':'<span style="width:20px;"></span>')
+      +'</div>';
+  });
+  if(remaining>0&&_payWays.length>1) h+='<div style="font-size:10px;color:#c62828;margin-top:2px;">⚠ Remaining unpaid: '+remaining.toFixed(2)+'</div>';
+  el.innerHTML=h;
+}
+
+function addPayWay(){
+  const total=INV?parseFloat(INV.Total||0):0;
+  const paid=_payWays.reduce((s,pw)=>s+(parseFloat(pw.amount)||0),0);
+  const rem=Math.max(0,Math.round((total-paid)*100)/100);
+  _payWays.push({mode:'101',amount:rem>0?String(rem):''});
+  renderPayWays();
+}
+
+function getPayWays(){
+  const total=INV?parseFloat(INV.Total||0):0;
+  const fx=parseFloat(gvi('fxVal')||'1')||1;
+  const ways=_payWays.map((pw,i)=>({
+    mode:pw.mode||'101',
+    amount:pw.amount?parseFloat(pw.amount)||0:(i===0?total*fx:0)
+  })).filter(pw=>pw.amount>0);
+  if(!ways.length) return [{mode:'101',amount:total*fx}];
+  return ways;
+}
+
 async function doVerifyTin(){
   const tin=gvi('tinQ'); if(!tin){ht('tinResult','<div class="al aw">Enter a TIN first</div>');return;}
   if(!CFG.tin){ht('tinResult','<div class="al aw">Complete EFRIS setup in Settings first</div>');return;}
@@ -709,17 +762,41 @@ async function doVerifyTin(){
 }
 
 async function doPreview(){
-  if(!INV){alert('Open an invoice first');return;}
+  if(!INV){ht('prevContent','<div class="al aw">Open an invoice first</div>');$('prevModal').style.display='';return;}
   const inv=buildInv();
   try{
     const r=await fetch(RELAY+'/api/efris/preview-invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({invoice:inv,config:{tin:CFG.tin,deviceNo:CFG.deviceNo,vatRegistered:CFG.vatReg,businessName:CFG.legalName,tradeName:CFG.tradeName,businessAddress:CFG.address,brn:CFG.brn,phone:CFG.phone,email:CFG.email}})});
     const d=await r.json();
-    if(!d.success){alert('Preview error: '+d.error);return;}
-    const p=d.payload;
-    const bi=p.basicInformation||{};
-    const lines=(p.goodsDetails||[]).map((g,i)=>'  '+(i+1)+'. '+g.item+' ('+g.itemCode+') × '+g.qty+' @ '+g.unitPrice+' = '+g.total+' ['+g.taxRule+']').join('\n');
-    alert('EFRIS T109 Preview\n\nDocument: '+(bi.invoiceKind==='1'?'Tax Invoice':'e-Receipt')+'\nCurrency: '+bi.currency+'\nPayment: '+(p.payWay&&p.payWay[0]?['Cash','Credit','Debit Card','Mobile Money','Cheque','Bank Transfer'][parseInt(p.payWay[0].paymentMode)-101]||p.payWay[0].paymentMode:'—')+'\n\nLines:\n'+lines+'\n\nGross: '+((p.summary||{}).grossAmount||'—')+'\nTax: '+((p.summary||{}).taxAmount||'—'));
-  }catch(e){alert('Preview error: '+e.message);}
+    if(!d.success){ht('prevContent','<div class="al aw">Preview error: '+esc(d.error)+'</div>');$('prevModal').style.display='';return;}
+    const p=d.payload; const bi=p.basicInformation||{}; const sm=p.summary||{};
+    const modeNames={'101':'Cash','102':'Credit','103':'Debit Card','104':'Mobile Money','105':'Cheque','106':'Bank Transfer'};
+    const payStr=(p.payWay||[]).map(pw=>(modeNames[pw.paymentMode]||pw.paymentMode)+' '+pw.paymentAmount).join(' + ');
+    let h='<h3 style="margin:0 0 12px;color:#1b5e20;font-size:14px;">&#128065; EFRIS T109 Preview</h3>';
+    h+='<div style="background:#f5f5f5;border-radius:6px;padding:10px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:11px;">';
+    h+='<div><b>Document Type</b><br>'+(bi.invoiceKind==='1'?'Tax Invoice':'e-Receipt (Non-VAT)')+'</div>';
+    h+='<div><b>Currency</b><br>'+(bi.currency||'UGX')+'</div>';
+    h+='<div><b>Payment</b><br>'+(payStr||'—')+'</div>';
+    h+='<div><b>Gross Amount</b><br>'+(sm.grossAmount||'—')+'</div>';
+    h+='<div><b>Tax Amount</b><br>'+(sm.taxAmount||'0.00')+'</div>';
+    h+='<div><b>Net Amount</b><br>'+(sm.netAmount||'—')+'</div>';
+    h+='</div>';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px;">';
+    h+='<tr style="background:#e8f5e9;"><th style="padding:5px;text-align:left;">Item</th><th style="padding:5px;text-align:left;">Code</th><th style="padding:5px;text-align:right;">Qty</th><th style="padding:5px;text-align:right;">Unit Price</th><th style="padding:5px;text-align:right;">Total</th><th style="padding:5px;text-align:center;">Rule</th></tr>';
+    (p.goodsDetails||[]).forEach((g,i)=>{
+      h+='<tr style="border-top:1px solid #eee;background:'+(i%2?'#fafafa':'#fff')+';">';
+      h+='<td style="padding:4px 5px;">'+esc(g.item)+'</td>';
+      h+='<td style="padding:4px 5px;font-family:monospace;font-size:10px;">'+esc(g.itemCode)+'</td>';
+      h+='<td style="padding:4px 5px;text-align:right;">'+g.qty+'</td>';
+      h+='<td style="padding:4px 5px;text-align:right;">'+g.unitPrice+'</td>';
+      h+='<td style="padding:4px 5px;text-align:right;">'+g.total+'</td>';
+      h+='<td style="padding:4px 5px;text-align:center;font-size:10px;color:#1565c0;">'+g.taxRule+'</td>';
+      h+='</tr>';
+    });
+    h+='</table>';
+    h+='<div style="font-size:10px;color:#888;border-top:1px solid #eee;padding-top:8px;">This is a preview only — nothing has been submitted to URA.</div>';
+    ht('prevContent',h);
+    $('prevModal').style.display='';
+  }catch(e){ht('prevContent','<div class="al aw">Preview error: '+e.message+'</div>');$('prevModal').style.display='';}
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -809,6 +886,7 @@ function gGoStep(n){
   if(n===3) gBuildClassSelect();
   if(n===4) gBuildCommoditySelect();
   if(n===5 && efris) gBuildDetailsSummary();
+  if(n===5) gLoadAccounts();
   // Show/hide Back button in step 5
   const step5=document.querySelector('#gstep5 .row button.bo');
   if(step5) step5.style.display=efris?'':'none';
@@ -950,6 +1028,25 @@ function gUomInput(v){
 
 function gPickUom(val){ $('gFldUom').value=val; $('gUomDd').style.display='none'; gAutoEfrisUom(val); }
 
+let _acctLoaded=false;
+async function gLoadAccounts(){
+  const wrap=$('gAcctWrap'); if(!wrap)return;
+  const typeVal=$('gFldType')?$('gFldType').value:'Service';
+  wrap.style.display=typeVal==='Service'?'':'none';
+  if(_acctLoaded)return;
+  const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
+  if(!ep||!tk)return;
+  try{
+    const r=await fetch(RELAY+'/api/manager/accounts?ep='+encodeURIComponent(ep)+'&tk='+encodeURIComponent(tk));
+    const d=await r.json();
+    if(d.success&&d.accounts.length){
+      const opts='<option value="">— Select account —</option>'+d.accounts.map(a=>'<option value="'+esc(a.key)+'">'+esc(a.name)+'</option>').join('');
+      ['gFldWhenSold','gFldWhenPurchased'].forEach(id=>{ const el=$(id); if(el) el.innerHTML=opts; });
+      _acctLoaded=true;
+    }
+  }catch(e){}
+}
+
 const _EFRIS_UOM_MAP = {
   'per person':'PP','per pax':'PP','per adult':'PP','per child':'PP','per guest':'PP','per infant':'PP','per participant':'PP','per student':'PP',
   'per night':'PN2','per day':'PD2','per hour':'PH2','per week':'PW2','per month':'PM2','per year':'PY2','per annum':'PY2',
@@ -1053,6 +1150,8 @@ function gBuildItemFromForm(){
     efrisUom:($('gFldEfrisUom')?$('gFldEfrisUom').value.trim().toUpperCase():''),
     type:$('gFldType').value, vat:CFG.vatReg?$('gFldVat').value:'Non-VAT',
     excise:$('gFldExcise').value,
+    whenSold:$('gFldWhenSold')?$('gFldWhenSold').value:'',
+    whenPurchased:$('gFldWhenPurchased')?$('gFldWhenPurchased').value:'',
     remarks:$('gFldRemarks')?$('gFldRemarks').value.trim():''
   });
   if(!item.id) item.id=Date.now()+'_'+Math.random().toString(36).slice(2);
