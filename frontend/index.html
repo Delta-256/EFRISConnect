@@ -1344,6 +1344,8 @@ function gEditItem(i){
   const vatEl=$('gFldVat'); if(vatEl) vatEl.value=it.vat||'Standard';
   const excEl=$('gFldExcise'); if(excEl) excEl.value=it.excise||'No';
   const remEl=$('gFldRemarks'); if(remEl) remEl.value=it.remarks||'';
+  if($('gFldWhenSold')) $('gFldWhenSold').value=it.whenSold||'';
+  if($('gFldWhenPurchased')) $('gFldWhenPurchased').value=it.whenPurchased||'';
   const s=$('gSyncStatus');
   if(s) s.innerHTML='<div class="al ai">&#9998; Editing <strong>'+esc(it.name)+'</strong> — update fields then click Sync.</div>';
 }
