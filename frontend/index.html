@@ -1872,42 +1872,58 @@ async function loadCrItems(){
 
 function renderCrLines(){
   const el=$('crLinesList'); if(!el) return;
-  // Update the static datalist (outside this div so it survives re-renders)
-  const dl=$('crItemOpts');
-  if(dl) dl.innerHTML=_crItems.map(i=>'<option value="'+esc((i.code?'['+i.code+'] ':'')+i.name)+'">').join('');
   let h='';
   _crLines.forEach((ln,i)=>{
     const total=Math.round((parseFloat(ln.qty)||0)*(parseFloat(ln.unitPrice)||0));
-    h+='<div style="display:flex;gap:4px;align-items:center;margin-bottom:4px;">'
-      +'<input style="flex:2;min-width:100px;font-size:11px;" list="crItemOpts" placeholder="Item description or code" value="'+esc(ln.description)+'" '
-      +'oninput="crLinePick('+i+',this.value)"/>'
+    h+='<div style="margin-bottom:4px;">'
+      +'<div style="display:flex;gap:4px;align-items:center;">'
+      +'<div style="flex:2;min-width:100px;position:relative;">'
+      +'<input id="crDesc'+i+'" style="width:100%;box-sizing:border-box;font-size:11px;" placeholder="Item / service description" value="'+esc(ln.description)+'" '
+      +'oninput="crItemSearch('+i+',this.value)" onfocus="crItemSearch('+i+',this.value)" onblur="setTimeout(()=>crHideSug('+i+'),160)"/>'
+      +'<div id="crSug'+i+'" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:200;background:white;border:1px solid var(--bdr);border-radius:4px;max-height:160px;overflow-y:auto;box-shadow:0 3px 8px rgba(0,0,0,.12);font-size:11px;"></div>'
+      +'</div>'
       +'<input type="number" style="width:48px;font-size:11px;text-align:right;" placeholder="Qty" value="'+esc(String(ln.qty))+'" min="0.001" '
       +'oninput="_crLines['+i+'].qty=this.value;renderCrTotal()"/>'
-      +'<input id="crUp'+i+'" type="number" style="width:78px;font-size:11px;text-align:right;" placeholder="Unit Price" value="'+esc(String(ln.unitPrice||''))+'" min="0" '
+      +'<input id="crUp'+i+'" type="number" style="width:78px;font-size:11px;text-align:right;" placeholder="Price" value="'+esc(String(ln.unitPrice||''))+'" min="0" '
       +'oninput="_crLines['+i+'].unitPrice=this.value;renderCrTotal()"/>'
       +'<span style="width:64px;text-align:right;font-size:11px;color:var(--gray);">'+(total?total.toLocaleString('en-UG',{maximumFractionDigits:0}):'')+'</span>'
       +(_crLines.length>1?'<button onclick="_crLines.splice('+i+',1);renderCrLines()" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:14px;padding:0 2px;">&#10005;</button>':'<span style="width:18px;"></span>')
-      +'</div>';
+      +'</div></div>';
   });
   h+='<div id="crTotalRow" style="text-align:right;font-size:13px;font-weight:600;padding:4px 0;border-top:1px solid var(--bdr);margin-top:2px;"></div>';
   el.innerHTML=h;
   renderCrTotal();
 }
 
-function crLinePick(i,v){
-  _crLines[i].description=v;
-  // Match "[CODE] Name" format from datalist, or exact name match
-  let it=null;
-  const cm=v.match(/^\[([^\]]+)\]\s+(.+)$/);
-  if(cm){ it=_crItems.find(x=>x.code===cm[1]); }
-  if(!it){ it=_crItems.find(x=>x.name.toLowerCase()===v.trim().toLowerCase()); }
-  if(it){
-    _crLines[i].itemKey=it.key;
-    _crLines[i].description=it.name;
-    if(it.price){ _crLines[i].unitPrice=it.price; const up=$('crUp'+i); if(up){up.value=it.price;} }
-  } else { _crLines[i].itemKey=''; }
+function crItemSearch(lineIdx, v){
+  _crLines[lineIdx].description=v; _crLines[lineIdx].itemKey='';
+  const sug=$('crSug'+lineIdx); if(!sug) return;
+  if(!v.trim()||!_crItems.length){sug.style.display='none';renderCrTotal();return;}
+  const q=v.toLowerCase();
+  const hits=_crItems.filter(x=>x.name.toLowerCase().includes(q)||(x.code&&x.code.toLowerCase().includes(q))).slice(0,10);
+  if(!hits.length){sug.style.display='none';renderCrTotal();return;}
+  sug.innerHTML=hits.map(x=>{
+    const label=esc((x.code?'['+x.code+'] ':'')+x.name);
+    const pr=x.price?'<span style="float:right;color:var(--gray);">'+Number(x.price).toLocaleString('en-UG',{maximumFractionDigits:0})+'</span>':'';
+    const idx=_crItems.indexOf(x);
+    return '<div style="padding:5px 8px;cursor:pointer;border-bottom:1px solid #f5f5f5;" onmousedown="crSelectItem('+lineIdx+','+idx+')">'+label+pr+'</div>';
+  }).join('');
+  sug.style.display='block';
   renderCrTotal();
 }
+
+function crSelectItem(lineIdx,itemIdx){
+  const it=_crItems[itemIdx]; if(!it) return;
+  _crLines[lineIdx].itemKey=it.key;
+  _crLines[lineIdx].description=it.name;
+  if(it.price){ _crLines[lineIdx].unitPrice=it.price; }
+  renderCrLines();
+  // Restore focus to next logical field (qty)
+  setTimeout(()=>{ const inputs=document.querySelectorAll('#crLinesList input[type="number"]'); if(inputs[lineIdx*2]) inputs[lineIdx*2].focus(); },50);
+}
+
+function crHideSug(i){ const s=$('crSug'+i); if(s)s.style.display='none'; }
+
 
 function addCrLine(){ _crLines.push({itemKey:'',description:'',qty:1,unitPrice:''}); renderCrLines(); }
 
@@ -1944,7 +1960,12 @@ async function doCreateReceipt(managerOnly){
     // Step 1: Create receipt in Manager
     const cr=await fetch(RELAY+'/api/manager/create-receipt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,receipt})});
     const crText=await cr.text();
-    let cd; try{ cd=JSON.parse(crText); }catch(_){ throw new Error('Server error (non-JSON response). Make sure the server is running and restart it if needed.\n'+crText.slice(0,200)); }
+    let cd; try{ cd=JSON.parse(crText); }catch(_){
+      const isCF=crText.includes('Cloudflare')||crText.includes('<!DOCTYPE');
+      throw new Error(isCF
+        ? 'Cloudflare tunnel error — the tunnel may have dropped. Open the extension at http://localhost:3000/extension directly to bypass Cloudflare, OR restart the Cloudflare tunnel.'
+        : 'Server returned non-JSON. Make sure node server.js is running.\n'+crText.slice(0,200));
+    }
     if(!cd.success) throw new Error('Manager: '+(cd.error||'Creation failed')+(cd.detail?'\nDetail: '+cd.detail.slice(0,200):''));
     if(!cd.key) throw new Error('Receipt created but no key returned. Check Manager for a new receipt and submit from there.');
     steps[0].st='don'; steps[1].st='act'; prog();
@@ -2022,7 +2043,6 @@ async function doCreateReceipt(managerOnly){
         </div>
       </div>
     </div>
-    <datalist id="crItemOpts"></datalist>
     <div class="fg mt">
       <label id="crItemsLbl">Items / Services</label>
       <div id="crLinesList"></div>
