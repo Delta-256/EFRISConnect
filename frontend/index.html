@@ -357,7 +357,7 @@
             </div>
           </div>
           <div class="fg"><label>&#9881; Item Profile Category</label>
-            <select id="gFldType" onchange="gLoadAccounts()">
+            <select id="gFldType" onchange="gOnTypeChange()">
               <option value="Service">Service (Non-inventory item)</option>
               <option value="Goods">Goods (Inventory item)</option>
             </select>
@@ -379,8 +379,29 @@
               <div class="fg"><label>Account When Sold</label><select id="gFldWhenSold"><option value="">— Select account —</option></select></div>
               <div class="fg"><label>Account When Purchased</label><select id="gFldWhenPurchased"><option value="">— Select account —</option></select></div>
             </div>
+            <div class="g2">
+              <div class="fg"><label>Division</label><select id="gFldDivision"><option value="">— None —</option></select></div>
+              <div class="fg"><label>Autofill Sales Division</label><select id="gFldSalesDivision"><option value="">— None —</option></select></div>
+            </div>
+            <div class="fg goods-only" id="gValuationWrap" style="display:none;">
+              <label>Valuation Method</label>
+              <select id="gFldCostMethod">
+                <option value="">— Use Manager default —</option>
+                <option value="0">Average Cost (AVCO)</option>
+                <option value="1">First In First Out (FIFO)</option>
+                <option value="2">Standard Cost</option>
+              </select>
+            </div>
+            <div class="fg goods-only" id="gStockWrap" style="display:none;">
+              <label>Initial Stock Quantity <span style="font-weight:400;color:var(--gray);">(after creating item, set opening stock)</span></label>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <input type="number" id="gFldInitQty" placeholder="e.g. 50" min="0" step="any" style="flex:1;"/>
+                <button type="button" class="btn bo bsm" onclick="gSetInitialStock()" style="white-space:nowrap;">&#128230; Set Stock</button>
+              </div>
+              <div id="gStockResult" style="font-size:11px;margin-top:3px;"></div>
+            </div>
           </div>
-          <div class="fg"><label>Remarks</label><textarea id="gFldRemarks" placeholder="Optional notes..."></textarea></div>
+          <div class="fg"><label>Remarks / Line Description Autofill</label><textarea id="gFldRemarks" placeholder="Optional notes — also used as default line description on invoices"></textarea></div>
           <div id="gSyncStatus"></div>
           <div class="al ai efris-only" style="margin-top:6px;">&#128161; Sync to Manager.io to make the item usable on invoices. Register on EFRIS to add it to the URA goods registry (requires EFRIS credentials in Settings). You can do either or both.</div>
           <div class="row mt">
@@ -1145,23 +1166,48 @@ function gUomInput(v){
 
 function gPickUom(val){ $('gFldUom').value=val; $('gUomDd').style.display='none'; gAutoEfrisUom(val); }
 
-let _acctLoaded=false;
+let _acctLoaded=false, _divsLoaded=false;
+
+function gOnTypeChange(){
+  const typeVal=$('gFldType')?$('gFldType').value:'Service';
+  const isGoods=typeVal==='Goods';
+  const vw=$('gValuationWrap'); if(vw) vw.style.display=isGoods?'':'none';
+  const sw=$('gStockWrap'); if(sw) sw.style.display=isGoods?'':'none';
+  gLoadAccounts();
+}
+
 async function gLoadAccounts(){
   const wrap=$('gAcctWrap'); if(!wrap)return;
+  // Show account/division section for both Goods and Services
+  wrap.style.display='';
   const typeVal=$('gFldType')?$('gFldType').value:'Service';
-  wrap.style.display=typeVal==='Service'?'':'none';
-  if(_acctLoaded)return;
+  const isGoods=typeVal==='Goods';
+  const vw=$('gValuationWrap'); if(vw) vw.style.display=isGoods?'':'none';
+  const sw=$('gStockWrap'); if(sw) sw.style.display=isGoods?'':'none';
   const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
   if(!ep||!tk)return;
-  try{
-    const r=await fetch(RELAY+'/api/manager/accounts?ep='+encodeURIComponent(ep)+'&tk='+encodeURIComponent(tk));
-    const d=await r.json();
-    if(d.success&&d.accounts.length){
-      const opts='<option value="">— Select account —</option>'+d.accounts.map(a=>'<option value="'+esc(a.key)+'">'+esc(a.name)+'</option>').join('');
-      ['gFldWhenSold','gFldWhenPurchased'].forEach(id=>{ const el=$(id); if(el) el.innerHTML=opts; });
-      _acctLoaded=true;
-    }
-  }catch(e){}
+  if(!_acctLoaded){
+    try{
+      const r=await fetch(RELAY+'/api/manager/accounts?ep='+encodeURIComponent(ep)+'&tk='+encodeURIComponent(tk));
+      const d=await r.json();
+      if(d.success&&d.accounts.length){
+        const opts='<option value="">— Select account —</option>'+d.accounts.map(a=>'<option value="'+esc(a.key)+'">'+esc(a.name)+'</option>').join('');
+        ['gFldWhenSold','gFldWhenPurchased'].forEach(id=>{ const el=$(id); if(el) el.innerHTML=opts; });
+        _acctLoaded=true;
+      }
+    }catch(e){}
+  }
+  if(!_divsLoaded){
+    try{
+      const r2=await fetch(RELAY+'/api/manager/divisions?ep='+encodeURIComponent(ep)+'&tk='+encodeURIComponent(tk));
+      const d2=await r2.json();
+      if(d2.success){
+        const divOpts='<option value="">— None —</option>'+(d2.divisions||[]).map(d=>'<option value="'+esc(d.key)+'">'+esc(d.name)+'</option>').join('');
+        ['gFldDivision','gFldSalesDivision'].forEach(id=>{ const el=$(id); if(el) el.innerHTML=divOpts; });
+        _divsLoaded=true;
+      }
+    }catch(e){}
+  }
 }
 
 const _EFRIS_UOM_MAP = {
@@ -1269,6 +1315,10 @@ function gBuildItemFromForm(){
     excise:$('gFldExcise').value,
     whenSold:$('gFldWhenSold')?$('gFldWhenSold').value:'',
     whenPurchased:$('gFldWhenPurchased')?$('gFldWhenPurchased').value:'',
+    division:$('gFldDivision')?$('gFldDivision').value:'',
+    salesDivision:$('gFldSalesDivision')?$('gFldSalesDivision').value:'',
+    costMethod:$('gFldCostMethod')?$('gFldCostMethod').value:'',
+    initQty:$('gFldInitQty')?$('gFldInitQty').value:'',
     remarks:$('gFldRemarks')?$('gFldRemarks').value.trim():''
   });
   if(!item.id) item.id=Date.now()+'_'+Math.random().toString(36).slice(2);
@@ -1463,8 +1513,36 @@ function gEditItem(i){
   const remEl=$('gFldRemarks'); if(remEl) remEl.value=it.remarks||'';
   if($('gFldWhenSold')) $('gFldWhenSold').value=it.whenSold||'';
   if($('gFldWhenPurchased')) $('gFldWhenPurchased').value=it.whenPurchased||'';
+  if($('gFldDivision')) $('gFldDivision').value=it.division||'';
+  if($('gFldSalesDivision')) $('gFldSalesDivision').value=it.salesDivision||'';
+  if($('gFldCostMethod')) $('gFldCostMethod').value=it.costMethod!=null?String(it.costMethod):'';
+  if($('gFldInitQty')) $('gFldInitQty').value='';
+  gOnTypeChange();
   const s=$('gSyncStatus');
   if(s) s.innerHTML='<div class="al ai">&#9998; Editing <strong>'+esc(it.name)+'</strong> — update fields then click Sync.</div>';
+}
+
+async function gSetInitialStock(){
+  const item=gBuildItemFromForm(); if(!item)return;
+  const qty=parseFloat($('gFldInitQty')?$('gFldInitQty').value:'');
+  if(!qty||qty<=0){alert('Enter a quantity greater than 0');return;}
+  if(!item.managerId&&!gItems.find(i=>(i.code||'').toLowerCase()===(item.code||'').toLowerCase())?.managerId){
+    alert('Sync this item to Manager.io first, then set the stock quantity.');return;
+  }
+  const managerId=(gItems.find(i=>(i.code||'').toLowerCase()===(item.code||'').toLowerCase())||{}).managerId;
+  if(!managerId){alert('Manager item ID not found — sync to Manager first.');return;}
+  const ep=CFG.managerEndpoint,tk=CFG.accessToken;
+  const res=$('gStockResult');
+  if(res) res.innerHTML='<span style="color:var(--gray);">Setting stock…</span>';
+  try{
+    const r=await fetch(RELAY+'/api/manager/inventory-adjust',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,itemKey:managerId,qty,description:'Initial stock entry via EFRIS Connect'})});
+    const d=await r.json();
+    if(res) res.innerHTML=d.success
+      ?'<span style="color:var(--g);">✅ Stock set to '+qty+'</span>'
+      :'<span style="color:#c62828;">❌ '+esc(d.error||'Failed')+'</span>';
+  }catch(e){
+    if(res) res.innerHTML='<span style="color:#c62828;">Network error: '+esc(e.message)+'</span>';
+  }
 }
 
 async function gRetrySyncMgr(i){
@@ -1570,6 +1648,12 @@ async function gImportManagerItem(idx){
     if(remarks){ const rEl=$('gFldRemarks'); if(rEl) rEl.value=remarks; }
     const typeEl=$('gFldType');
     if(typeEl) typeEl.value=i.type==='Goods'?'Goods':'Service';
+    if(detail&&detail.division&&$('gFldDivision')) $('gFldDivision').value=detail.division;
+    if(detail&&detail.salesDivision&&$('gFldSalesDivision')) $('gFldSalesDivision').value=detail.salesDivision;
+    if(detail&&detail.costMethod!=null&&$('gFldCostMethod')) $('gFldCostMethod').value=String(detail.costMethod);
+    if(detail&&detail.whenSold&&$('gFldWhenSold')) $('gFldWhenSold').value=detail.whenSold;
+    if(detail&&detail.whenPurchased&&$('gFldWhenPurchased')) $('gFldWhenPurchased').value=detail.whenPurchased;
+    gOnTypeChange();
     window._importedManagerKey=i.key;
   },50);
   const priceNote=detail&&detail.hasSalesUnitPrice?' · Price: '+(detail.salesUnitPrice||0).toLocaleString():'';

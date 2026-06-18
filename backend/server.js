@@ -761,6 +761,9 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
       if (Object.keys(cfStrings).length)   form.CustomFields2 = { Strings: cfStrings };
       if (item.whenSold) form.WhenSold = item.whenSold;
       if (item.whenPurchased) form.WhenPurchased = item.whenPurchased;
+      if (item.division) form.Division = item.division;
+      if (item.salesDivision) form.SalesDivision = item.salesDivision;
+      if (!isService && item.costMethod != null && item.costMethod !== '') form.CostMethod = item.costMethod;
       r = await managerCall(ep, accessToken, 'POST', `${formBase}/${existingKey}`, form);
       action = 'updated';
       const written = Object.keys(cfStrings).length;
@@ -798,8 +801,11 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
       if (item.vat) {
         try { const tg = await mgrTaxCodeGuid(ep, accessToken, item.vat); if (tg) payload.TaxCode = tg; } catch(_) {}
       }
-      if (isService && item.whenSold) payload.WhenSold = item.whenSold;
-      if (isService && item.whenPurchased) payload.WhenPurchased = item.whenPurchased;
+      if (item.whenSold) payload.WhenSold = item.whenSold;
+      if (item.whenPurchased) payload.WhenPurchased = item.whenPurchased;
+      if (item.division) payload.Division = item.division;
+      if (item.salesDivision) payload.SalesDivision = item.salesDivision;
+      if (!isService && item.costMethod != null && item.costMethod !== '') payload.CostMethod = item.costMethod;
       if (Object.keys(cfStrings).length) payload.CustomFields2 = { Strings: cfStrings };
       r = await managerCall(ep, accessToken, 'POST', createPath, payload);
       action = 'created';
@@ -880,6 +886,44 @@ app.get('/api/manager/accounts', async (req, res) => {
   res.json({ success: true, accounts: [] });
 });
 
+app.get('/api/manager/divisions', async (req, res) => {
+  const ep = normEp(req.query.ep || '');
+  const tk = req.query.tk || '';
+  if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk required' });
+  try {
+    const r = await managerCall(ep, tk, 'GET', '/divisions', null);
+    if (r.status === 200 && r.data) {
+      const arr = Array.isArray(r.data) ? r.data : (r.data.divisions || []);
+      const divisions = arr.map(d => ({ key: d.key || d.Key, name: d.name || d.Name || '' })).filter(d => d.key);
+      return res.json({ success: true, divisions });
+    }
+    res.json({ success: true, divisions: [] });
+  } catch(e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/manager/inventory-adjust', async (req, res) => {
+  const { managerEndpoint, accessToken, itemKey, qty, date, description } = req.body || {};
+  if (!managerEndpoint || !accessToken || !itemKey) {
+    return res.status(400).json({ success: false, error: 'managerEndpoint, accessToken and itemKey are required' });
+  }
+  const ep = normEp(managerEndpoint);
+  const payload = {
+    Date: date || new Date().toISOString().slice(0, 10),
+    Description: description || 'Initial stock entry',
+    Lines: [{ InventoryItem: itemKey, Qty: parseFloat(qty) || 0, UnitCost: 0 }]
+  };
+  try {
+    const r = await managerCall(ep, accessToken, 'POST', '/inventory-adjustment-form', payload);
+    const ok = r.status >= 200 && r.status < 400;
+    console.log(`   Inventory adjustment HTTP ${r.status} for item ${itemKey} qty=${qty}`);
+    res.json(ok ? { success: true } : { success: false, error: `Manager returned HTTP ${r.status}: ${JSON.stringify(r.data||'').slice(0,200)}` });
+  } catch(e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // Full details for a single Manager.io item (for import prefill)
 app.get('/api/goods/manager-item-detail', async (req, res) => {
   const ep = normEp(req.query.ep || '');
@@ -906,6 +950,11 @@ app.get('/api/goods/manager-item-detail', async (req, res) => {
       description:            d.description || d.Description || '',
       defaultLineDescription: d.defaultLineDescription || d.DefaultLineDescription || '',
       customFieldStrings:     cfStrings,
+      division:               d.division || d.Division || '',
+      salesDivision:          d.salesDivision || d.SalesDivision || '',
+      costMethod:             d.costMethod != null ? d.costMethod : (d.CostMethod != null ? d.CostMethod : ''),
+      whenSold:               d.whenSold || d.WhenSold || '',
+      whenPurchased:          d.whenPurchased || d.WhenPurchased || '',
     }});
   } catch(e) {
     res.json({ success: false, error: e.message });
@@ -1137,7 +1186,7 @@ app.post('/api/efris/verify-tin', async (req, res) => {
   try {
     const session = await getSession(config.tin, config.deviceNo, config.efrisPassword, eu);
     // T119: taxpayer query — look up a TIN to verify it exists and get details
-    const t119 = await efrisCall(eu, efrisEnvEnc('T119', { queryTin: buyerTin, queryType: '1' }, config.tin, config.deviceNo, session.aesKey, session.privatePem));
+    const t119 = await efrisCall(eu, efrisEnvEnc('T119', { tin: buyerTin, ninBrn: '', queryType: '1' }, config.tin, config.deviceNo, session.aesKey, session.privatePem));
     const rc = t119.data && t119.data.returnStateInfo ? t119.data.returnStateInfo.returnCode : null;
     const rm = t119.data && t119.data.returnStateInfo ? t119.data.returnStateInfo.returnMessage : '';
     let info = null;
