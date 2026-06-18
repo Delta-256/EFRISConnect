@@ -81,6 +81,9 @@
   .ftr{background:var(--gd);color:rgba(255,255,255,.85);padding:9px 13px;font-size:10px;text-align:center;line-height:1.7;}
   .ftr a{color:var(--gold);text-decoration:none;}.reg{color:rgba(255,255,255,.5);font-size:9px;}
   .hidden{display:none!important;}.mt{margin-top:7px;}hr{border:none;border-top:1px solid var(--bdr);margin:8px 0;}
+  .ctype-btn{padding:6px 4px;font-size:11px;border:1px solid var(--bdr);border-radius:5px;background:#f9f9f9;cursor:pointer;color:var(--txt);transition:all .15s;}
+  .ctype-btn.on{background:var(--g);color:#fff;border-color:var(--gd);font-weight:600;}
+  .ctype-btn:hover:not(.on){background:#e8f5e9;border-color:var(--g);}
   .g-steps{display:flex;gap:0;margin-bottom:10px;border:1px solid var(--bdr);border-radius:6px;overflow:hidden;}
   .g-step{flex:1;padding:6px 3px;text-align:center;font-size:10px;color:var(--gray);background:#f9f9f9;border-right:1px solid var(--bdr);cursor:default;}
   .g-step:last-child{border-right:none;}
@@ -197,11 +200,44 @@
         <div class="al aw">&#128177; Non-UGX detected. Enter today's exchange rate:</div>
         <div class="fg"><label>1 <span id="fxLbl">USD</span> = ? UGX</label><input type="number" id="fxVal" placeholder="e.g. 3650"/></div>
       </div>
+      <!-- Customer Type selector -->
       <div class="fg mt">
-        <label>Customer TIN <span style="font-weight:400;color:var(--gray)">(B2B only &mdash; blank for walk-in/tourists)</span></label>
-        <input id="cTIN" placeholder="Leave blank for B2C receipts"/>
+        <label>Customer Type</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:3px;" id="custTypeGrid">
+          <button type="button" class="ctype-btn on" data-type="b2c" onclick="setCustType('b2c')">&#128100; Walk-in / Local</button>
+          <button type="button" class="ctype-btn" data-type="b2b" onclick="setCustType('b2b')">&#127970; Business (B2B)</button>
+          <button type="button" class="ctype-btn" data-type="b2g" onclick="setCustType('b2g')">&#127981; Government (B2G)</button>
+          <button type="button" class="ctype-btn" data-type="foreign" onclick="setCustType('foreign')">&#9992; Foreign / Tourist</button>
+        </div>
       </div>
-      <div id="subDone" class="hidden"><div class="al as">&#10003; Already submitted &mdash; FDN: <strong id="exFDN"></strong></div></div>
+      <!-- B2B fields -->
+      <div id="cust-b2b" class="cust-fields" style="display:none;">
+        <div class="fg mt"><label>Business TIN <span style="font-weight:400;color:var(--gray);">*required for B2B</span></label>
+          <div style="display:flex;gap:6px;"><input id="cTIN" placeholder="Enter customer TIN" style="flex:1;"/>
+          <button type="button" class="btn bo bsm" onclick="quickVerifyTin()" style="white-space:nowrap;">Verify &#128269;</button></div>
+          <div id="cTINResult" style="font-size:11px;margin-top:3px;"></div>
+        </div>
+      </div>
+      <!-- B2G fields -->
+      <div id="cust-b2g" class="cust-fields" style="display:none;">
+        <div class="g2 mt">
+          <div class="fg"><label>Government TIN</label><input id="cGovTIN" placeholder="Ministry TIN (if known)"/></div>
+          <div class="fg"><label>Ministry / Department *</label><input id="cGovDept" placeholder="e.g. Ministry of Tourism"/></div>
+        </div>
+      </div>
+      <!-- Foreign fields -->
+      <div id="cust-foreign" class="cust-fields" style="display:none;">
+        <div class="g2 mt">
+          <div class="fg"><label>Passport Number *</label><input id="cPassport" placeholder="e.g. A12345678"/></div>
+          <div class="fg"><label>Nationality / Country *</label><input id="cNationality" placeholder="e.g. United Kingdom"/></div>
+        </div>
+        <div class="fg"><label>Guest Name *</label><input id="cForeignName" placeholder="Full name as on passport"/></div>
+      </div>
+      <div id="subDone" class="hidden">
+        <div class="al as">&#10003; Already submitted &mdash; FDN: <strong id="exFDN"></strong>
+          <button type="button" class="btn bo bsm" onclick="doCreditNote()" style="margin-left:10px;background:#c62828;color:#fff;border-color:#c62828;">&#8617; Issue Credit Note</button>
+        </div>
+      </div>
       <div class="fg mt">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <label style="margin:0;">Payment Ways</label>
@@ -641,11 +677,39 @@ async function loadList(){
 }
 function pick(idx){ var i=window.__invList[idx]; if(i){ DKEY=i.key; loadInv(i.key); } }
 
-function buildInv(){
+let _custType='b2c';
+function setCustType(t){
+  _custType=t;
+  document.querySelectorAll('.ctype-btn').forEach(b=>b.classList.toggle('on',b.dataset.type===t));
+  document.querySelectorAll('.cust-fields').forEach(d=>d.style.display='none');
+  const el=$('cust-'+t); if(el) el.style.display='';
+}
+async function quickVerifyTin(){
+  const tin=gvi('cTIN'); if(!tin)return;
+  if(!CFG.tin){ht('cTINResult','<span style="color:#c62828;">Setup EFRIS in Settings first</span>');return;}
+  ht('cTINResult','<span style="color:var(--gray);">Verifying…</span>');
+  try{
+    const r=await fetch(RELAY+'/api/efris/verify-tin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyerTin:tin,config:{tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production'}})});
+    const d=await r.json();
+    if(d.success){const tp=d.taxpayer||{};const nm=tp.taxpayerName||tp.legalName||tp.name||'';ht('cTINResult','<span style="color:var(--g);">✅ '+(nm||'Valid TIN')+'</span>');}
+    else ht('cTINResult','<span style="color:#c62828;">❌ '+esc(d.error)+'</span>');
+  }catch(e){ht('cTINResult','<span style="color:#c62828;">Network error</span>');}
+}
+
+function buildInv(opts){
+  opts=opts||{};
   const inv=INV||{};const fx=parseFloat(gvi('fxVal')||'1')||1;
+  const t=_custType;
+  let custName=(inv.Customer&&inv.Customer.Name)||inv.CustomerName||'';
+  let custTIN='',custDept='',passportNum='',nationality='';
+  if(t==='b2b'){custTIN=gvi('cTIN')||(inv.CustomFields&&inv.CustomFields['Customer TIN'])||'';}
+  else if(t==='b2g'){custTIN=gvi('cGovTIN');custDept=gvi('cGovDept');if(custDept&&!custName)custName=custDept;}
+  else if(t==='foreign'){passportNum=gvi('cPassport');nationality=gvi('cNationality');const fn2=gvi('cForeignName');if(fn2)custName=fn2;}
   return{ Reference:inv.Reference||inv.Code||'INV-001', IssueDate:inv.IssueDate||inv.Date||new Date().toISOString().slice(0,10),
-    CustomerName:(inv.Customer&&inv.Customer.Name)||inv.CustomerName||'', CustomerTIN:gvi('cTIN')||(inv.CustomFields&&inv.CustomFields['Customer TIN'])||'',
+    CustomerType:t, CustomerName:custName, CustomerTIN:custTIN, CustomerDept:custDept,
+    PassportNum:passportNum, Nationality:nationality,
     CustomerAddress:(inv.Customer&&inv.Customer.Address)||'', Currency:inv.Currency||'UGX', ExchangeRate:fx,
+    IsRefund:opts.isRefund||false, OriginalFDN:opts.originalFDN||'',
     PayWays:getPayWays(),
     PaymentMode:(getPayWays()[0]||{}).mode||'101',
     Total:(inv.Total||0)*fx, AmountExcludingTax:(inv.AmountExcludingTax||0)*fx, TaxAmount:(inv.TaxAmount||0)*fx, Notes:inv.Notes||'',
@@ -702,6 +766,36 @@ function showErr(msg){
   if(hint)ht('errHint','<div class="al ai">'+hint[1]+'</div>');else hd('errHint');
 }
 function retry(){hd('errCard');doSubmit();}
+
+async function doCreditNote(){
+  if(!INV){alert('No invoice loaded');return;}
+  const fdn=$('exFDN')?$('exFDN').textContent.trim():'';
+  if(!fdn){alert('No FDN found for this invoice — it may not have been submitted yet');return;}
+  if(!confirm('Issue a CREDIT NOTE reversing FDN '+fdn+'?\n\nThis will cancel the original e-Receipt/Invoice on URA EFRIS.\n\nProceed?'))return;
+  const btn=$('btnSub'); btn.disabled=true;
+  hd('rCard');hd('errCard');
+  const steps=[{tx:'Connecting to EFRIS relay',st:'act'},{tx:'Authenticating with URA',st:'pnd'},{tx:'Building credit note payload',st:'pnd'},{tx:'Submitting credit note to URA',st:'pnd'},{tx:'Saving to Manager.io',st:'pnd'}];
+  setProg(steps);
+  try{
+    steps[0].st='don';steps[1].st='act';setProg(steps);
+    const inv=buildInv({isRefund:true,originalFDN:fdn});
+    steps[1].st='don';steps[2].st='don';steps[3].st='act';setProg(steps);
+    const r1=await fetch(RELAY+'/api/efris/submit-invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({invoice:inv,config:{tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',businessName:CFG.legalName,tradeName:CFG.tradeName,businessAddress:CFG.address,brn:CFG.brn,phone:CFG.phone,email:CFG.email,vatRegistered:CFG.vatReg}})});
+    const d1=await r1.json();
+    steps[3].st=d1.success?'don':'err';setProg(steps);
+    if(!d1.success)throw new Error(d1.error||'Credit note submission failed');
+    sh('rCard');
+    ht('rFDN','<span style="color:#c62828;">↩ CREDIT NOTE</span> '+esc(d1.fdn||'—'));
+    tx('rAF',d1.antifakeCode||'—');
+    steps[4].st='act';setProg(steps);
+    await saveMgr(d1.fdn,d1.qrCode,d1.antifakeCode,d1.deviceNo,d1.issuedDate);
+    steps[4].st='don';setProg(steps);
+  }catch(err){
+    console.error(err);showErr('Credit Note: '+err.message);
+    steps.forEach(s=>{if(s.st==='act')s.st='err';});setProg(steps);
+  }
+  btn.disabled=false;
+}
 
 // ── Payment Ways ──────────────────────────────────────────────
 const PAY_MODES=[['101','Cash'],['102','Credit'],['103','Debit Card'],['104','Mobile Money'],['105','Cheque'],['106','Bank Transfer']];

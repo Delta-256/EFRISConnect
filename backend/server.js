@@ -473,6 +473,7 @@ async function isValidEfrisUnit(code, tin, deviceNo, session, eu) {
 
 function buildT109(invoice, cfg) {
   const vat = !!cfg.vatRegistered;
+  const isRefund = !!(invoice.IsRefund || invoice.isRefund);
   const r2 = n => (Math.round((parseFloat(n) || 0) * 100) / 100).toFixed(2);
   const lines = invoice.Lines || [];
   const goodsDetails = lines.map((l, i) => {
@@ -521,7 +522,33 @@ function buildT109(invoice, cfg) {
   const d = invoice.IssueDate ? new Date(invoice.IssueDate) : now;
   const p = n => String(n).padStart(2, '0');
   const issuedDate = p(d.getDate()) + '/' + p(d.getMonth()+1) + '/' + d.getFullYear() + ' ' + p(now.getHours()) + ':' + p(now.getMinutes()) + ':' + p(now.getSeconds());
+
+  // ── Buyer details — supports B2C, B2B, B2G, Foreign ──────────────────────
+  // buyerType: '0'=Taxpayer(B2B/B2G with TIN), '1'=Citizen(B2C), '2'=Foreigner
+  const custType = String(invoice.CustomerType || 'b2c').toLowerCase();
   const hasTin = !!(invoice.CustomerTIN && String(invoice.CustomerTIN).trim());
+  let buyerType, buyerTin, buyerPassportNum, buyerCitizenship, buyerLegalName, buyerBusinessName, buyerAddress;
+  if (custType === 'b2b') {
+    buyerType = '0'; buyerTin = String(invoice.CustomerTIN || ''); buyerPassportNum = '';
+    buyerCitizenship = ''; buyerLegalName = invoice.CustomerName || '';
+    buyerBusinessName = invoice.CustomerName || ''; buyerAddress = invoice.CustomerAddress || '';
+  } else if (custType === 'b2g') {
+    buyerType = '0'; buyerTin = String(invoice.CustomerTIN || ''); buyerPassportNum = '';
+    buyerCitizenship = ''; buyerLegalName = invoice.CustomerName || 'Government Entity';
+    buyerBusinessName = invoice.CustomerDept || invoice.CustomerName || 'Government';
+    buyerAddress = invoice.CustomerAddress || '';
+  } else if (custType === 'foreign') {
+    buyerType = '2'; buyerTin = ''; buyerPassportNum = String(invoice.PassportNum || '');
+    buyerCitizenship = String(invoice.Nationality || '');
+    buyerLegalName = invoice.CustomerName || 'Foreign Visitor';
+    buyerBusinessName = invoice.CustomerName || ''; buyerAddress = invoice.CustomerAddress || '';
+  } else {
+    // B2C default — walk-in local customer
+    buyerType = '1'; buyerTin = ''; buyerPassportNum = '';
+    buyerCitizenship = ''; buyerLegalName = invoice.CustomerName || 'Walk-in Customer';
+    buyerBusinessName = invoice.CustomerName || ''; buyerAddress = '';
+  }
+
   // Non-VAT e-receipts (invoiceKind=2): no tax categories apply — omit taxDetails
   // entirely. The taxRule='OOS' on each goodsDetails line carries the designation.
   const taxDetails = vat
@@ -529,8 +556,8 @@ function buildT109(invoice, cfg) {
     : [];
   return {
     sellerDetails: { tin: cfg.tin, ninBrn: cfg.brn || '', legalName: cfg.businessName || cfg.tradeName || '', businessName: cfg.tradeName || cfg.businessName || '', address: cfg.businessAddress || 'Uganda', mobilePhone: cfg.phone || '', linePhone: '', emailAddress: cfg.email || '', placeOfBusiness: cfg.businessAddress || 'Uganda', referenceNo: invoice.Reference || '' },
-    basicInformation: { invoiceNo: '', antifakeCode: '', deviceNo: cfg.deviceNo, issuedDate, operator: cfg.businessName || cfg.tradeName || 'system', currency: invoice.Currency || 'UGX', oriInvoiceId: '', invoiceType: '1', invoiceKind: vat ? '1' : '2', dataSource: '103', invoiceIndustryCode: '101', isBatch: '0' },
-    buyerDetails: { buyerTin: hasTin ? String(invoice.CustomerTIN) : '', buyerNinBrn: '', buyerPassportNum: '', buyerLegalName: invoice.CustomerName || 'Walk-in Customer', buyerBusinessName: invoice.CustomerName || '', buyerAddress: invoice.CustomerAddress || '', buyerEmail: '', buyerMobilePhone: '', buyerLinePhone: '', buyerPlaceOfBusi: '', buyerType: hasTin ? '0' : '1', buyerCitizenship: '', buyerSector: '', buyerReferenceNo: '' },
+    basicInformation: { invoiceNo: '', antifakeCode: '', deviceNo: cfg.deviceNo, issuedDate, operator: cfg.businessName || cfg.tradeName || 'system', currency: invoice.Currency || 'UGX', oriInvoiceId: invoice.OriginalFDN || '', invoiceType: '1', invoiceKind: vat ? '1' : '2', dataSource: '103', invoiceIndustryCode: '101', isBatch: '0', isRefund: isRefund ? '1' : '0' },
+    buyerDetails: { buyerTin, buyerNinBrn: '', buyerPassportNum, buyerLegalName, buyerBusinessName, buyerAddress, buyerEmail: invoice.CustomerEmail || '', buyerMobilePhone: invoice.CustomerPhone || '', buyerLinePhone: '', buyerPlaceOfBusi: invoice.CustomerDept || '', buyerType, buyerCitizenship, buyerSector: '', buyerReferenceNo: '' },
     goodsDetails,
     taxDetails,
     summary: { netAmount: r2(net), taxAmount: r2(taxAmount), grossAmount: r2(gross), itemCount: String(goodsDetails.length), modeCode: '1', remarks: invoice.Notes || '', qrCode: '' },
