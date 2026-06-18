@@ -769,7 +769,7 @@ async function loadList(){
     window.__invList=d.invoices||[];
     if(!window.__invList.length){ el.innerHTML='<div class="al ai">No sales invoices found.</div>'; return; }
     var h='<div style="font-size:11px;color:var(--gray);margin:4px 0 8px;">'+(d.business||'')+' — tap an invoice or receipt:</div>';
-    window.__invList.forEach(function(i,idx){ var badge=i.docType==='receipt'?'<span class="pill pill-svc" style="margin-left:5px;">Receipt</span>':'<span class="pill pill-gds" style="margin-left:5px;">Invoice</span>'; h+='<div class="pick-row" onclick="pick('+idx+')" style="cursor:pointer;border:1px solid var(--bdr);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:white;"><strong>'+(i.reference||'(no ref)')+'</strong> — '+(i.customer||'')+badge+'<br><span style="color:var(--gray);font-size:11px;">'+(i.currency||'')+' '+fn(i.amount)+' · '+fd(i.date)+'</span></div>'; });
+    window.__invList.forEach(function(i,idx){ var badge=i.docType==='receipt'?'<span class="pill pill-svc" style="margin-left:5px;">Receipt</span>':'<span class="pill pill-gds" style="margin-left:5px;">Invoice</span>'; var custLabel=i.customer||'<span style="color:var(--gray);font-style:italic;">Walk-in</span>'; h+='<div class="pick-row" onclick="pick('+idx+')" style="cursor:pointer;border:1px solid var(--bdr);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:white;"><strong>'+(i.reference||'(no ref)')+'</strong> — '+custLabel+badge+'<br><span style="color:var(--gray);font-size:11px;">'+(i.currency||'')+' '+fn(i.amount)+' · '+fd(i.date)+'</span></div>'; });
     el.innerHTML=h;
   }catch(e){ el.innerHTML='<div class="al aw">Network error: '+e.message+'</div>'; }
 }
@@ -1870,8 +1870,10 @@ async function loadCrItems(){
 
 function renderCrLines(){
   const el=$('crLinesList'); if(!el) return;
-  const opts='<datalist id="crItemOpts">'+_crItems.map(i=>'<option value="'+esc((i.code?'['+i.code+'] ':'')+i.name)+'">').join('')+'</datalist>';
-  let h=opts;
+  // Update the static datalist (outside this div so it survives re-renders)
+  const dl=$('crItemOpts');
+  if(dl) dl.innerHTML=_crItems.map(i=>'<option value="'+esc((i.code?'['+i.code+'] ':'')+i.name)+'">').join('');
+  let h='';
   _crLines.forEach((ln,i)=>{
     const total=Math.round((parseFloat(ln.qty)||0)*(parseFloat(ln.unitPrice)||0));
     h+='<div style="display:flex;gap:4px;align-items:center;margin-bottom:4px;">'
@@ -1936,7 +1938,8 @@ async function doCreateReceipt(managerOnly){
   try{
     // Step 1: Create receipt in Manager
     const cr=await fetch(RELAY+'/api/manager/create-receipt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,receipt})});
-    const cd=await cr.json();
+    const crText=await cr.text();
+    let cd; try{ cd=JSON.parse(crText); }catch(_){ throw new Error('Server error (non-JSON response). Make sure the server is running and restart it if needed.\n'+crText.slice(0,200)); }
     if(!cd.success) throw new Error('Manager: '+(cd.error||'Creation failed')+(cd.detail?'\nDetail: '+cd.detail.slice(0,200):''));
     if(!cd.key) throw new Error('Receipt created but no key returned. Check Manager for a new receipt and submit from there.');
     steps[0].st='don'; steps[1].st='act'; prog();
@@ -2014,6 +2017,7 @@ async function doCreateReceipt(managerOnly){
         </div>
       </div>
     </div>
+    <datalist id="crItemOpts"></datalist>
     <div class="fg mt">
       <label>Items / Services</label>
       <div id="crLinesList"></div>

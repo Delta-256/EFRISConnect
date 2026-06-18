@@ -1280,8 +1280,9 @@ app.post('/api/efris/verify-tin', async (req, res) => {
     // Extract taxpayer name from whichever field EFRIS returns (varies by API version)
     let taxpayerName = '';
     if (info) {
-      taxpayerName = info.taxpayerName || info.taxpayerLegalName || info.legalName
-        || info.entityName || info.taxPayerName || info.businessName || info.name || '';
+      const tp = info.taxpayer || info;
+      taxpayerName = tp.taxpayerName || tp.taxpayerLegalName || tp.legalName
+        || tp.entityName || tp.taxPayerName || tp.businessName || tp.name || '';
     }
     res.json(ok
       ? { success: true, tin: buyerTin, taxpayer: info, taxpayerName, returnCode: rc }
@@ -1400,8 +1401,13 @@ app.post('/api/manager/create-credit-note', async (req, res) => {
         if (getCN.status === 200 && getCN.data) {
           const cnForm = getCN.data;
           const setCF = (names, val) => {
-            const fk = cfMeta.find(f => names.some(n => (f.name||'').toLowerCase().includes(n.toLowerCase())));
-            if (fk) { if (!cnForm.CustomFields2) cnForm.CustomFields2 = { Strings: {} }; if (!cnForm.CustomFields2.Strings) cnForm.CustomFields2.Strings = {}; cnForm.CustomFields2.Strings[fk.key] = String(val); }
+            const matchedName = Object.keys(cfMeta.byName).find(n => names.some(label => n.toLowerCase().includes(label.toLowerCase())));
+            if (matchedName) {
+              const cfKey = cfMeta.byName[matchedName];
+              if (!cnForm.CustomFields2) cnForm.CustomFields2 = { Strings: {} };
+              if (!cnForm.CustomFields2.Strings) cnForm.CustomFields2.Strings = {};
+              cnForm.CustomFields2.Strings[cfKey] = String(val);
+            }
           };
           setCF(['Fiscal Document', 'FDN', 'EFRIS FDN'], efrisFdn);
           setCF(['Status', 'EFRIS Status'], 'Credit Note');
