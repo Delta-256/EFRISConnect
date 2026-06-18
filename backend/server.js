@@ -746,16 +746,22 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
         : { success: false, error: `Manager form POST returned HTTP ${r.status}: ${JSON.stringify(r.data||'').slice(0,200)}` });
 
     } else {
-      // Step 2b: CREATE — POST to the list endpoint (standard creation path)
-      console.log(`   No existing item found — creating via POST ${listPath}`);
+      // Step 2b: CREATE — use the form endpoint (POST without a key) for both
+      // inventory and non-inventory items. POST to the list endpoint works for
+      // non-inventory items but silently fails for inventory items in Manager v2.
+      const createPath = isService ? '/non-inventory-item-form' : '/inventory-item-form';
+      console.log(`   No existing item found — creating via POST ${createPath}`);
       const cfStrings = {};
       if (comCodeFieldKey && item.comCode) cfStrings[comCodeFieldKey] = item.comCode;
       if (catPathFieldKey && catPath)      cfStrings[catPathFieldKey] = catPath;
       const price = parseFloat(item.price) || 0;
       const payload = { Code: item.code, Name: item.name, UnitName: item.uom, DefaultLineDescription: item.remarks || '' };
       if (isService) {
+        payload.HasDefaultLineDescription = !!(item.remarks);
         payload.HasSalesUnitPrice = price > 0;
+        payload.HasDefaultSalesUnitPrice = price > 0;
         payload.SalesUnitPrice    = price;
+        payload.DefaultSalesUnitPrice = price;
       } else {
         payload.ItemName                 = item.name;
         payload.DefaultSalesUnitPrice    = price;
@@ -768,19 +774,26 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
       if (isService && item.whenSold) payload.WhenSold = item.whenSold;
       if (isService && item.whenPurchased) payload.WhenPurchased = item.whenPurchased;
       if (Object.keys(cfStrings).length) payload.CustomFields2 = { Strings: cfStrings };
-      r = await managerCall(ep, accessToken, 'POST', listPath, payload);
+      r = await managerCall(ep, accessToken, 'POST', createPath, payload);
       action = 'created';
-      // POST returns the full list; find the new item's key
-      if (r.status === 200 && r.data && r.data[listKey]) {
-        const created = r.data[listKey].find(i => {
-          const cd = (i.code || i.Code || '').toLowerCase();
-          const nm = (i.itemName || i.name || i.Name || '').toLowerCase();
-          return (codeLower && cd === codeLower) || nm === nameLower;
-        });
-        if (created) existingKey = created.key || created.Key;
+      // Form endpoint on success redirects (302) or returns 200/201; fetch new key
+      // by looking up the item by code in the list
+      if ((r.status >= 200 && r.status < 400)) {
+        try {
+          const listR = await managerCall(ep, accessToken, 'GET', listPath, null);
+          const arr = listR.data && listR.data[listKey];
+          if (Array.isArray(arr)) {
+            const created = arr.find(i => {
+              const cd = (i.code || i.Code || '').toLowerCase();
+              const nm = (i.itemName || i.name || i.Name || '').toLowerCase();
+              return (codeLower && cd === codeLower) || nm === nameLower;
+            });
+            if (created) existingKey = created.key || created.Key;
+          }
+        } catch(_) {}
       }
-      console.log(`   Manager POST: HTTP ${r.status}`, JSON.stringify(r.data || '').slice(0, 200));
-      const ok = r.status >= 200 && r.status < 300;
+      console.log(`   Manager POST: HTTP ${r.status} → key: ${existingKey||'unknown'}`);
+      const ok = r.status >= 200 && r.status < 400;
       const written = Object.keys(cfStrings).length;
       return res.json(ok
         ? { success: true, action, managerId: existingKey || null, comCodeWritten: !!(comCodeFieldKey && item.comCode), fieldsWritten: written }

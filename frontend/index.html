@@ -503,12 +503,14 @@ function obSh(n){
 function obn(from){
   if(from===1&&(!gvi('o1a')||!gvi('o1c'))){alert('Legal Name and Address are required');return;}
   if(from===2&&(!gvi('o2a')||!gvi('o2b')||!gvi('o2c'))){alert('TIN, Device No. and Password are required');return;}
-  // Non-EFRIS users skip the EFRIS Credentials step (step 2)
-  if(from===1 && TG.efrisEnabled===false){ obSh(3); return; }
+  // Non-EFRIS users skip steps 2 (EFRIS credentials) AND 3 (Tax & Mode) — go straight to Manager connection
+  if(from===1 && TG.efrisEnabled===false){ obSh(4); return; }
+  if(from===3 && TG.efrisEnabled===false){ obSh(4); return; }
   obSh(from+1);
 }
 function obb(from){
   // Mirror the skip on the way back
+  if(from===4 && TG.efrisEnabled===false){ obSh(1); return; }
   if(from===3 && TG.efrisEnabled===false){ obSh(1); return; }
   obSh(from-1);
 }
@@ -707,20 +709,36 @@ let _payWays=[{mode:'101',amount:''}];
 
 function renderPayWays(){
   const el=$('payWaysList'); if(!el)return;
-  const total=INV?parseFloat(INV.Total||0):0;
+  const fx=parseFloat(gvi('fxVal')||'1')||1;
+  const total=(INV?parseFloat(INV.Total||0):0)*fx;
   const totalPaid=_payWays.reduce((s,pw)=>s+(parseFloat(pw.amount)||0),0);
   const remaining=Math.round((total-totalPaid)*100)/100;
-  let h='';
-  _payWays.forEach((pw,i)=>{
-    const opts=PAY_MODES.map(([v,n])=>'<option value="'+v+'"'+(pw.mode===v?' selected':'')+'>'+n+'</option>').join('');
-    h+='<div style="display:flex;gap:5px;align-items:center;margin-bottom:4px;">'
-      +'<select style="flex:1;font-size:11px;" onchange="_payWays['+i+'].mode=this.value">'+opts+'</select>'
-      +'<input type="number" style="width:90px;font-size:11px;" placeholder="Amount" value="'+pw.amount+'" oninput="_payWays['+i+'].amount=this.value;renderPayWays()"'+(i===0&&_payWays.length===1?' title="Leave blank to use invoice total"':'')+'/>'
-      +(_payWays.length>1?'<button onclick="_payWays.splice('+i+',1);renderPayWays()" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:15px;">✕</button>':'<span style="width:20px;"></span>')
-      +'</div>';
-  });
-  if(remaining>0&&_payWays.length>1) h+='<div style="font-size:10px;color:#c62828;margin-top:2px;">⚠ Remaining unpaid: '+remaining.toFixed(2)+'</div>';
-  el.innerHTML=h;
+  // Only rebuild rows if count changed — otherwise just update balance to avoid
+  // destroying inputs mid-typing (which loses cursor position)
+  const rows=el.querySelectorAll('.pw-row');
+  if(rows.length!==_payWays.length){
+    let h='';
+    _payWays.forEach((pw,i)=>{
+      const opts=PAY_MODES.map(([v,n])=>'<option value="'+v+'"'+(pw.mode===v?' selected':'')+'>'+n+'</option>').join('');
+      h+='<div class="pw-row" style="display:flex;gap:5px;align-items:center;margin-bottom:4px;" data-idx="'+i+'">'
+        +'<select style="flex:1;font-size:11px;" onchange="_payWays['+i+'].mode=this.value">'+opts+'</select>'
+        +'<input type="number" style="width:110px;font-size:12px;padding:4px 6px;" placeholder="Amount (blank=full)" value="'+pw.amount+'" onchange="_payWays['+i+'].amount=this.value;updatePayBalance()"/>'
+        +(_payWays.length>1?'<button onclick="_payWays.splice('+i+',1);renderPayWays()" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:15px;line-height:1;">✕</button>':'<span style="width:20px;display:inline-block;"></span>')
+        +'</div>';
+    });
+    el.innerHTML=h+'<div id="pwBalance"></div>';
+  }
+  updatePayBalance();
+}
+function updatePayBalance(){
+  const b=$('pwBalance'); if(!b)return;
+  const fx=parseFloat(gvi('fxVal')||'1')||1;
+  const total=(INV?parseFloat(INV.Total||0):0)*fx;
+  const totalPaid=_payWays.reduce((s,pw)=>s+(parseFloat(pw.amount)||0),0);
+  const remaining=Math.round((total-totalPaid)*100)/100;
+  if(remaining>0.01&&_payWays.some(pw=>pw.amount))
+    b.innerHTML='<div style="font-size:11px;color:#e65100;margin-top:3px;padding:4px 6px;background:#fff3e0;border-radius:4px;">Balance remaining: <strong>'+remaining.toLocaleString('en-UG',{maximumFractionDigits:2})+'</strong> (unpaid — will show on receipt as Credit)</div>';
+  else b.innerHTML='';
 }
 
 function addPayWay(){
@@ -734,11 +752,16 @@ function addPayWay(){
 function getPayWays(){
   const total=INV?parseFloat(INV.Total||0):0;
   const fx=parseFloat(gvi('fxVal')||'1')||1;
+  const grossTotal=Math.round(total*fx*100)/100;
   const ways=_payWays.map((pw,i)=>({
     mode:pw.mode||'101',
-    amount:pw.amount?parseFloat(pw.amount)||0:(i===0?total*fx:0)
+    amount:pw.amount?parseFloat(pw.amount)||0:(i===0?grossTotal:0)
   })).filter(pw=>pw.amount>0);
-  if(!ways.length) return [{mode:'101',amount:total*fx}];
+  if(!ways.length) return [{mode:'101',amount:grossTotal}];
+  // If partial payment, add remaining balance as Credit (102)
+  const paid=ways.reduce((s,pw)=>s+pw.amount,0);
+  const rem=Math.round((grossTotal-paid)*100)/100;
+  if(rem>0.01) ways.push({mode:'102',amount:rem});
   return ways;
 }
 
