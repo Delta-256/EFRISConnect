@@ -512,7 +512,7 @@ function buildT109(invoice, cfg) {
       vatApplicableFlag: vatFlag, _catCode: catCode
     };
   });
-  const gross = parseFloat(invoice.Total || 0) || goodsDetails.reduce((s, g) => s + parseFloat(g.total), 0);
+  const gross = goodsDetails.reduce((s, g) => s + parseFloat(g.total), 0);
   const taxAmount = goodsDetails.reduce((s, g) => s + (parseFloat(g.tax) || 0), 0);
   const net = gross - taxAmount;
   const anyVat = goodsDetails.some(g => g.taxRate === '0.18');
