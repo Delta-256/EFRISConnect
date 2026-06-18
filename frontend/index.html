@@ -7,7 +7,8 @@
 <style>
   :root{--g:#2e7d32;--gl:#43a047;--gd:#1b5e20;--gold:#f9a825;--red:#c62828;--blue:#1565c0;--gray:#546e7a;--bg:#f1f8e9;--bdr:#c8e6c9;--txt:#1a2e1a;--txtl:#4a6741;}
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:13px;line-height:1.5;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5;}
+  @media(min-width:600px){body{font-size:15px;}.wrap{padding:13px 16px;}.hdr{padding:13px 16px;}.btn{padding:9px 16px;font-size:13px;}.fg input,.fg select,.fg textarea{padding:7px 10px;font-size:13px;}.tabs{gap:3px;}.tab{padding:6px 13px;font-size:12px;}}
   .hdr{background:linear-gradient(135deg,var(--gd),var(--g),var(--gl));color:white;padding:11px 14px;display:flex;align-items:center;gap:9px;border-bottom:3px solid var(--gold);}
   .hdr h1{font-size:14px;font-weight:700;}.hdr .sub{font-size:10px;opacity:.85;}
   .badge{margin-left:auto;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;}
@@ -204,10 +205,10 @@
       <div class="fg mt">
         <label>Customer Type</label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:3px;" id="custTypeGrid">
-          <button type="button" class="ctype-btn on" data-type="b2c" onclick="setCustType('b2c')">&#128100; Walk-in / Local</button>
-          <button type="button" class="ctype-btn" data-type="b2b" onclick="setCustType('b2b')">&#127970; Business (B2B)</button>
-          <button type="button" class="ctype-btn" data-type="b2g" onclick="setCustType('b2g')">&#127981; Government (B2G)</button>
-          <button type="button" class="ctype-btn" data-type="foreign" onclick="setCustType('foreign')">&#9992; Foreign / Tourist</button>
+          <button type="button" class="ctype-btn on" data-type="b2c" onclick="setCustType('b2c')">Walk-in / Local</button>
+          <button type="button" class="ctype-btn" data-type="b2b" onclick="setCustType('b2b')">Business (B2B)</button>
+          <button type="button" class="ctype-btn" data-type="b2g" onclick="setCustType('b2g')">Government (B2G)</button>
+          <button type="button" class="ctype-btn" data-type="foreign" onclick="setCustType('foreign')">Foreign / Tourist</button>
         </div>
       </div>
       <!-- B2B fields -->
@@ -419,7 +420,7 @@
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <div class="ct" style="margin:0;border:none;padding:0;">&#128203; My Items <span id="gItemCount" style="font-size:10px;font-weight:400;color:var(--gray)">0 items</span></div>
-          <button class="btn bg bsm" onclick="gSwSub('cfg');gGoStep(1)">&#10133; Add New</button>
+          <button class="btn bg bsm" onclick="gSwSub('cfg');gGoStep(1)">+ Add New</button>
         </div>
         <div class="card" style="margin-bottom:9px;">
           <div class="ct">&#128229; Import Existing Manager.io Items</div>
@@ -625,13 +626,36 @@ window.addEventListener('message', evt=>{
   window.managerAppContext=d;
   if(d.apiEndpoint){MGR_EP=d.apiEndpoint;if(!CFG.managerEndpoint)CFG.managerEndpoint=d.apiEndpoint;}
   if(d.apiAccessToken){MGR_TK=d.apiAccessToken;if(!CFG.accessToken)CFG.accessToken=d.apiAccessToken;}
+  // Detect Manager page context from the URL sent in the message
+  var pageUrl=d.url||d.currentUrl||d.pageUrl||d.href||'';
+  if(pageUrl) detectManagerPage(pageUrl);
   var k=d.Key||d.documentKey||d.key||d.recordKey||'';
   if(k&&typeof k==='string'){var parts=k.split('?')[0].split('/').filter(Boolean);k=parts.length?parts[parts.length-1]:'';DKEY=k;}
-  // Only reload if the document key actually changed — Manager sends many postMessages
-  // for the same document (e.g. on every panel re-render), causing dozens of redundant
-  // invoice fetches. Guard with a last-loaded key so we fetch exactly once per document.
-  if(DKEY && DKEY !== _lastInvKey) loadInv(DKEY);
+  // Set _lastInvKey synchronously BEFORE the async call to prevent race conditions
+  if(DKEY && DKEY !== _lastInvKey){ _lastInvKey=DKEY; loadInv(DKEY); }
+  else if(!DKEY && CFG.managerEndpoint) routeByContext();
 });
+
+function detectManagerPage(url){
+  // If the Manager URL tells us we're on an item page, go to Goods tab
+  if(!CFG.managerEndpoint)return;
+  const already=document.querySelector('.scr.on');
+  if(already&&already.id==='sMain'&&!DKEY){
+    if(/\/(inventory-item|non-inventory-item|inventory-items|non-inventory-items)/i.test(url)){
+      showT('tGds',$('tabGds'));
+    }
+  }
+}
+
+function routeByContext(){
+  // Called when postMessage arrives with credentials but no document key.
+  // Read the ?mode= URL param to decide where to go.
+  const p=new URLSearchParams(window.location.search);
+  const mode=p.get('mode');
+  if(mode==='goods'){ showScr('sMain'); showT('tGds',$('tabGds')); }
+  else if(mode==='submit'){ showScr('sNone'); loadList(); }
+  // else: show choice landing (sNone default handles this)
+}
 
 function readParams(){
   const p=new URLSearchParams(window.location.search);
@@ -644,7 +668,6 @@ function readParams(){
 
 async function loadInv(key){
   if(!key){showScr('sNone');return;}
-  _lastInvKey=key;
   const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
   if(!ep||!tk){showScr('sNone');return;}
   showScr('sLoad');
@@ -1593,11 +1616,14 @@ async function gLoadManagerItems(){
     const d=await r.json();
     if(!d.success){el.innerHTML='<div class="al ae">'+esc(d.error||'Failed')+'</div>';return;}
     if(!d.items||!d.items.length){el.innerHTML='<div class="al ai">No items found in Manager.io.</div>';return;}
-    // Match by code (if available) or name to detect already-imported items
-    const imported=new Set(gItems.map(i=>(i.code||i.name||'').toLowerCase()).filter(Boolean));
-    const key=i=>(i.code||i.name||'').toLowerCase();
-    const fresh=d.items.filter(i=>!imported.has(key(i)));
-    const already=d.items.filter(i=>imported.has(key(i)));
+    // Match by code AND name separately to catch mismatches between the two sets
+    const importedCodes=new Set(gItems.map(i=>(i.code||'').toLowerCase()).filter(Boolean));
+    const importedNames=new Set(gItems.map(i=>(i.name||'').toLowerCase()).filter(Boolean));
+    const isImported=i=>
+      (i.code&&importedCodes.has(i.code.toLowerCase()))||
+      (i.name&&importedNames.has(i.name.toLowerCase()));
+    const fresh=d.items.filter(i=>!isImported(i));
+    const already=d.items.filter(i=>isImported(i));
     let h='';
     if(already.length) h+='<div class="al as" style="margin-bottom:6px;">'+already.length+' item(s) already configured: '+already.map(i=>esc(i.code||i.name)).join(', ')+'</div>';
     if(!fresh.length&&already.length){el.innerHTML=h+'<div class="al ai">All Manager items are already imported.</div>';return;}
@@ -1631,16 +1657,21 @@ async function gImportManagerItem(idx){
     if(d.success) detail=d.item;
   }catch(e){}
   gSwSub('cfg');
-  // Restore commodity context from existing gItems entry if available
-  const existingItem = gItems.find(x=>(x.code||'').toLowerCase()===(i.code||'').toLowerCase());
-  const alreadyConfigured = !!(i.comCode || (existingItem||{}).comCode);
+  // Find existing gItems entry by code OR name
+  const existingItem = gItems.find(x=>
+    (x.code&&i.code&&x.code.toLowerCase()===i.code.toLowerCase())||
+    (x.name&&i.name&&x.name.toLowerCase()===i.name.toLowerCase())
+  );
+  const alreadyConfigured = !!(existingItem&&existingItem.comCode);
   if(alreadyConfigured && existingItem){
     if(existingItem.comCode) gCOM={k:existingItem.comCode, n:existingItem.comName||''};
     if(existingItem.segCode) gSEG={k:existingItem.segCode, n:existingItem.segment||''};
     if(existingItem.famCode) gFAM={k:existingItem.famCode, n:existingItem.family||''};
     if(existingItem.clsCode) gCLS={k:existingItem.clsCode, n:existingItem.cls||''};
   }
-  if(CFG.efrisEnabled===false || alreadyConfigured){ gGoStep(5); } else { gGoStep(1); }
+  // Always jump straight to step 5 — user can use "Choose category" button to change
+  if(CFG.efrisEnabled===false || alreadyConfigured){ gGoStep(5); }
+  else { gGoStep(5); } // Go to step 5 regardless; commodity wizard is accessible via button
   setTimeout(()=>{
     const code=(detail&&detail.code)||i.code||'';
     const name=(detail&&detail.name)||i.name||'';

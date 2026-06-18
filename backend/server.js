@@ -555,7 +555,7 @@ function buildT109(invoice, cfg) {
     ? [{ taxCategoryCode: catCode, netAmount: r2(net), taxRate: (goodsDetails[0] ? goodsDetails[0].taxRate : (anyVat ? '0.18' : '0')), taxAmount: r2(taxAmount), grossAmount: r2(gross) }]
     : [];
   return {
-    sellerDetails: { tin: cfg.tin, ninBrn: cfg.brn || '', legalName: cfg.businessName || cfg.tradeName || '', businessName: cfg.tradeName || cfg.businessName || '', address: cfg.businessAddress || 'Uganda', mobilePhone: cfg.phone || '', linePhone: '', emailAddress: cfg.email || '', placeOfBusiness: cfg.businessAddress || 'Uganda', referenceNo: invoice.Reference || '' },
+    sellerDetails: { tin: cfg.tin, ninBrn: cfg.brn || '', legalName: cfg.businessName || cfg.tradeName || '', businessName: cfg.tradeName || cfg.businessName || '', address: cfg.businessAddress || 'Uganda', mobilePhone: cfg.phone || '', linePhone: '', emailAddress: cfg.email || '', placeOfBusiness: cfg.businessAddress || 'Uganda', referenceNo: (isRefund ? 'CN-' : '') + (invoice.Reference || '') },
     basicInformation: { invoiceNo: '', antifakeCode: '', deviceNo: cfg.deviceNo, issuedDate, operator: cfg.businessName || cfg.tradeName || 'system', currency: invoice.Currency || 'UGX', oriInvoiceId: invoice.OriginalFDN || '', invoiceType: '1', invoiceKind: vat ? '1' : '2', dataSource: '103', invoiceIndustryCode: '101', isBatch: '0', isRefund: isRefund ? '1' : '0' },
     buyerDetails: { buyerTin, buyerNinBrn: '', buyerPassportNum, buyerLegalName, buyerBusinessName, buyerAddress, buyerEmail: invoice.CustomerEmail || '', buyerMobilePhone: invoice.CustomerPhone || '', buyerLinePhone: '', buyerPlaceOfBusi: invoice.CustomerDept || '', buyerType, buyerCitizenship, buyerSector: '', buyerReferenceNo: '' },
     goodsDetails,
@@ -914,11 +914,18 @@ app.post('/api/manager/inventory-adjust', async (req, res) => {
     Description: description || 'Initial stock entry',
     Lines: [{ InventoryItem: itemKey, Qty: parseFloat(qty) || 0, UnitCost: 0 }]
   };
+  // Manager's inventory adjustment document type varies — try paths in order
+  const adjPaths = ['/inventory-write-up-form', '/inventory-quantity-adjustment-form', '/inventory-adjustment-form', '/inventory-write-ups-form'];
   try {
-    const r = await managerCall(ep, accessToken, 'POST', '/inventory-adjustment-form', payload);
-    const ok = r.status >= 200 && r.status < 400;
-    console.log(`   Inventory adjustment HTTP ${r.status} for item ${itemKey} qty=${qty}`);
-    res.json(ok ? { success: true } : { success: false, error: `Manager returned HTTP ${r.status}: ${JSON.stringify(r.data||'').slice(0,200)}` });
+    let lastErr = '';
+    for (const adjPath of adjPaths) {
+      const r = await managerCall(ep, accessToken, 'POST', adjPath, payload);
+      console.log(`   Inventory adjust ${adjPath}: HTTP ${r.status} for item ${itemKey} qty=${qty}`);
+      if (r.status >= 200 && r.status < 400) return res.json({ success: true, path: adjPath });
+      if (r.status !== 404) { lastErr = `HTTP ${r.status}: ${JSON.stringify(r.data||'').slice(0,200)}`; break; }
+      lastErr = `HTTP 404 on ${adjPath}`;
+    }
+    res.json({ success: false, error: `Could not create inventory adjustment — ${lastErr}. Please set opening stock in Manager directly (Inventory → Write-ups).` });
   } catch(e) {
     res.status(500).json({ success: false, error: e.message });
   }
