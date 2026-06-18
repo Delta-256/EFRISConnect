@@ -1201,11 +1201,18 @@ app.post('/api/efris/verify-tin', async (req, res) => {
       try {
         const s = aesDecryptStr(t119.data.data.content, session.aesKey);
         info = JSON.parse(s);
+        console.log('[T119 taxpayer fields]', JSON.stringify(info));
       } catch(e) {}
     }
     const ok = rc === '00';
+    // Extract taxpayer name from whichever field EFRIS returns (varies by API version)
+    let taxpayerName = '';
+    if (info) {
+      taxpayerName = info.taxpayerName || info.taxpayerLegalName || info.legalName
+        || info.entityName || info.taxPayerName || info.businessName || info.name || '';
+    }
     res.json(ok
-      ? { success: true, tin: buyerTin, taxpayer: info, returnCode: rc }
+      ? { success: true, tin: buyerTin, taxpayer: info, taxpayerName, returnCode: rc }
       : { success: false, error: 'URA ' + rc + ': ' + rm, returnCode: rc });
   } catch(e) {
     res.status(500).json({ success: false, error: e.message });

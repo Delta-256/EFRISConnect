@@ -689,6 +689,14 @@ function renderInv(inv){
   tx('dTot',(inv.Currency||'UGX')+' '+fn(inv.Total||inv.GrossAmount||0));
   const curr=inv.Currency||'UGX';
   if(curr!=='UGX'){sh('fxRow');tx('fxLbl',curr);sv('fxVal',inv.ExchangeRate||'');}else hd('fxRow');
+  // Reset ALL customer type state — prevents stale data from previous invoice bleeding in
+  _custType='b2c';
+  document.querySelectorAll('.ctype-btn').forEach(b=>b.classList.toggle('on',b.dataset.type==='b2c'));
+  document.querySelectorAll('.cust-fields').forEach(d=>d.style.display='none');
+  sv('cTIN',''); ht('cTINResult','');
+  sv('cGovTIN',''); sv('cGovDept',''); ht('cGovTINResult','');
+  sv('cPassport',''); sv('cNationality',''); sv('cForeignName','');
+  hd('subProg'); hd('rCard'); hd('errCard');
   _payWays=[{mode:'101',amount:''}]; renderPayWays();
   const fdn=(inv.CustomFields&&(inv.CustomFields['Fiscal Document Number']||inv.CustomFields['EFRIS FDN']))||'';
   if(fdn){sh('subDone');tx('exFDN',fdn);}else hd('subDone');
@@ -740,7 +748,7 @@ async function _verifyTinInto(tin, resultId){
   try{
     const r=await fetch(RELAY+'/api/efris/verify-tin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyerTin:tin,config:{tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production'}})});
     const d=await r.json();
-    if(d.success){const tp=d.taxpayer||{};const nm=tp.taxpayerName||tp.legalName||tp.name||'';ht(resultId,'<span style="color:var(--g);">✅ '+(nm||'Valid TIN')+'</span>');}
+    if(d.success){const nm=d.taxpayerName||(()=>{const tp=d.taxpayer||{};return tp.taxpayerName||tp.taxpayerLegalName||tp.legalName||tp.entityName||tp.taxPayerName||tp.businessName||tp.name||'';})();ht(resultId,'<span style="color:var(--g);">&#10003; '+(nm||'Valid TIN')+'</span>');}
     else ht(resultId,'<span style="color:#c62828;">❌ '+esc(d.error)+'</span>');
   }catch(e){ht(resultId,'<span style="color:#c62828;">Network error</span>');}
 }
@@ -919,7 +927,7 @@ async function doVerifyTin(){
     const d=await r.json();
     if(d.success){
       const tp=d.taxpayer||{};
-      const name=tp.taxpayerName||tp.legalName||tp.name||tp.businessName||'';
+      const name=d.taxpayerName||tp.taxpayerName||tp.taxpayerLegalName||tp.legalName||tp.entityName||tp.taxPayerName||tp.businessName||tp.name||'';
       const addr=tp.address||tp.businessAddress||'';
       ht('tinResult','<div class="al as" style="font-size:12px;"><strong>✅ Valid TIN</strong><br><b>Name:</b> '+(name||'—')+'<br><b>TIN:</b> '+tin+(addr?'<br><b>Address:</b> '+addr:'')+'</div>');
       sv('cTIN',tin);
