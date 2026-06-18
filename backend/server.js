@@ -209,7 +209,9 @@ async function normalizeInvoice(ep, tk, key) {
       EFRISCategoryId: '', EFRISCategoryName: '' });
   }
   const totalTax = lines.reduce((s, l) => s + l.TaxAmount, 0);
-  const total = (disp.invoiceAmount && disp.invoiceAmount.value) || (disp.amount && disp.amount.value) || lines.reduce((s, l) => s + l.LineTotal, 0);
+  // Always compute total from line items when we have them — Manager's stored display total can be stale
+  const computedFromLines = lines.length > 0 ? lines.reduce((s, l) => s + l.LineTotal, 0) : 0;
+  const total = computedFromLines || (disp.invoiceAmount && disp.invoiceAmount.value) || (disp.amount && disp.amount.value) || 0;
   const currency = (disp.invoiceAmount && disp.invoiceAmount.currency) || (disp.amount && disp.amount.currency) || 'UGX';
   return {
     DocType: docType,
@@ -913,8 +915,16 @@ app.get('/api/manager/items-list', async (req, res) => {
       managerCall(ep, tk, 'GET', '/inventory-items', null),
       managerCall(ep, tk, 'GET', '/non-inventory-items', null)
     ]);
-    const inv = (invR.data && (invR.data.inventoryItems || [])).map(i => ({ key: i.key, code: i.code || i.Code || '', name: i.itemName || i.name || i.Name || '', type: 'inventory' }));
-    const ni  = (niR.data  && (niR.data.nonInventoryItems || [])).map(i => ({ key: i.key, code: i.code || i.Code || '', name: i.itemName || i.name || i.Name || '', type: 'service'  }));
+    const mapItem = (i, type) => ({
+      key:   i.key  || i.Key  || '',
+      code:  i.code || i.Code || i.ItemCode || '',
+      name:  i.itemName || i.ItemName || i.name || i.Name || '',
+      price: parseFloat(i.salesPrice || i.SalesPrice || i.unitPrice || i.UnitPrice || i.defaultPrice || i.DefaultPrice || i.price || i.Price || 0) || 0,
+      type
+    });
+    const inv = (invR.data && (invR.data.inventoryItems  || invR.data.InventoryItems  || [])).map(i => mapItem(i, 'inventory'));
+    const ni  = (niR.data  && (niR.data.nonInventoryItems || niR.data.NonInventoryItems || [])).map(i => mapItem(i, 'service'));
+    console.log(`[items-list] inventory=${inv.length} non-inventory=${ni.length} first=${JSON.stringify((inv[0]||ni[0])||{})}`);
     res.json({ success: true, items: [...inv, ...ni] });
   } catch(e) { res.status(500).json({ success: false, error: e.message }); }
 });
@@ -1467,7 +1477,16 @@ app.get('/api/manager/invoices', async (req, res) => {
     try {
       const rr = await managerCall(ep, tk, 'GET', '/receipts', null);
       const rcpts = (rr.status === 200 && rr.data && (rr.data.receipts || rr.data.receiptsAndPayments)) || [];
-      rcpts.forEach(i => list.push({ key: i.key, reference: i.reference || i.payee || '(receipt)', customer: i.payer || i.customer || i.contact || '', amount: (i.amount && i.amount.value) || i.amount || 0, currency: (i.amount && i.amount.currency) || '', date: i.date || i.issueDate, status: i.status, docType: 'receipt' }));
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const rcptItems = rcpts.map(i => ({ key: i.key, reference: i.reference || i.payee || '(receipt)', _ck: i.payer || i.customer || i.contact || '', amount: (i.amount && i.amount.value) || i.amount || 0, currency: (i.amount && i.amount.currency) || '', date: i.date || i.issueDate, status: i.status, docType: 'receipt' }));
+      // Resolve contact UUIDs to display names in parallel (Manager stores payer as a contact key)
+      await Promise.all(rcptItems.map(async item => {
+        if (item._ck && UUID_RE.test(item._ck)) {
+          try { const c = (await managerCall(ep, tk, 'GET', '/customer-form/' + item._ck)).data; if (c && c.Name) item.customer = c.Name; } catch(_) {}
+        } else { item.customer = item._ck; }
+        delete item._ck;
+      }));
+      rcptItems.forEach(i => list.push(i));
     } catch(_) {}
     res.json({ success: true, business: (r.data && r.data.business && r.data.business.name) || '', invoices: list });
   } catch(e) {
