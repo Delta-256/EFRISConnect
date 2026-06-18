@@ -520,7 +520,7 @@
 'use strict';
 const RELAY = window.location.protocol + '//' + window.location.host;
 const SKEY = 'efris_v3';
-let CFG={}, INV=null, DKEY=null, MGR_EP=null, MGR_TK=null, _lastInvKey=null;
+let CFG={}, INV=null, DKEY=null, MGR_EP=null, MGR_TK=null, _lastInvKey=null, _invDebounce=null;
 const TG={vatReg:false,sandbox:true,gRegEfris:false,efrisEnabled:true};
 let obStep=1;
 
@@ -631,9 +631,12 @@ window.addEventListener('message', evt=>{
   if(pageUrl) detectManagerPage(pageUrl);
   var k=d.Key||d.documentKey||d.key||d.recordKey||'';
   if(k&&typeof k==='string'){var parts=k.split('?')[0].split('/').filter(Boolean);k=parts.length?parts[parts.length-1]:'';DKEY=k;}
-  // Set _lastInvKey synchronously BEFORE the async call to prevent race conditions
-  if(DKEY && DKEY !== _lastInvKey){ _lastInvKey=DKEY; loadInv(DKEY); }
-  else if(!DKEY && CFG.managerEndpoint) routeByContext();
+  // Debounce: Manager sends many rapid messages for the same document.
+  // Wait 200ms of silence before loading — deduplicates bursts completely.
+  if(DKEY){
+    clearTimeout(_invDebounce);
+    if(DKEY!==_lastInvKey){ _invDebounce=setTimeout(()=>{_lastInvKey=DKEY;loadInv(DKEY);},200); }
+  } else if(!DKEY && CFG.managerEndpoint) routeByContext();
 });
 
 function detectManagerPage(url){
@@ -733,7 +736,7 @@ async function loadList(){
     el.innerHTML=h;
   }catch(e){ el.innerHTML='<div class="al aw">Network error: '+e.message+'</div>'; }
 }
-function pick(idx){ var i=window.__invList[idx]; if(i){ DKEY=i.key; loadInv(i.key); } }
+function pick(idx){ var i=window.__invList[idx]; if(i){ DKEY=i.key; _lastInvKey=i.key; loadInv(i.key); } }
 
 let _custType='b2c';
 function setCustType(t){
@@ -1725,7 +1728,7 @@ function init(){
       // Non-EFRIS users go straight to the Goods configurator — no invoice flow
       showScr('sMain'); showT('tGds',$('tabGds'));
     } else if(readParams()){
-      loadInv(DKEY);
+      _lastInvKey=DKEY; loadInv(DKEY);
     } else {
       setTimeout(()=>{
         if(!INV&&!DKEY){
