@@ -37,4 +37,4 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Restart container to pick up new image
-        run: az container restart --resource-group manager-rg --name efris-backend
+        run: az container restart --resource-group manager-rg --name efris-backend || true
