@@ -8,6 +8,9 @@
   :root{--g:#2e7d32;--gl:#43a047;--gd:#1b5e20;--gold:#f9a825;--red:#c62828;--blue:#1565c0;--gray:#546e7a;--bg:#f1f8e9;--bdr:#c8e6c9;--txt:#1a2e1a;--txtl:#4a6741;}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5;}
+  /* Flag: show SVG on desktop (Windows can't render flag emoji), emoji on mobile */
+  .flag-svg{display:none;} .flag-emoji{display:inline;}
+  @media(hover:hover) and (pointer:fine){.flag-svg{display:inline;}.flag-emoji{display:none;}}
   @media(min-width:600px){body{font-size:15px;}.wrap{padding:13px 16px;}.hdr{padding:13px 16px;}.btn{padding:9px 16px;font-size:13px;}.fg input,.fg select,.fg textarea{padding:7px 10px;font-size:13px;}.tabs{gap:3px;}.tab{padding:6px 13px;font-size:12px;}}
   .hdr{background:linear-gradient(135deg,var(--gd),var(--g),var(--gl));color:white;padding:11px 14px;display:flex;align-items:center;gap:9px;border-bottom:3px solid var(--gold);}
   .hdr h1{font-size:14px;font-weight:700;}.hdr .sub{font-size:10px;opacity:.85;}
@@ -125,7 +128,19 @@
 </head>
 <body>
 <div class="hdr">
-  <span style="font-size:19px;">&#127482;&#127468;</span>
+  <span class="ug-flag-wrap">
+    <span class="flag-emoji">&#127482;&#127468;</span>
+    <svg class="flag-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" width="30" height="20" style="border-radius:2px;vertical-align:middle;">
+      <rect width="30" height="3.33" y="0" fill="#000"/>
+      <rect width="30" height="3.33" y="3.33" fill="#FCDC04"/>
+      <rect width="30" height="3.33" y="6.66" fill="#D90000"/>
+      <rect width="30" height="3.33" y="10" fill="#000"/>
+      <rect width="30" height="3.33" y="13.33" fill="#FCDC04"/>
+      <rect width="30" height="3.33" y="16.66" fill="#D90000"/>
+      <circle cx="15" cy="10" r="3.5" fill="white"/>
+      <text x="15" y="12.5" text-anchor="middle" font-size="5" fill="#555">&#x1F426;</text>
+    </svg>
+  </span>
   <div><h1>EFRISConnect</h1><div class="sub">URA Electronic Fiscal Receipting &amp; Invoicing</div></div>
   <span class="badge bsb" id="mBadge">SANDBOX</span>
 </div>
@@ -558,7 +573,19 @@
 
 </div>
 <div class="ftr">
-  <div>&#127482;&#127468; EFRISConnect &mdash; Free &amp; Open Source</div>
+  <div>
+    <span class="flag-emoji">&#127482;&#127468;</span>
+    <svg class="flag-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" width="22" height="15" style="border-radius:2px;vertical-align:middle;margin-right:3px;">
+      <rect width="30" height="3.33" y="0" fill="#000"/>
+      <rect width="30" height="3.33" y="3.33" fill="#FCDC04"/>
+      <rect width="30" height="3.33" y="6.66" fill="#D90000"/>
+      <rect width="30" height="3.33" y="10" fill="#000"/>
+      <rect width="30" height="3.33" y="13.33" fill="#FCDC04"/>
+      <rect width="30" height="3.33" y="16.66" fill="#D90000"/>
+      <circle cx="15" cy="10" r="3.5" fill="white"/>
+    </svg>
+    EFRISConnect &mdash; Free &amp; Open Source
+  </div>
   <div>Supported by <a href="https://tukeihopeinitiative.org/" target="_blank">The Tukei Hope Initiative &nearr;</a> &mdash; Community Based Organisation, Entebbe, Uganda</div>
   <div class="reg">Registration No. EMC/CBO/025 | Your Hope, Our Mission</div>
 </div>
