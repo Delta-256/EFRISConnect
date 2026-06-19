@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Uganda EFRIS Connect</title>
+<title>EFRISConnect</title>
 <style>
   :root{--g:#2e7d32;--gl:#43a047;--gd:#1b5e20;--gold:#f9a825;--red:#c62828;--blue:#1565c0;--gray:#546e7a;--bg:#f1f8e9;--bdr:#c8e6c9;--txt:#1a2e1a;--txtl:#4a6741;}
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -126,7 +126,7 @@
 <body>
 <div class="hdr">
   <span style="font-size:19px;">&#127482;&#127468;</span>
-  <div><h1>Uganda EFRIS Connect</h1><div class="sub">URA Electronic Fiscal Receipting &amp; Invoicing</div></div>
+  <div><h1>EFRISConnect</h1><div class="sub">URA Electronic Fiscal Receipting &amp; Invoicing</div></div>
   <span class="badge bsb" id="mBadge">SANDBOX</span>
 </div>
 <div class="wrap">
@@ -558,7 +558,7 @@
 
 </div>
 <div class="ftr">
-  <div>&#127482;&#127468; Uganda EFRIS Connect &mdash; Free &amp; Open Source</div>
+  <div>&#127482;&#127468; EFRISConnect &mdash; Free &amp; Open Source</div>
   <div>Supported by <a href="https://tukeihopeinitiative.org/" target="_blank">The Tukei Hope Initiative &nearr;</a> &mdash; Community Based Organisation, Entebbe, Uganda</div>
   <div class="reg">Registration No. EMC/CBO/025 | Your Hope, Our Mission</div>
 </div>
@@ -1660,7 +1660,7 @@ async function gSetInitialStock(){
   const res=$('gStockResult');
   if(res) res.innerHTML='<span style="color:var(--gray);">Setting stock…</span>';
   try{
-    const r=await fetch(RELAY+'/api/manager/inventory-adjust',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,itemKey:managerId,qty,description:'Initial stock entry via EFRIS Connect'})});
+    const r=await fetch(RELAY+'/api/manager/inventory-adjust',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,itemKey:managerId,qty,description:'Initial stock entry via EFRISConnect'})});
     const d=await r.json();
     if(res) res.innerHTML=d.success
       ?'<span style="color:var(--g);">✅ Stock set to '+qty+'</span>'

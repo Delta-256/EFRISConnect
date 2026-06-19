@@ -1,7 +1,7 @@
 {
-  "name": "goods-services-configurator-backend",
+  "name": "efrisconnect-backend",
   "version": "1.0.0",
-  "description": "Goods/Services Configurator API - URA EFRIS aligned",
+  "description": "EFRISConnect — URA EFRIS receipting and goods configuration for Manager.io",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
