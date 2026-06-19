@@ -1423,7 +1423,7 @@ app.post('/api/efris/invoices-report', async (req, res) => {
     : 'https://efristest.ura.go.ug/efrisws/ws/taapp/getInformation';
   try {
     const session = await getSession(config.tin, config.deviceNo, config.efrisPassword, eu);
-    if (!session.aesKey) throw new Error('No AES key for T144');
+    if (!session.aesKey) throw new Error('No AES key — private key not found or could not decrypt T104 session. Check that backend/data/private_key.pem exists and matches your EFRIS device.');
     const t144data = {
       tin: config.tin, startDate, endDate,
       pageNo: String(pageNo || '1'),

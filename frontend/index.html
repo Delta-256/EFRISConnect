@@ -197,10 +197,10 @@
 
 <div class="scr" id="sMain">
   <div class="tabs">
-    <button class="tab on efris-only" id="tabSub" onclick="showT('tSub',this)"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Submit</button>
+    <button class="tab on" id="tabWalk" onclick="showT('tWalk',this);wkInit()"><span class="ico-emoji">&#128424;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Issue Receipt</button>
+    <button class="tab efris-only" id="tabSub" onclick="showT('tSub',this)"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Submit</button>
     <button class="tab efris-only" id="tabStat" onclick="showT('tStat',this)"><span class="ico-emoji">&#128203;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Status</button>
     <button class="tab" id="tabGds" onclick="showT('tGds',this);stkInit()"><span class="ico-emoji">&#128230;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Goods</button>
-    <button class="tab" id="tabWalk" onclick="showT('tWalk',this);wkInit()"><span class="ico-emoji">&#128687;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Walk-in</button>
     <button class="tab efris-only" id="tabBulk" onclick="showT('tBulk',this)"><span class="ico-emoji">&#9654;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Bulk</button>
     <button class="tab efris-only" id="tabHist" onclick="showT('tHist',this);histLoad(1)"><span class="ico-emoji">&#128203;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4"/><polyline points="3 3 3 7 7 7"/></svg> History</button>
     <button class="tab" id="tabNum" onclick="showT('tNum',this);numLoad()"><span class="ico-emoji">&#128290;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg> Numbers</button>
@@ -336,7 +336,7 @@
   <!-- ══ WALK-IN TAB ══ -->
   <div id="tWalk" class="hidden">
     <div class="card">
-      <div class="ct">&#128687; Walk-in Receipt</div>
+      <div class="ct">&#128424; Issue Receipt</div>
       <p style="font-size:12px;color:var(--gray);margin:0 0 12px;">Create a receipt on the spot — no Manager invoice needed. Fill in customer details and line items, then submit to EFRIS or print directly.</p>
 
       <!-- Customer -->
@@ -1085,7 +1085,7 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 
 function showScr(id){ document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on')); const e=$(id);if(e)e.classList.add('on'); }
 function showT(id,btn){
-  ['tSub','tStat','tGds','tGd','tNum','tHist','tBulk','tWalk','tSet'].forEach(t=>{const e=$(t);if(e)e.classList.add('hidden');});
+  ['tWalk','tSub','tStat','tGds','tGd','tNum','tHist','tBulk','tSet'].forEach(t=>{const e=$(t);if(e)e.classList.add('hidden');});
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   const e=$(id);if(e)e.classList.remove('hidden');
   if(btn)btn.classList.add('on');
@@ -1125,7 +1125,7 @@ function finOB(){
   sv2(CFG); apCFG(); gApplyEfrisMode();
   if(CFG.efrisEnabled===false){ showScr('sMain'); showT('tGds',$('tabGds')); }
   else if(INV){renderInv(INV);showScr('sMain');}
-  else showScr('sNone');
+  else { showScr('sMain'); showT('tWalk',$('tabWalk')); wkInit(); }
 }
 function apCFG(){
   const b=$('mBadge');
@@ -1238,7 +1238,7 @@ function routeByContext(){
   const mode=p.get('mode');
   if(mode==='goods'){ showScr('sMain'); showT('tGds',$('tabGds')); }
   else if(mode==='submit'){ showScr('sNone'); loadList(); }
-  // else: show choice landing (sNone default handles this)
+  else { showScr('sMain'); showT('tWalk',$('tabWalk')); wkInit(); }
 }
 
 function readParams(){
@@ -1840,7 +1840,10 @@ function numRender(){
           <div style="font-weight:600;font-size:13px;">${esc(s.name)}</div>
           <div style="font-size:10.5px;color:var(--gray);">${esc(docLabels[s.docType]||s.docType||'Invoice')} · Last used: #${s.lastCounter||0}</div>
         </div>
-        <div style="font-family:monospace;font-size:18px;font-weight:700;color:var(--gd);letter-spacing:1px;">${esc(s.preview||'—')}</div>
+        <div>
+          <div style="font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gray);">Next number</div>
+          <div style="font-family:monospace;font-size:22px;font-weight:700;color:var(--gd);letter-spacing:2px;">${esc(s.preview||'—')}</div>
+        </div>
       </div>
       <div style="display:flex;gap:6px;margin-top:10px;">
         <button class="btn bg bsm" onclick="numGenerate('${s.id}')" style="flex:2;">&#128290; Generate Next</button>
