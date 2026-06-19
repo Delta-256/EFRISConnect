@@ -11,6 +11,8 @@
   /* Flag: show SVG on desktop (Windows can't render flag emoji), emoji on mobile */
   .flag-svg{display:none;} .flag-emoji{display:inline;}
   @media(hover:hover) and (pointer:fine){.flag-svg{display:inline;}.flag-emoji{display:none;}}
+  .ico-svg{display:none;} .ico-emoji{display:inline-block;}
+  @media(hover:hover) and (pointer:fine){.ico-svg{display:inline-block;vertical-align:middle;}.ico-emoji{display:none;}}
   @media(min-width:600px){body{font-size:15px;}.wrap{padding:13px 16px;}.hdr{padding:13px 16px;}.btn{padding:9px 16px;font-size:13px;}.fg input,.fg select,.fg textarea{padding:7px 10px;font-size:13px;}.tabs{gap:3px;}.tab{padding:6px 13px;font-size:12px;}}
   .hdr{background:linear-gradient(135deg,var(--gd),var(--g),var(--gl));color:white;padding:11px 14px;display:flex;align-items:center;gap:9px;border-bottom:3px solid var(--gold);}
   .hdr h1{font-size:14px;font-weight:700;}.hdr .sub{font-size:10px;opacity:.85;}
@@ -194,16 +196,16 @@
 
 <div class="scr" id="sMain">
   <div class="tabs">
-    <button class="tab on efris-only" id="tabSub" onclick="showT('tSub',this)">&#128228; Submit</button>
-    <button class="tab efris-only" id="tabStat" onclick="showT('tStat',this)">&#128203; Status</button>
-    <button class="tab" id="tabGds" onclick="showT('tGds',this)">&#128230; Goods</button>
-    <button class="tab" onclick="showT('tGd',this)">&#10067; Guide</button>
-    <button class="tab" onclick="showT('tSet',this)">&#9881;&#65039; Settings</button>
+    <button class="tab on efris-only" id="tabSub" onclick="showT('tSub',this)"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Submit</button>
+    <button class="tab efris-only" id="tabStat" onclick="showT('tStat',this)"><span class="ico-emoji">&#128203;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Status</button>
+    <button class="tab" id="tabGds" onclick="showT('tGds',this)"><span class="ico-emoji">&#128230;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Goods</button>
+    <button class="tab" onclick="showT('tGd',this)"><span class="ico-emoji">&#10067;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Guide</button>
+    <button class="tab" onclick="showT('tSet',this)"><span class="ico-emoji">&#9881;&#65039;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Settings</button>
   </div>
 
   <div id="tSub">
     <div class="card">
-      <div class="ct">&#129534; Invoice Details</div>
+      <div class="ct"><span class="ico-emoji">&#129534;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Invoice Details</div>
       <div class="ig">
         <div class="if"><div class="lb">Invoice No.</div><div class="vl" id="dNo">&mdash;</div></div>
         <div class="if"><div class="lb">Date</div><div class="vl" id="dDt">&mdash;</div></div>
@@ -297,8 +299,8 @@
         <div id="payWaysList"></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;">
-        <button class="btn bo bsm" onclick="doPreview()" style="flex:0 0 auto;">&#128065; Preview</button>
-        <button class="btn bg" id="btnSub" onclick="doSubmit()" style="flex:1;">&#128228; Submit to URA EFRIS</button>
+        <button class="btn bo bsm" onclick="doPreview()" style="flex:0 0 auto;"><span class="ico-emoji">&#128065;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview</button>
+        <button class="btn bg" id="btnSub" onclick="doSubmit()" style="flex:1;"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Submit to URA EFRIS</button>
       </div>
       <div id="subProg"></div>
     </div>
@@ -314,14 +316,14 @@
       <div class="ct">&#10060; Submission Failed</div>
       <div class="st se" id="errMsg"></div>
       <div id="errHint"></div>
-      <button class="btn bo bsm mt" onclick="retry()">&#128260; Try Again</button>
+      <button class="btn bo bsm mt" onclick="retry()"><span class="ico-emoji">&#128260;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Try Again</button>
     </div>
   </div>
 
   <div id="tStat" class="hidden">
-    <div class="card"><div class="ct">&#128203; EFRIS Status</div><div id="statCont"><div style="color:var(--gray);font-size:11px;text-align:center;padding:14px;">Open an invoice to see its status</div></div></div>
+    <div class="card"><div class="ct"><span class="ico-emoji">&#128203;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> EFRIS Status</div><div id="statCont"><div style="color:var(--gray);font-size:11px;text-align:center;padding:14px;">Open an invoice to see its status</div></div></div>
     <div class="card">
-      <div class="ct">&#128373; Verify Taxpayer TIN</div>
+      <div class="ct"><span class="ico-emoji">&#128373;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Verify Taxpayer TIN</div>
       <div class="fg"><label>TIN to verify <span style="font-weight:400;color:var(--gray)">(B2B customer lookup)</span></label><input id="tinQ" placeholder="Enter TIN number"/></div>
       <button class="btn bo" onclick="doVerifyTin()">&#128269; Verify TIN on EFRIS</button>
       <div id="tinResult" class="mt"></div>
@@ -458,8 +460,8 @@
           <div class="al ai efris-only" style="margin-top:6px;">&#128161; Sync to Manager.io to make the item usable on invoices. Register on EFRIS to add it to the URA goods registry (requires EFRIS credentials in Settings). You can do either or both.</div>
           <div class="row mt">
             <button class="btn bo" style="width:auto;flex:0 0 auto;" onclick="gGoStep(4)">&larr; Back</button>
-            <button class="btn bg" onclick="gSyncToManager()">&#128228; Sync to Manager.io</button>
-            <button class="btn bgld efris-only" onclick="gSyncToEfris()">&#128230; Register on EFRIS</button>
+            <button class="btn bg" onclick="gSyncToManager()"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Sync to Manager.io</button>
+            <button class="btn bgld efris-only" onclick="gSyncToEfris()"><span class="ico-emoji">&#128230;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Register on EFRIS</button>
           </div>
         </div>
       </div>
@@ -498,7 +500,7 @@
 
   <div id="tGd" class="hidden">
     <div class="card">
-      <div class="ct">&#128214; How to Use</div>
+      <div class="ct"><span class="ico-emoji">&#128214;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> How to Use</div>
       <div class="gs"><div class="gn">1</div><div class="gb"><h4>Open a Sales Invoice in Manager.io</h4><p>Click your EFRIS custom button &mdash; invoice details load automatically.</p></div></div>
       <div class="gs"><div class="gn">2</div><div class="gb"><h4>Review the details shown</h4><p>Check customer name, amount and items.</p></div></div>
       <div class="gs"><div class="gn">3</div><div class="gb"><h4>Click "Submit to URA EFRIS"</h4><p>Allow 10&ndash;20 seconds for URA to respond.</p></div></div>
@@ -513,20 +515,20 @@
   </div>
 
   <div id="tSet" class="hidden">
-    <div class="card"><div class="ct">&#127970; Business</div>
+    <div class="card"><div class="ct"><span class="ico-emoji">&#127970;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Business</div>
       <div class="fg"><label>Legal Name</label><input id="sLeg"/></div>
       <div class="fg"><label>Trade Name</label><input id="sTrd"/></div>
       <div class="fg"><label>Address</label><input id="sAdr"/></div>
       <div class="fg"><label>Phone</label><input id="sPh"/></div>
       <div class="fg"><label>Email</label><input id="sEm"/></div>
     </div>
-    <div class="card"><div class="ct">&#128272; EFRIS Credentials</div>
+    <div class="card"><div class="ct"><span class="ico-emoji">&#128272;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> EFRIS Credentials</div>
       <div class="fg"><label>TIN</label><input id="sTin"/></div>
       <div class="fg"><label>Device Number (DSN)</label><input id="sDsn"/></div>
       <div class="fg"><label>EFRIS Password</label><input id="sPas" type="password"/></div>
       <div class="fg"><label>BRN (optional)</label><input id="sBrn"/></div>
     </div>
-    <div class="card"><div class="ct">&#128279; System</div>
+    <div class="card"><div class="ct"><span class="ico-emoji">&#128279;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> System</div>
       <div class="fg"><label>Manager.io Endpoint</label><input id="sMgr"/></div>
       <div class="fg"><label>Access Token</label><input id="sTok"/></div>
       <div class="al ai"><strong>Extension URLs:</strong><br>&#127760; Cloudflare (use this in Manager): <code>https://goods.twoservants.com/extension</code><br>Local HTTP: <code>http://localhost:3000/extension</code></div>
@@ -534,10 +536,10 @@
       <div class="trow"><div><div class="tlbl">VAT Registered</div><div class="tdsc">18% VAT on sales</div></div><div class="tog" id="sTV" onclick="tg('sTV','vatReg')"></div></div>
       <div class="trow"><div><div class="tlbl">Sandbox Mode</div><div class="tdsc">EFRIS test environment</div></div><div class="tog on" id="sTS" onclick="tg('sTS','sandbox')"></div></div>
     </div>
-    <button class="btn bg" onclick="saveSt()">&#128190; Save Settings</button>
-    <button class="btn bo" onclick="testMgr('sMgr','sTok','sMgrR')">&#128279; Test Manager Connection</button>
+    <button class="btn bg" onclick="saveSt()"><span class="ico-emoji">&#128190;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Settings</button>
+    <button class="btn bo" onclick="testMgr('sMgr','sTok','sMgrR')"><span class="ico-emoji">&#128279;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Test Manager Connection</button>
     <div id="sMgrR"></div>
-    <button class="btn br mt" onclick="resetAll()">&#128465; Reset All Settings</button>
+    <button class="btn br mt" onclick="resetAll()"><span class="ico-emoji">&#128465;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Reset All Settings</button>
     <div id="saveR" class="mt"></div>
   </div>
 </div>
@@ -548,7 +550,7 @@
     <p style="font-size:12px;color:var(--gray);margin-bottom:8px;">Tap an invoice below to load it, or create a new receipt directly.</p>
     <button onclick="showCreate()" class="btn bp" style="width:100%;margin-bottom:8px;">+ New Receipt</button>
     <div style="display:flex;gap:6px;margin-bottom:6px;">
-      <button onclick="loadList()" style="flex:1;padding:8px;border:1px solid var(--bdr);background:white;border-radius:6px;cursor:pointer;font-weight:600;color:var(--gd);">&#128260; Refresh list</button>
+      <button onclick="loadList()" style="flex:1;padding:8px;border:1px solid var(--bdr);background:white;border-radius:6px;cursor:pointer;font-weight:600;color:var(--gd);"><span class="ico-emoji">&#128260;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh list</button>
       <input id="pickSearch" placeholder="Search reference / customer…" style="flex:2;padding:8px;border:1px solid var(--bdr);border-radius:6px;font-size:12px;" oninput="filterPickList(this.value)"/>
     </div>
     <div id="pickList"></div>
