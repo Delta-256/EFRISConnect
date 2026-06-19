@@ -310,6 +310,7 @@
       <div class="fdn" id="rFDN"></div>
       <div style="font-size:11px;margin-top:4px;">Antifake Code: <strong id="rAF">&mdash;</strong></div>
       <div id="rQR" style="margin-top:8px;"></div>
+      <div id="rVerifyLink" style="margin-top:6px;"></div>
       <hr><div id="mgrSave"></div>
     </div>
     <div class="card hidden" id="errCard">
@@ -889,11 +890,12 @@ async function doSubmit(){
     steps[1].st='don';steps[2].st='don';steps[3].st=d1.success?'don':'err';setProg(steps);
     if(!d1.success)throw new Error(d1.error||'EFRIS submission failed');
     sh('rCard');tx('rFDN',d1.fdn||'—');tx('rAF',d1.antifakeCode||'—');
-    ht('rQR',d1.qrCode?'<img src="'+esc(d1.qrCode)+'" alt="QR Code" style="width:100px;height:100px;margin-top:4px;" onerror="this.style.display=\'none\'"/>':'');
+    ht('rQR',d1.qrCode&&d1.qrCode.startsWith('data:')?'<img src="'+esc(d1.qrCode)+'" alt="QR Code" style="width:100px;height:100px;margin-top:4px;"/>':'');
+    ht('rVerifyLink',d1.validationUrl?'<a href="'+esc(d1.validationUrl)+'" target="_blank" rel="noopener" style="font-size:11px;color:#1565c0;">&#128279; Verify on URA EFRIS Portal</a>':'');
     const _docLabel=CFG.vatReg?'Tax Invoice':'e-Receipt';
     ht('rCardTitle','&#10003; '+_docLabel+' issued — submitted to URA EFRIS');
     steps[4].st='act';setProg(steps);
-    await saveMgr(d1.fdn,d1.qrCode,d1.antifakeCode,d1.deviceNo,d1.issuedDate,d1.invoiceId);
+    await saveMgr(d1.fdn,d1.qrCode,d1.antifakeCode,d1.deviceNo,d1.issuedDate,d1.invoiceId,d1.validationUrl);
     steps[4].st='don';setProg(steps);
   }catch(err){
     console.error(err); showErr(err.message);
@@ -902,11 +904,11 @@ async function doSubmit(){
   btn.disabled=false;btn.innerHTML='📤 Submit to URA EFRIS';
 }
 
-async function saveMgr(fdn,qrCode,antifakeCode,deviceNo,issuedDate,invoiceId){
+async function saveMgr(fdn,qrCode,antifakeCode,deviceNo,issuedDate,invoiceId,validationUrl){
   const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
   if(!ep||!tk||!DKEY){ ht('mgrSave','<div class="al aw">&#9888; FDN received but Manager auto-save missing. FDN: <strong>'+fdn+'</strong></div>'); return; }
   try{
-    const r=await fetch(RELAY+'/api/efris/save-to-manager',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,documentKey:DKEY,vatRegistered:!!(CFG.vatReg),efrisData:{fdn,qrCode,antifakeCode,deviceNo,issuedDate,invoiceId}})});
+    const r=await fetch(RELAY+'/api/efris/save-to-manager',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,documentKey:DKEY,vatRegistered:!!(CFG.vatReg),efrisData:{fdn,qrCode,antifakeCode,deviceNo,issuedDate,invoiceId,validationUrl}})});
     const d=await r.json();
     ht('mgrSave',d.success?'<div class="st ss">&#10003; EFRIS data saved to Manager.io</div>':'<div class="al aw">&#9888; FDN=<strong>'+fdn+'</strong> received but Manager save failed.<br>'+(d.error||'')+'</div>');
   }catch(e){ ht('mgrSave','<div class="al aw">&#9888; FDN: <strong>'+fdn+'</strong> — note this down.</div>'); }

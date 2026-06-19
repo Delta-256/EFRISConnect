@@ -1263,14 +1263,22 @@ app.post('/api/efris/submit-invoice', async (req, res) => {
         const issuedDate = bi.issuedDate || bi.issueDate || d.issuedDate || '';
         const deviceNo = bi.deviceNo || bi.deviceNumber || d.deviceNo || config.deviceNo || '';
         const invoiceId = bi.invoiceId || bi.invoiceID || d.invoiceId || '';
-        qrCode = d.qrCode || d.qrCodeBase64 || bi.qrCode;
-        if (!qrCode && antifakeCode) qrCode = antifakeCode;
-        console.log(`   T109 result — FDN: ${fdn}, antifakeCode: ${antifakeCode}, deviceNo: ${deviceNo}, issuedDate: ${issuedDate}, qrCode: ${qrCode}`);
+        // Build the EFRIS validation URL — this is what gets encoded as the QR code on official EFRIS documents
+        const efrisPortal = config.mode === 'production'
+          ? 'https://efris.ura.go.ug/site_new/#/invoiceValidation'
+          : 'https://efristest.ura.go.ug/site_new/#/invoiceValidation';
+        const validationUrl = (fdn && antifakeCode)
+          ? `${efrisPortal}?invoiceNo=${encodeURIComponent(fdn)}&antiFakeCode=${encodeURIComponent(antifakeCode)}`
+          : null;
+        // Prefer EFRIS-returned QR (base64 image), fall back to validation URL, then antifakeCode
+        qrCode = d.qrCode || d.qrCodeBase64 || bi.qrCode || validationUrl || antifakeCode;
+        console.log(`   T109 result — FDN: ${fdn}, antifakeCode: ${antifakeCode}, deviceNo: ${deviceNo}, issuedDate: ${issuedDate}`);
+        console.log(`   Validation URL: ${validationUrl}`);
       }
     } catch(e) { console.log(`   T109 content parse error: ${e.message}`); }
     const ok = rc === '00' || !!fdn;
     res.json(ok
-      ? { success: true, fdn, qrCode, antifakeCode, deviceNo: config.deviceNo, issuedDate: new Date().toISOString(), invoiceId, returnCode: rc, returnMessage: rm }
+      ? { success: true, fdn, qrCode, antifakeCode, validationUrl, deviceNo: config.deviceNo, issuedDate: new Date().toISOString(), invoiceId, returnCode: rc, returnMessage: rm }
       : { success: false, error: 'URA ' + rc + ': ' + rm, returnCode: rc });
   } catch(e) {
     res.status(500).json({ success: false, error: e.message });
@@ -1347,8 +1355,9 @@ app.post('/api/efris/save-to-manager', async (req, res) => {
     const setCFAny = (names, val) => { for (const n of names) { const k = cf.byName[n]; if (k && val != null && val !== '') { form.CustomFields2.Strings[k] = String(val); break; } } };
     setCFAny(['Fiscal Document Number', 'EFRIS FDN'], efrisData.fdn);
     setCFAny(['Verification Code', 'EFRIS Antifake Code'], efrisData.antifakeCode);
-    // QR Code field: store antifake code — Manager "QR Code" type renders it as QR image on printed docs
-    setCFAny(['QR Code', 'EFRIS QR Code URL', 'EFRIS QR Code'], efrisData.qrCode || efrisData.antifakeCode);
+    // QR Code field: store the EFRIS validation URL — Manager's "QR Code" custom field type
+    // encodes this as a scannable QR on printed documents, linking to URA's invoice validator
+    setCFAny(['QR Code', 'EFRIS QR Code URL', 'EFRIS QR Code'], efrisData.validationUrl || efrisData.antifakeCode);
     setCFAny(['EFRIS Device Number', 'Device Number'], efrisData.deviceNo);
     setCFAny(['EFRIS Issued Time', 'Issued Time'], efrisData.issuedDate ? new Date(efrisData.issuedDate).toLocaleString('en-UG', { timeZone: 'Africa/Kampala' }) : '');
     if (efrisData.invoiceId) setCFAny(['EFRIS Invoice ID', 'Invoice ID'], efrisData.invoiceId);
@@ -1562,7 +1571,7 @@ app.post('/api/efris/search-goods', async (req, res) => {
   const { tin, deviceNo, efrisPassword, mode, query } = req.body || {};
   if (!tin || !deviceNo || !efrisPassword) return res.json({ success: false, error: 'Missing EFRIS credentials' });
   try {
-    const eu = mode === 'sandbox' ? 'https://efristest.ura.go.ug/efrisws/ws/taapp' : 'https://efris.ura.go.ug/efrisws/ws/taapp';
+    const eu = mode === 'production' ? 'https://efrisws.ura.go.ug/ws/taapp/getInformation' : 'https://efristest.ura.go.ug/efrisws/ws/taapp/getInformation';
     const session = await getSession(tin, deviceNo, efrisPassword, eu);
     const payload = { goodsName: query || '', goodsCode: '', pageNo: '1', pageSize: '20' };
     const t131 = await efrisCall(eu, efrisEnvEnc('T131', payload, tin, deviceNo, session.aesKey, session.privatePem));
