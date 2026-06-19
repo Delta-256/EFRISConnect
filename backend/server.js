@@ -1265,7 +1265,7 @@ app.post('/api/efris/submit-invoice', async (req, res) => {
         const invoiceId = bi.invoiceId || bi.invoiceID || d.invoiceId || '';
         // Build the EFRIS validation URL — this is what gets encoded as the QR code on official EFRIS documents
         const efrisPortal = config.mode === 'production'
-          ? 'https://efris.ura.go.ug/site_new/#/invoiceValidation'
+          ? 'https://efris.ura.go.ug/site_mobile/#/invoiceValidation'
           : 'https://efristest.ura.go.ug/site_new/#/invoiceValidation';
         const validationUrl = (fdn && antifakeCode)
           ? `${efrisPortal}?invoiceNo=${encodeURIComponent(fdn)}&antiFakeCode=${encodeURIComponent(antifakeCode)}`
