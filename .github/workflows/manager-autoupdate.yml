@@ -4,25 +4,24 @@ on:
   schedule:
     # Runs every Monday at 2:00 AM UTC
     - cron: '0 2 * * 1'
-  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
+  workflow_dispatch:
 
 jobs:
   redeploy:
     runs-on: ubuntu-latest
     steps:
       - name: Check for new Manager.io image
-        id: check
         run: |
-          # Get the digest of the latest image from ghcr.io
           DIGEST=$(docker manifest inspect ghcr.io/aliyusuf95/manager.io:latest 2>/dev/null \
             | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('config',{}).get('digest','unknown'))" 2>/dev/null || echo "unknown")
-          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
           echo "Latest Manager.io digest: $DIGEST"
 
-      - name: Trigger Railway redeploy
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Restart Manager.io container on Azure
         run: |
-          echo "Triggering Railway redeploy for Manager.io service..."
-          curl -s -o /dev/null -w "HTTP status: %{http_code}\n" \
-            -X POST "${{ secrets.RAILWAY_MANAGER_DEPLOY_HOOK }}"
-        env:
-          RAILWAY_MANAGER_DEPLOY_HOOK: ${{ secrets.RAILWAY_MANAGER_DEPLOY_HOOK }}
+          az container restart --resource-group manager-rg --name manager-io
+          echo "Manager.io container restarted — will pull latest image on next rebuild"
