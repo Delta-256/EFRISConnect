@@ -199,6 +199,7 @@
     <button class="tab on efris-only" id="tabSub" onclick="showT('tSub',this)"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Submit</button>
     <button class="tab efris-only" id="tabStat" onclick="showT('tStat',this)"><span class="ico-emoji">&#128203;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Status</button>
     <button class="tab" id="tabGds" onclick="showT('tGds',this)"><span class="ico-emoji">&#128230;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Goods</button>
+    <button class="tab" id="tabNum" onclick="showT('tNum',this);numLoad()"><span class="ico-emoji">&#128290;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg> Numbers</button>
     <button class="tab" onclick="showT('tGd',this)"><span class="ico-emoji">&#10067;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Guide</button>
     <button class="tab" onclick="showT('tSet',this)"><span class="ico-emoji">&#9881;&#65039;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Settings</button>
   </div>
@@ -500,6 +501,79 @@
             <tbody id="gItemsTbody"><tr><td colspan="11" style="text-align:center;color:var(--gray);padding:20px;">No items yet. Use Configure tab.</td></tr></tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ NUMBERS TAB ══ -->
+  <div id="tNum" class="hidden">
+    <div class="card">
+      <div class="ct">&#128290; Document Number Series</div>
+      <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">Define how your invoice and receipt numbers are generated. Each series has its own prefix, division or project code, date component and auto-incrementing counter.</p>
+      <div id="numList"></div>
+      <button class="btn bg mt" onclick="numShowForm()">+ New Series</button>
+    </div>
+
+    <!-- Add / Edit form -->
+    <div class="card hidden" id="numForm">
+      <div class="ct" id="numFormTitle">New Number Series</div>
+      <input type="hidden" id="nfId"/>
+      <div class="g2">
+        <div class="fg"><label>Series Name *</label><input id="nfName" placeholder="e.g. General Sales"/></div>
+        <div class="fg"><label>Document Type</label>
+          <select id="nfDoc"><option value="invoice">Invoice</option><option value="receipt">Receipt</option><option value="both">Both</option></select>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>Prefix</label><input id="nfPrefix" placeholder="e.g. AS" oninput="numPreview()"/><div class="hint">Your business initials or brand code</div></div>
+        <div class="fg"><label>Division / Department</label><input id="nfDiv" placeholder="e.g. TOUR" oninput="numPreview()"/><div class="hint">Optional — leave blank if not needed</div></div>
+      </div>
+      <div class="fg"><label>Project Code</label><input id="nfProj" placeholder="e.g. LMB (Lake Mburo)" oninput="numPreview()"/><div class="hint">Optional — for project-based billing</div></div>
+      <div class="g2">
+        <div class="fg"><label>Date in number</label>
+          <select id="nfDate" onchange="numPreview()">
+            <option value="none">None</option>
+            <option value="year" selected>Year only (2026)</option>
+            <option value="yearmonth">Year + Month (2026-06)</option>
+          </select>
+        </div>
+        <div class="fg"><label>Separator</label>
+          <select id="nfSep" onchange="numPreview()">
+            <option value="-" selected>Hyphen  —  AS-TOUR-001</option>
+            <option value="/">Slash  —  AS/TOUR/001</option>
+            <option value="_">Underscore  —  AS_TOUR_001</option>
+            <option value="none">None  —  ASTOUR001</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="fg"><label>Counter digits</label>
+          <select id="nfDig" onchange="numPreview()">
+            <option value="3">3 digits — 001</option>
+            <option value="4" selected>4 digits — 0001</option>
+            <option value="5">5 digits — 00001</option>
+          </select>
+        </div>
+        <div class="fg"><label>Reset counter</label>
+          <select id="nfReset">
+            <option value="never">Never — count forever</option>
+            <option value="yearly" selected>Every year — restart at 001 each Jan</option>
+            <option value="monthly">Every month — restart each month</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>Starting number</label><input type="number" id="nfStart" value="1" min="1"/><div class="hint">Counter starts here — use 1 unless continuing an existing sequence</div></div>
+
+      <!-- Live preview -->
+      <div style="background:var(--bg);border:1px solid var(--bdr);border-radius:6px;padding:12px 14px;margin:10px 0;">
+        <div style="font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gray);margin-bottom:4px;">Preview</div>
+        <div id="nfPreview" style="font-family:monospace;font-size:20px;font-weight:700;color:var(--gd);letter-spacing:1px;">AS-TOUR-2026-0001</div>
+        <div style="font-size:10px;color:var(--gray);margin-top:3px;">Next number that will be generated</div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn bo" onclick="numHideForm()" style="flex:1;">Cancel</button>
+        <button class="btn bg" onclick="numSave()" style="flex:2;">Save Series</button>
       </div>
     </div>
   </div>
@@ -1122,6 +1196,158 @@ async function saveMgr(fdn,qrCode,antifakeCode,deviceNo,issuedDate,invoiceId,val
     const d=await r.json();
     ht('mgrSave',d.success?'<div class="st ss">&#10003; EFRIS data saved to Manager.io</div>':'<div class="al aw">&#9888; FDN=<strong>'+fdn+'</strong> received but Manager save failed.<br>'+(d.error||'')+'</div>');
   }catch(e){ ht('mgrSave','<div class="al aw">&#9888; FDN: <strong>'+fdn+'</strong> — note this down.</div>'); }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Document Number Series
+// ══════════════════════════════════════════════════════════════
+var _numSeries = [];
+
+async function numLoad(){
+  try{
+    const r=await fetch(RELAY+'/api/number-series');
+    _numSeries=await r.json();
+    numRender();
+  }catch(e){ ht('numList','<div class="al aw">Could not load series: '+esc(e.message)+'</div>'); }
+}
+
+function numRender(){
+  if(!_numSeries.length){
+    ht('numList','<div class="al ai">No series yet. Click <strong>+ New Series</strong> to create one.</div>');
+    return;
+  }
+  const docLabels={invoice:'Invoice',receipt:'Receipt',both:'Invoice & Receipt'};
+  ht('numList',_numSeries.map(s=>`
+    <div style="border:1px solid var(--bdr);border-radius:8px;padding:12px 14px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:600;font-size:13px;">${esc(s.name)}</div>
+          <div style="font-size:10.5px;color:var(--gray);">${esc(docLabels[s.docType]||s.docType||'Invoice')} · Last used: #${s.lastCounter||0}</div>
+        </div>
+        <div style="font-family:monospace;font-size:18px;font-weight:700;color:var(--gd);letter-spacing:1px;">${esc(s.preview||'—')}</div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px;">
+        <button class="btn bg bsm" onclick="numGenerate('${s.id}')" style="flex:2;">&#128290; Generate Next</button>
+        <button class="btn bo bsm" onclick="numEdit('${s.id}')" style="flex:1;">Edit</button>
+        <button class="btn br bsm" onclick="numDelete('${s.id}')" style="flex:1;">Delete</button>
+      </div>
+      <div id="numResult_${s.id}" style="margin-top:6px;"></div>
+    </div>`).join(''));
+}
+
+async function numGenerate(id){
+  try{
+    const r=await fetch(RELAY+'/api/number-series/'+id+'/next',{method:'POST'});
+    const d=await r.json();
+    if(!d.success) throw new Error(d.error||'Failed');
+    ht('numResult_'+id,`
+      <div style="display:flex;align-items:center;gap:8px;background:#f0f7f0;border:1px solid #c8e6c9;border-radius:6px;padding:8px 12px;">
+        <span style="font-family:monospace;font-size:16px;font-weight:700;color:var(--gd);flex:1;" id="numVal_${id}">${esc(d.number)}</span>
+        <button class="btn bo bsm" onclick="numCopy('${id}','${d.number}')">&#128203; Copy</button>
+      </div>`);
+    numLoad();
+  }catch(e){ ht('numResult_'+id,'<div class="al aw">'+esc(e.message)+'</div>'); }
+}
+
+function numCopy(id, val){
+  navigator.clipboard.writeText(val).then(()=>{
+    ht('numResult_'+id,'<div class="al as">&#10003; Copied: <strong>'+esc(val)+'</strong></div>');
+  }).catch(()=>{
+    ht('numResult_'+id,'<div class="al ai">Copy manually: <strong>'+esc(val)+'</strong></div>');
+  });
+}
+
+function numShowForm(){ sh('numForm'); document.getElementById('numForm').scrollIntoView({behavior:'smooth'}); numPreview(); }
+function numHideForm(){ hd('numForm'); document.getElementById('nfId').value=''; }
+
+function numEdit(id){
+  const s=_numSeries.find(x=>x.id===id); if(!s) return;
+  document.getElementById('nfId').value=s.id;
+  document.getElementById('nfName').value=s.name||'';
+  document.getElementById('nfDoc').value=s.docType||'invoice';
+  document.getElementById('nfPrefix').value=s.prefix||'';
+  document.getElementById('nfDiv').value=s.division||'';
+  document.getElementById('nfProj').value=s.project||'';
+  document.getElementById('nfSep').value=s.separator||'-';
+  document.getElementById('nfDig').value=String(s.digits||4);
+  document.getElementById('nfReset').value=s.resetOn||'yearly';
+  // Derive date setting from segments
+  const segs=s.segments||[];
+  const dateSel=document.getElementById('nfDate');
+  if(segs.includes('month')) dateSel.value='yearmonth';
+  else if(segs.includes('year')) dateSel.value='year';
+  else dateSel.value='none';
+  ht('numFormTitle','Edit Series');
+  sh('numForm');
+  document.getElementById('numForm').scrollIntoView({behavior:'smooth'});
+  numPreview();
+}
+
+async function numDelete(id){
+  if(!confirm('Delete this number series? The counter will be lost.')) return;
+  await fetch(RELAY+'/api/number-series/'+id,{method:'DELETE'});
+  numLoad();
+}
+
+function numBuildSegments(){
+  const segs=[];
+  if(document.getElementById('nfPrefix').value.trim()) segs.push('prefix');
+  if(document.getElementById('nfDiv').value.trim()) segs.push('division');
+  if(document.getElementById('nfProj').value.trim()) segs.push('project');
+  const d=document.getElementById('nfDate').value;
+  if(d==='year'||d==='yearmonth') segs.push('year');
+  if(d==='yearmonth') segs.push('month');
+  segs.push('counter');
+  return segs;
+}
+
+function numPreview(){
+  const sep=document.getElementById('nfSep').value;
+  const dig=parseInt(document.getElementById('nfDig').value)||4;
+  const segs=numBuildSegments();
+  const now=new Date();
+  const year=String(now.getFullYear());
+  const month=String(now.getMonth()+1).padStart(2,'0');
+  const parts=[];
+  for(const seg of segs){
+    if(seg==='prefix')  { const v=document.getElementById('nfPrefix').value.trim(); if(v) parts.push(v); }
+    if(seg==='division'){ const v=document.getElementById('nfDiv').value.trim(); if(v) parts.push(v); }
+    if(seg==='project') { const v=document.getElementById('nfProj').value.trim(); if(v) parts.push(v); }
+    if(seg==='year')    parts.push(year);
+    if(seg==='month')   parts.push(month);
+    if(seg==='counter') parts.push('1'.padStart(dig,'0'));
+  }
+  const preview=parts.join(sep==='none'?'':sep)||'—';
+  document.getElementById('nfPreview').textContent=preview;
+}
+
+async function numSave(){
+  const name=document.getElementById('nfName').value.trim();
+  if(!name){ alert('Series name is required'); return; }
+  const body={
+    name,
+    docType: document.getElementById('nfDoc').value,
+    prefix:  document.getElementById('nfPrefix').value.trim(),
+    division:document.getElementById('nfDiv').value.trim(),
+    project: document.getElementById('nfProj').value.trim(),
+    separator:document.getElementById('nfSep').value,
+    digits:  parseInt(document.getElementById('nfDig').value)||4,
+    resetOn: document.getElementById('nfReset').value,
+    segments:numBuildSegments(),
+    startAt: parseInt(document.getElementById('nfStart').value)||1
+  };
+  const id=document.getElementById('nfId').value;
+  const url=id ? RELAY+'/api/number-series/'+id : RELAY+'/api/number-series';
+  const method=id ? 'PUT' : 'POST';
+  try{
+    const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!d.success) throw new Error(d.error||'Save failed');
+    numHideForm();
+    numLoad();
+    // reset form
+    ['nfId','nfName','nfPrefix','nfDiv','nfProj'].forEach(id=>{ document.getElementById(id).value=''; });
+  }catch(e){ alert('Error: '+e.message); }
 }
 
 // ── Guide section nav ──────────────────────────────────────────

@@ -1592,6 +1592,104 @@ app.post('/api/efris/search-goods', async (req, res) => {
   }
 });
 
+
+// ══════════════════════════════════════════════════════════════
+//  Document Number Series
+// ══════════════════════════════════════════════════════════════
+const NUM_SERIES_FILE = path.join(DATA_DIR, 'number_series.json');
+
+function loadSeries() {
+  try { return JSON.parse(fs.readFileSync(NUM_SERIES_FILE, 'utf8')); }
+  catch(e) { return []; }
+}
+function saveSeries(data) {
+  fs.writeFileSync(NUM_SERIES_FILE, JSON.stringify(data, null, 2));
+}
+
+function buildNumber(s, counter) {
+  const now = new Date();
+  const year  = String(now.getFullYear());
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const parts = [];
+  for (const seg of (s.segments || [])) {
+    if (seg === 'prefix'   && s.prefix)   parts.push(s.prefix);
+    if (seg === 'division' && s.division) parts.push(s.division);
+    if (seg === 'project'  && s.project)  parts.push(s.project);
+    if (seg === 'year')    parts.push(year);
+    if (seg === 'month')   parts.push(month);
+    if (seg === 'counter') parts.push(String(counter).padStart(s.digits || 4, '0'));
+  }
+  return parts.join(s.separator === 'none' ? '' : (s.separator || '-'));
+}
+
+function resolveNext(s) {
+  const now = new Date();
+  const year  = String(now.getFullYear());
+  const ym    = year + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  let counter = (s.lastCounter || 0) + 1;
+  if (s.resetOn === 'yearly'  && s.lastReset !== year) counter = 1;
+  if (s.resetOn === 'monthly' && s.lastReset !== ym)   counter = 1;
+  return counter;
+}
+
+app.get('/api/number-series', (req, res) => {
+  const series = loadSeries();
+  const now = new Date();
+  const year = String(now.getFullYear());
+  const ym   = year + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  res.json(series.map(s => ({
+    ...s,
+    preview: buildNumber(s, resolveNext(s))
+  })));
+});
+
+app.post('/api/number-series', (req, res) => {
+  const series = loadSeries();
+  const s = { ...req.body, id: crypto.randomUUID(), lastCounter: (req.body.startAt || 1) - 1, lastReset: '' };
+  series.push(s);
+  saveSeries(series);
+  res.json({ success: true, series: { ...s, preview: buildNumber(s, resolveNext(s)) } });
+});
+
+app.put('/api/number-series/:id', (req, res) => {
+  const series = loadSeries();
+  const idx = series.findIndex(s => s.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ success: false, error: 'Not found' });
+  series[idx] = { ...series[idx], ...req.body, id: req.params.id, lastCounter: series[idx].lastCounter, lastReset: series[idx].lastReset };
+  saveSeries(series);
+  res.json({ success: true, series: { ...series[idx], preview: buildNumber(series[idx], resolveNext(series[idx])) } });
+});
+
+app.delete('/api/number-series/:id', (req, res) => {
+  const series = loadSeries();
+  const filtered = series.filter(s => s.id !== req.params.id);
+  saveSeries(filtered);
+  res.json({ success: true });
+});
+
+app.post('/api/number-series/:id/preview', (req, res) => {
+  const series = loadSeries();
+  const s = series.find(x => x.id === req.params.id);
+  if (!s) return res.status(404).json({ success: false, error: 'Not found' });
+  res.json({ success: true, number: buildNumber(s, resolveNext(s)) });
+});
+
+app.post('/api/number-series/:id/next', (req, res) => {
+  const series = loadSeries();
+  const idx = series.findIndex(x => x.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ success: false, error: 'Not found' });
+  const s = series[idx];
+  const now = new Date();
+  const year = String(now.getFullYear());
+  const ym   = year + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  const counter = resolveNext(s);
+  const number = buildNumber(s, counter);
+  series[idx].lastCounter = counter;
+  series[idx].lastReset   = s.resetOn === 'monthly' ? ym : year;
+  saveSeries(series);
+  res.json({ success: true, number });
+});
+
 // ══════════════════════════════════════════════════════════════
 //  /extension ROUTE — serve EXTENSION_HTML
 // ══════════════════════════════════════════════════════════════
