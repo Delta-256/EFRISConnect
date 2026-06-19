@@ -308,10 +308,14 @@
       <h4 id="rCardTitle">&#10003; Successfully submitted to URA EFRIS</h4>
       <div style="font-size:10px;text-transform:uppercase;color:var(--txtl);letter-spacing:.4px;">Fiscal Document Number (FDN)</div>
       <div class="fdn" id="rFDN"></div>
-      <div style="font-size:11px;margin-top:4px;">Antifake Code: <strong id="rAF">&mdash;</strong></div>
+      <div style="font-size:11px;margin-top:4px;">Verification Code: <strong id="rAF">&mdash;</strong></div>
       <div id="rQR" style="margin-top:8px;"></div>
       <div id="rVerifyLink" style="margin-top:6px;"></div>
-      <hr><div id="mgrSave"></div>
+      <hr>
+      <div id="mgrSave"></div>
+      <div style="margin-top:10px;">
+        <button class="btn" style="width:100%;background:#1b4332;color:#fff;border-color:#1b4332;font-size:12px;" onclick="openReceipt()">&#128438; Print Professional Receipt / PDF</button>
+      </div>
     </div>
     <div class="card hidden" id="errCard">
       <div class="ct">&#10060; Submission Failed</div>
@@ -889,6 +893,7 @@ async function doSubmit(){
     const d1=await r1.json();
     steps[1].st='don';steps[2].st='don';steps[3].st=d1.success?'don':'err';setProg(steps);
     if(!d1.success)throw new Error(d1.error||'EFRIS submission failed');
+    _lastEfrisResult = d1;
     sh('rCard');tx('rFDN',d1.fdn||'—');tx('rAF',d1.antifakeCode||'—');
     ht('rQR',d1.qrCode&&d1.qrCode.startsWith('data:')?'<img src="'+esc(d1.qrCode)+'" alt="QR Code" style="width:100px;height:100px;margin-top:4px;"/>':'');
     ht('rVerifyLink',d1.validationUrl?'<a href="'+esc(d1.validationUrl)+'" target="_blank" rel="noopener" style="font-size:11px;color:#1565c0;">&#128279; Verify on URA EFRIS Portal</a>':'');
@@ -912,6 +917,62 @@ async function saveMgr(fdn,qrCode,antifakeCode,deviceNo,issuedDate,invoiceId,val
     const d=await r.json();
     ht('mgrSave',d.success?'<div class="st ss">&#10003; EFRIS data saved to Manager.io</div>':'<div class="al aw">&#9888; FDN=<strong>'+fdn+'</strong> received but Manager save failed.<br>'+(d.error||'')+'</div>');
   }catch(e){ ht('mgrSave','<div class="al aw">&#9888; FDN: <strong>'+fdn+'</strong> — note this down.</div>'); }
+}
+
+// ── _lastEfrisResult: stored after each successful submission ──
+var _lastEfrisResult = null;
+
+function openReceipt() {
+  const r = _lastEfrisResult;
+  const inv = INV || {};
+  const p = new URLSearchParams();
+  // Business
+  p.set('bizName',  CFG.businessName || '');
+  p.set('bizAddr',  CFG.businessAddress || '');
+  p.set('bizTin',   CFG.tin || '');
+  p.set('bizPhone', CFG.phone || '');
+  p.set('bizEmail', CFG.email || '');
+  p.set('logoUrl',  CFG.logoUrl || '');
+  // Document
+  p.set('docType',  CFG.vatReg ? 'Tax Invoice' : 'e-Receipt');
+  p.set('fdn',      (r && r.fdn) || '');
+  const d = inv.Date || inv.IssueDate || '';
+  p.set('date',     d ? new Date(d).toLocaleDateString('en-UG',{day:'2-digit',month:'short',year:'numeric'}) : '');
+  p.set('currency', inv.Currency || 'UGX');
+  // Customer
+  const cn = (inv.Customer&&inv.Customer.Name)||inv.BuyerName||inv.CustomerName||'Walk-in Customer';
+  p.set('custName', cn);
+  p.set('custTin',  (inv.Customer&&inv.Customer.TIN)||inv.CustomerTIN||'');
+  // Payment
+  const modes={'101':'Cash','102':'Credit','103':'Debit Card','104':'Mobile Money','105':'Cheque','106':'Bank Transfer'};
+  const pm = inv.PayWays && inv.PayWays.length ? (modes[inv.PayWays[0].mode]||inv.PayWays[0].mode) : (modes[String(inv.PaymentMode||'101')]||'Cash');
+  p.set('payMethod', pm);
+  // Lines
+  const lines = (inv.Lines||[]).map(l=>({
+    name: l.Item||l.ItemName||l.Description||'',
+    desc: '',
+    qty:  l.Qty||l.Quantity||1,
+    rate: l.UnitPrice||l.Price||0,
+    total: l.Total||l.LineTotal||0
+  }));
+  if (lines.length) p.set('lines', encodeURIComponent(JSON.stringify(lines)));
+  // Totals
+  const gross = inv.Gross||inv.Total||inv.GrossTotal||'';
+  const tax   = inv.TaxAmount||inv.Tax||'0.00';
+  p.set('grandTotal', String(gross));
+  p.set('subtotal',   String(inv.Net||inv.Subtotal||gross));
+  p.set('taxAmount',  String(tax));
+  p.set('showTax',    CFG.vatReg ? '1' : '0');
+  // EFRIS
+  p.set('verCode',      (r && r.antifakeCode) || '');
+  p.set('subDate',      new Date().toISOString().slice(0,10));
+  p.set('deviceNo',     CFG.deviceNo || '');
+  p.set('validationUrl',(r && r.validationUrl) || '');
+  // Description
+  p.set('description',  inv.Description || inv.Reference || '');
+  // Issued by — not in CFG by default, skip if empty
+  p.set('issuedBy', CFG.issuedBy || '');
+  window.open('/receipt.html?' + p.toString(), '_blank');
 }
 
 function showErr(msg){

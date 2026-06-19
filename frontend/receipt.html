@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>EFRISConnect — Receipt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+/* ── Token system ─────────────────────────────────── */
+:root {
+  --ground:    #ffffff;
+  --text:      #1a1a1a;
+  --muted:     #6b7280;
+  --border:    #d1d5db;
+  --row-alt:   #f4f7f4;
+  --accent:    #1b4332;
+  --accent-lt: #2d6a4f;
+  --stamp:     #c9963a;
+  --stamp-lt:  #f5e6c8;
+  --mono:      'DM Mono', monospace;
+  --serif:     'DM Serif Display', serif;
+  --sans:      'Inter', sans-serif;
+}
+
+/* ── Reset ────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: var(--sans);
+  background: #e8ece8;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 24px 0 60px;
+}
+
+/* ── Controls panel (screen only) ────────────────── */
+#controls {
+  max-width: 794px;
+  margin: 0 auto 20px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+  align-items: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  font-size: 12px;
+}
+#controls label { display: flex; align-items: center; gap: 6px; color: #374151; font-weight: 500; cursor: pointer; }
+#controls input[type=color] { width: 28px; height: 24px; border: 1px solid var(--border); border-radius: 4px; padding: 1px; cursor: pointer; }
+#controls input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; }
+#controls select { font-size: 12px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 4px; background: #fff; }
+.ctrl-sep { width: 1px; height: 24px; background: var(--border); }
+#printBtn {
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: .3px;
+}
+#printBtn:hover { background: var(--accent-lt); }
+
+/* ── A4 sheet ─────────────────────────────────────── */
+#sheet {
+  width: 794px;
+  min-height: 1123px;
+  margin: 0 auto;
+  background: var(--ground);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header band ──────────────────────────────────── */
+#hdr {
+  background: var(--accent);
+  padding: 28px 36px 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  position: relative;
+}
+#hdrLeft {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+#logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: rgba(255,255,255,.12);
+  flex-shrink: 0;
+}
+#logoPlaceholder {
+  width: 56px;
+  height: 56px;
+  border-radius: 6px;
+  background: rgba(255,255,255,.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--serif);
+  font-size: 22px;
+  color: rgba(255,255,255,.7);
+  letter-spacing: -1px;
+}
+#bizBlock { flex: 1; }
+#bizName {
+  font-family: var(--serif);
+  font-size: 20px;
+  color: #fff;
+  line-height: 1.15;
+  margin-bottom: 5px;
+}
+#bizDetails {
+  font-size: 11px;
+  color: rgba(255,255,255,.72);
+  line-height: 1.7;
+}
+#bizDetails span { display: block; }
+
+/* stamp block */
+#stamp {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+#docTypeStamp {
+  border: 2px solid var(--stamp);
+  border-radius: 4px;
+  padding: 5px 14px 4px;
+  background: rgba(201,150,58,.10);
+}
+#docTypeStamp span {
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--stamp);
+  letter-spacing: 2px;
+  display: block;
+  line-height: 1;
+}
+#docMeta {
+  text-align: right;
+  font-size: 11px;
+  color: rgba(255,255,255,.65);
+  line-height: 1.75;
+}
+#docMeta strong { color: rgba(255,255,255,.92); font-weight: 600; font-family: var(--mono); letter-spacing: .5px; }
+
+/* ── Sub-header: customer + dates ─────────────────── */
+#subhdr {
+  padding: 18px 36px;
+  border-bottom: 1.5px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.sh-block { padding: 0 0 0 0; }
+.sh-block + .sh-block { border-left: 1.5px solid var(--border); padding-left: 24px; }
+.sh-label {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.sh-value { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.55; }
+.sh-value .tin { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+/* ── Description line ─────────────────────────────── */
+#descLine {
+  padding: 10px 36px;
+  font-size: 11.5px;
+  color: var(--muted);
+  border-bottom: 1.5px solid var(--border);
+  font-style: italic;
+}
+
+/* ── Line items table ─────────────────────────────── */
+#itemsWrap { padding: 0 36px; flex: 1; }
+#itemsTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0;
+}
+#itemsTable thead tr {
+  background: var(--accent);
+}
+#itemsTable thead th {
+  padding: 9px 10px;
+  text-align: left;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.85);
+}
+#itemsTable thead th:not(:first-child) { text-align: right; }
+#itemsTable tbody tr:nth-child(even) { background: var(--row-alt); }
+#itemsTable tbody td {
+  padding: 9px 10px;
+  font-size: 12px;
+  vertical-align: top;
+  border-bottom: 1px solid #eef0ee;
+}
+#itemsTable tbody td:not(:first-child) { text-align: right; }
+.item-name { font-weight: 500; }
+.item-desc { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+
+/* ── Totals block ─────────────────────────────────── */
+#totalsWrap {
+  padding: 0 36px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+#totalsTable {
+  width: 260px;
+  border-collapse: collapse;
+  margin-top: 0;
+}
+#totalsTable tr td {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+#totalsTable tr td:last-child { text-align: right; font-family: var(--mono); }
+#totalsTable .tot-label { color: var(--muted); }
+#totalsTable .tot-line td { border-top: 1.5px solid var(--border); }
+#totalsTable .tot-grand td {
+  font-size: 14px;
+  font-weight: 600;
+  padding-top: 8px;
+  color: var(--accent);
+}
+#totalsTable .tot-words td {
+  font-size: 10px;
+  color: var(--muted);
+  padding-top: 2px;
+  font-style: italic;
+  white-space: normal;
+}
+
+/* ── Paid stamp ───────────────────────────────────── */
+#paidWrap {
+  padding: 10px 36px;
+  display: flex;
+  justify-content: flex-end;
+}
+#paidStamp {
+  border: 2.5px solid #2d6a4f;
+  border-radius: 4px;
+  padding: 4px 18px;
+  color: #2d6a4f;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+}
+
+/* ── Served by ────────────────────────────────────── */
+#servedBy {
+  padding: 6px 36px 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+#servedBy strong { color: var(--text); }
+
+/* ── Footer / verification zone ──────────────────── */
+#footer {
+  margin: 20px 36px 28px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr auto;
+}
+#footerLeft {
+  padding: 16px 20px;
+  border-right: 1.5px solid var(--border);
+}
+#footerLabel {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#footerLabel::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.efris-row {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 4px 8px;
+  margin-bottom: 5px;
+  align-items: baseline;
+}
+.efris-key {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.efris-val {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+  font-weight: 500;
+  word-break: break-all;
+}
+.efris-val.fdn {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+}
+#footerRight {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: #fafafa;
+  min-width: 120px;
+}
+#qrBox { width: 90px; height: 90px; }
+#qrBox canvas, #qrBox img { width: 90px !important; height: 90px !important; }
+#qrLabel {
+  font-size: 8.5px;
+  text-align: center;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* ── URA tagline ──────────────────────────────────── */
+#uraTag {
+  margin: 0 36px 20px;
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+#uraTag strong { color: var(--accent); }
+
+/* ── Print styles ─────────────────────────────────── */
+@media print {
+  body { background: white; padding: 0; }
+  #controls { display: none !important; }
+  #sheet { box-shadow: none; width: 100%; min-height: auto; }
+  @page { margin: 0; size: A4; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Controls (screen only) ── -->
+<div id="controls">
+  <label>
+    Primary colour
+    <input type="color" id="clrAccent" value="#1b4332" oninput="applyColors()"/>
+  </label>
+  <label>
+    Stamp colour
+    <input type="color" id="clrStamp" value="#c9963a" oninput="applyColors()"/>
+  </label>
+  <div class="ctrl-sep"></div>
+  <label>
+    <input type="checkbox" id="chkLogo" checked onchange="toggleVis('logoArea', this.checked)"/>
+    Show logo
+  </label>
+  <label>
+    <input type="checkbox" id="chkServed" checked onchange="toggleVis('servedBy', this.checked)"/>
+    Show "Served by"
+  </label>
+  <label>
+    <input type="checkbox" id="chkDesc" checked onchange="toggleVis('descLine', this.checked)"/>
+    Show description
+  </label>
+  <div class="ctrl-sep"></div>
+  <label>
+    Doc type
+    <select id="selDocType" onchange="setDocType(this.value)">
+      <option value="e-Receipt">e-Receipt</option>
+      <option value="Tax Invoice">Tax Invoice</option>
+      <option value="Credit Note">Credit Note</option>
+    </select>
+  </label>
+  <button id="printBtn" onclick="window.print()">Print / Save PDF</button>
+</div>
+
+<!-- ── A4 Sheet ── -->
+<div id="sheet">
+
+  <!-- Header -->
+  <div id="hdr">
+    <div id="hdrLeft">
+      <div id="logoArea">
+        <img id="logo" src="" alt="Logo" style="display:none"/>
+        <div id="logoPlaceholder">TS</div>
+      </div>
+      <div id="bizBlock">
+        <div id="bizName">Two Servants Ltd</div>
+        <div id="bizDetails">
+          <span id="bizAddr">Plot 20, Kampala Road, Entebbe Municipality, Wakiso District, Uganda</span>
+          <span id="bizTin">TIN: <span id="bizTinVal">—</span></span>
+          <span id="bizPhone">—</span>
+          <span id="bizEmail">—</span>
+        </div>
+      </div>
+    </div>
+    <div id="stamp">
+      <div id="docTypeStamp">
+        <span id="docTypeLabel">e-Receipt</span>
+      </div>
+      <div id="docMeta">
+        <div>No. <strong id="metaFDN">—</strong></div>
+        <div>Date <strong id="metaDate">—</strong></div>
+        <div>Currency <strong id="metaCurrency">UGX</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer + dates -->
+  <div id="subhdr">
+    <div class="sh-block">
+      <div class="sh-label">Issued to</div>
+      <div class="sh-value" id="custName">—</div>
+      <div class="sh-value tin" id="custTin"></div>
+      <div class="sh-value" id="custAddr" style="font-size:11px;color:#6b7280;margin-top:2px;"></div>
+    </div>
+    <div class="sh-block">
+      <div class="sh-label">Payment</div>
+      <div class="sh-value" id="payMethod">—</div>
+      <div class="sh-value" id="payDate" style="font-size:11px;color:#6b7280;margin-top:2px;"></div>
+    </div>
+  </div>
+
+  <!-- Description -->
+  <div id="descLine"></div>
+
+  <!-- Line items -->
+  <div id="itemsWrap">
+    <table id="itemsTable">
+      <thead>
+        <tr>
+          <th style="width:40%">Item</th>
+          <th style="width:14%">Qty</th>
+          <th style="width:20%">Unit Price</th>
+          <th style="width:20%">Amount</th>
+          <th style="width:6%"></th>
+        </tr>
+      </thead>
+      <tbody id="itemsBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Totals -->
+  <div id="totalsWrap">
+    <table id="totalsTable">
+      <tbody>
+        <tr>
+          <td class="tot-label">Subtotal</td>
+          <td id="totSubtotal">—</td>
+        </tr>
+        <tr id="taxRow">
+          <td class="tot-label">Tax (18% VAT)</td>
+          <td id="totTax">0.00</td>
+        </tr>
+        <tr class="tot-line tot-grand">
+          <td>Total</td>
+          <td id="totGrand">—</td>
+        </tr>
+        <tr class="tot-words">
+          <td colspan="2" id="totWords"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paid stamp -->
+  <div id="paidWrap">
+    <div id="paidStamp">Paid in Full</div>
+  </div>
+
+  <!-- Served by -->
+  <div id="servedBy">Issued by: <strong id="issuedByName">—</strong></div>
+
+  <!-- Verification footer -->
+  <div id="footer">
+    <div id="footerLeft">
+      <div id="footerLabel">URA EFRIS Verification</div>
+      <div class="efris-row">
+        <span class="efris-key">Fiscal Document No.</span>
+        <span class="efris-val fdn" id="fFDN">—</span>
+      </div>
+      <div class="efris-row">
+        <span class="efris-key">Verification Code</span>
+        <span class="efris-val" id="fVerCode">—</span>
+      </div>
+      <div class="efris-row">
+        <span class="efris-key">Submission Date</span>
+        <span class="efris-val" id="fSubDate">—</span>
+      </div>
+      <div class="efris-row">
+        <span class="efris-key">Device No.</span>
+        <span class="efris-val" id="fDevice">—</span>
+      </div>
+      <div class="efris-row">
+        <span class="efris-key">Status</span>
+        <span class="efris-val" style="color:#2d6a4f;font-weight:600;" id="fStatus">Submitted</span>
+      </div>
+    </div>
+    <div id="footerRight">
+      <div id="qrBox"></div>
+      <div id="qrLabel">Scan to verify<br>on URA EFRIS</div>
+    </div>
+  </div>
+
+  <div id="uraTag">
+    This document was electronically submitted to <strong>Uganda Revenue Authority (URA) EFRIS</strong> and
+    bears a valid Fiscal Document Number. Verify at <strong>efris.ura.go.ug</strong>
+  </div>
+
+</div><!-- /sheet -->
+
+<script>
+/* ════════════════════════════════════════════════
+   RECEIPT DATA — populated from URL params or
+   injected by EFRISConnect after submission.
+   ════════════════════════════════════════════════ */
+
+// Parse URL parameters (EFRISConnect will append these after submission)
+function qp(k) {
+  return new URLSearchParams(window.location.search).get(k) || '';
+}
+
+// ── Sample / demo data (overridden by URL params) ──
+const DATA = {
+  // Business
+  bizName:    qp('bizName')    || 'Two Servants Ltd',
+  bizAddr:    qp('bizAddr')    || 'Plot 20, Kampala Road, Entebbe, Wakiso District, Uganda',
+  bizTin:     qp('bizTin')     || '',
+  bizPhone:   qp('bizPhone')   || '',
+  bizEmail:   qp('bizEmail')   || '',
+  logoUrl:    qp('logoUrl')    || '',
+  logoInit:   qp('logoInit')   || 'TS',
+
+  // Document
+  docType:    qp('docType')    || 'e-Receipt',
+  fdn:        qp('fdn')        || '325043855047',
+  date:       qp('date')       || new Date().toLocaleDateString('en-UG', {day:'2-digit',month:'short',year:'numeric'}),
+  currency:   qp('currency')   || 'UGX',
+
+  // Customer
+  custName:   qp('custName')   || 'Walk-in Customer',
+  custTin:    qp('custTin')    || '',
+  custAddr:   qp('custAddr')   || '',
+
+  // Payment
+  payMethod:  qp('payMethod')  || 'Cash',
+  payDate:    qp('payDate')    || '',
+
+  // Description
+  description: qp('description') || '',
+
+  // Lines: JSON-encoded array [{name, desc, qty, rate, total}]
+  lines: (() => {
+    try { return JSON.parse(decodeURIComponent(qp('lines'))); } catch(e) { return []; }
+  })(),
+
+  // Totals
+  subtotal:   qp('subtotal')   || '',
+  taxAmount:  qp('taxAmount')  || '0.00',
+  grandTotal: qp('grandTotal') || '',
+  grandWords: qp('grandWords') || '',
+  showTax:    qp('showTax')    === '1',
+
+  // Issued by
+  issuedBy:   qp('issuedBy')   || '',
+
+  // EFRIS
+  verCode:    qp('verCode')    || '79289983322183978289',
+  subDate:    qp('subDate')    || '',
+  deviceNo:   qp('deviceNo')   || '',
+  validationUrl: qp('validationUrl') || '',
+};
+
+// ── Demo lines if none provided ──
+if (!DATA.lines || DATA.lines.length === 0) {
+  DATA.lines = [
+    { name: 'Day Trip — Ngamba Island Chimpanzee Sanctuary', desc: 'Half-day guided experience', qty: 2, rate: '98.00', total: '196.00' }
+  ];
+  DATA.subtotal   = DATA.subtotal   || '196.00';
+  DATA.grandTotal = DATA.grandTotal || '196.00';
+  DATA.grandWords = DATA.grandWords || 'One hundred ninety-six US dollars only';
+}
+
+/* ════════════════════════════════════════════════
+   RENDER
+   ════════════════════════════════════════════════ */
+function fmt(n) {
+  const num = parseFloat(String(n).replace(/,/g,''));
+  if (isNaN(num)) return n || '—';
+  return num.toLocaleString('en-UG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function render() {
+  // Business
+  document.getElementById('bizName').textContent     = DATA.bizName;
+  document.getElementById('bizAddr').textContent     = DATA.bizAddr;
+  document.getElementById('bizTinVal').textContent   = DATA.bizTin  || '—';
+  document.getElementById('bizPhone').textContent    = DATA.bizPhone || '';
+  document.getElementById('bizEmail').textContent    = DATA.bizEmail || '';
+
+  // Logo
+  if (DATA.logoUrl) {
+    const img = document.getElementById('logo');
+    img.src = DATA.logoUrl;
+    img.style.display = 'block';
+    document.getElementById('logoPlaceholder').style.display = 'none';
+  } else {
+    document.getElementById('logoPlaceholder').textContent = DATA.logoInit;
+  }
+
+  // Doc type
+  setDocType(DATA.docType);
+  document.getElementById('metaFDN').textContent      = DATA.fdn       || '—';
+  document.getElementById('metaDate').textContent     = DATA.date      || '—';
+  document.getElementById('metaCurrency').textContent = DATA.currency  || 'UGX';
+  document.getElementById('selDocType').value         = DATA.docType;
+
+  // Customer
+  document.getElementById('custName').textContent = DATA.custName || '—';
+  if (DATA.custTin) document.getElementById('custTin').textContent = 'TIN: ' + DATA.custTin;
+  if (DATA.custAddr) document.getElementById('custAddr').textContent = DATA.custAddr;
+
+  // Payment
+  document.getElementById('payMethod').textContent = DATA.payMethod || '—';
+  if (DATA.payDate) document.getElementById('payDate').textContent = DATA.payDate;
+
+  // Description
+  const dl = document.getElementById('descLine');
+  if (DATA.description) { dl.textContent = DATA.description; }
+  else { dl.style.display = 'none'; }
+
+  // Lines
+  const tbody = document.getElementById('itemsBody');
+  tbody.innerHTML = DATA.lines.map(l =>
+    `<tr>
+      <td><div class="item-name">${esc(l.name)}</div>${l.desc ? `<div class="item-desc">${esc(l.desc)}</div>` : ''}</td>
+      <td>${esc(String(l.qty))}</td>
+      <td>${fmt(l.rate)}</td>
+      <td>${fmt(l.total)}</td>
+      <td></td>
+    </tr>`
+  ).join('');
+
+  // Totals
+  document.getElementById('totSubtotal').textContent = fmt(DATA.subtotal);
+  document.getElementById('totTax').textContent      = fmt(DATA.taxAmount);
+  document.getElementById('totGrand').textContent    = fmt(DATA.grandTotal);
+  document.getElementById('totWords').textContent    = DATA.grandWords || '';
+  if (!DATA.showTax) document.getElementById('taxRow').style.display = 'none';
+
+  // Issued by
+  const sb = document.getElementById('servedBy');
+  if (DATA.issuedBy) { document.getElementById('issuedByName').textContent = DATA.issuedBy; }
+  else { sb.style.display = 'none'; }
+
+  // EFRIS footer
+  document.getElementById('fFDN').textContent     = DATA.fdn     || '—';
+  document.getElementById('fVerCode').textContent = DATA.verCode || '—';
+  document.getElementById('fSubDate').textContent = DATA.subDate || new Date().toISOString().slice(0,10);
+  document.getElementById('fDevice').textContent  = DATA.deviceNo || '—';
+
+  // QR code
+  const qrUrl = DATA.validationUrl || DATA.verCode || DATA.fdn;
+  if (qrUrl && typeof QRCode !== 'undefined') {
+    new QRCode(document.getElementById('qrBox'), {
+      text: qrUrl,
+      width: 90,
+      height: 90,
+      colorDark: '#1b4332',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ── Controls ── */
+function applyColors() {
+  const a = document.getElementById('clrAccent').value;
+  const s = document.getElementById('clrStamp').value;
+  document.documentElement.style.setProperty('--accent', a);
+  document.documentElement.style.setProperty('--stamp',  s);
+  // derive light versions
+  document.documentElement.style.setProperty('--accent-lt', a);
+}
+
+function toggleVis(id, show) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = show ? '' : 'none';
+}
+
+function setDocType(val) {
+  document.getElementById('docTypeLabel').textContent = val;
+}
+
+/* ── Init ── */
+render();
+</script>
+</body>
+</html>
