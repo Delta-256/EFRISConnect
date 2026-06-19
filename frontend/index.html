@@ -205,7 +205,7 @@
 
   <div id="tSub">
     <div class="card">
-      <div class="ct"><span class="ico-emoji">&#129534;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Invoice Details</div>
+      <div class="ct" style="display:flex;align-items:center;justify-content:space-between;"><span><span class="ico-emoji">&#129534;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Invoice Details</span><button class="btn bo bsm" onclick="DKEY=null;_lastInvKey=null;showScr('sNone');loadList();" style="font-size:10px;padding:3px 8px;">&#8592; All Invoices</button></div>
       <div class="ig">
         <div class="if"><div class="lb">Invoice No.</div><div class="vl" id="dNo">&mdash;</div></div>
         <div class="if"><div class="lb">Date</div><div class="vl" id="dDt">&mdash;</div></div>
@@ -768,13 +768,26 @@ function renderInv(inv){
   tx('dTot',(inv.Currency||'UGX')+' '+fn(inv.Total||inv.GrossAmount||0));
   const curr=inv.Currency||'UGX';
   if(curr!=='UGX'){sh('fxRow');tx('fxLbl',curr);sv('fxVal',inv.ExchangeRate||'');}else hd('fxRow');
-  // Reset ALL customer type state — prevents stale data from previous invoice bleeding in
-  _custType='b2c';
-  document.querySelectorAll('.ctype-btn').forEach(b=>b.classList.toggle('on',b.dataset.type==='b2c'));
+  // Auto-detect customer type from invoice data
+  const custName=(inv.Customer&&inv.Customer.Name)||inv.BuyerName||inv.CustomerName||'';
+  const custTINval=(inv.Customer&&inv.Customer.TIN)||inv.CustomerTIN||'';
+  const isForeign=!!(inv.PassportNum||inv.Nationality);
+  let autoType='b2c';
+  if(isForeign) autoType='foreign';
+  else if(custTINval) autoType='b2b';
+  else if(custName&&custName.toLowerCase().includes('ministry')||custName.toLowerCase().includes('government')||custName.toLowerCase().includes('district')||custName.toLowerCase().includes('uganda revenue')) autoType='b2g';
+
+  _custType=autoType;
+  document.querySelectorAll('.ctype-btn').forEach(b=>b.classList.toggle('on',b.dataset.type===autoType));
   document.querySelectorAll('.cust-fields').forEach(d=>d.style.display='none');
-  sv('cTIN',''); ht('cTINResult','');
-  sv('cGovTIN',''); sv('cGovDept',''); ht('cGovTINResult','');
-  sv('cPassport',''); sv('cNationality',''); sv('cForeignName','');
+  const autoFields=$('cust-'+autoType); if(autoFields) autoFields.style.display='';
+  // Pre-fill detected values
+  if(autoType==='b2b'&&custTINval) sv('cTIN',custTINval);
+  if(autoType==='b2g'){if(custTINval)sv('cGovTIN',custTINval); if(custName)sv('cGovDept',custName);}
+  if(autoType==='foreign'){if(inv.PassportNum)sv('cPassport',inv.PassportNum); if(inv.Nationality)sv('cNationality',inv.Nationality); if(custName)sv('cForeignName',custName);}
+  if(autoType!=='b2b'){sv('cTIN',''); ht('cTINResult','');}
+  if(autoType!=='b2g'){sv('cGovTIN',''); sv('cGovDept',''); ht('cGovTINResult','');}
+  if(autoType!=='foreign'){sv('cPassport',''); sv('cNationality',''); sv('cForeignName','');}
   hd('subProg'); hd('rCard'); hd('errCard');
   _payWays=[{mode:'101',amount:''}]; renderPayWays();
   const fdn=(inv.CustomFields&&(inv.CustomFields['Fiscal Document Number']||inv.CustomFields['EFRIS FDN']))||'';
