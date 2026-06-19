@@ -568,12 +568,6 @@
           </div>
           <div class="fg"><label>Remarks / Line Description Autofill</label><textarea id="gFldRemarks" placeholder="Optional notes — also used as default line description on invoices"></textarea></div>
           <div id="gSyncStatus"></div>
-          <div class="al ai efris-only" style="margin-top:6px;">&#128161; Sync to Manager.io to make the item usable on invoices. Register on EFRIS to add it to the URA goods registry (requires EFRIS credentials in Settings). You can do either or both.</div>
-          <div class="row mt">
-            <button class="btn bo" style="width:auto;flex:0 0 auto;" onclick="gGoStep(4)">&larr; Back</button>
-            <button class="btn bg" onclick="gSyncToManager()"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Sync to Manager.io</button>
-            <button class="btn bgld efris-only" onclick="gSyncToEfris()"><span class="ico-emoji">&#128230;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Register on EFRIS</button>
-          </div>
         </div>
       </div>
     </div>
@@ -607,8 +601,17 @@
         </div>
       </div>
     </div>
-    <!-- Stock Management -->
-    <div class="card efris-only" id="stockMgmtCard">
+    <!-- Action Buttons -->
+    <div class="card" id="gActionBtnsCard">
+      <div class="al ai efris-only" style="margin-bottom:8px;">&#128161; Sync to Manager.io to make the item usable on invoices. Register on EFRIS to add it to the URA goods registry (requires EFRIS credentials in Settings). You can do either or both.</div>
+      <div class="row">
+        <button class="btn bo" style="width:auto;flex:0 0 auto;" onclick="gGoStep(4)">&larr; Back</button>
+        <button class="btn bg" onclick="gSyncToManager()"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Sync to Manager.io</button>
+        <button class="btn bgld efris-only" onclick="gSyncToEfris()"><span class="ico-emoji">&#128230;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Register on EFRIS</button>
+      </div>
+    </div>
+    <!-- Stock Management (goods only) -->
+    <div class="card efris-only" id="stockMgmtCard" style="display:none;">
       <div class="ct">&#128230; Stock Management</div>
       <p style="font-size:12px;color:var(--gray);margin:0 0 10px;">Record stock arrivals and adjustments in EFRIS. Required for physical goods — services can skip this.</p>
       <div style="display:flex;gap:6px;margin-bottom:10px;">
@@ -989,7 +992,19 @@
       <div class="fg"><label>Address</label><input id="sAdr"/></div>
       <div class="fg"><label>Phone</label><input id="sPh"/></div>
       <div class="fg"><label>Email</label><input id="sEm"/></div>
-      <div class="fg"><label>Logo URL <span style="font-weight:400;color:var(--gray);">(optional)</span></label><input id="sLogo" placeholder="https://yourdomain.com/logo.png"/><div class="hint">Public image URL — shown on printed receipts. Leave blank to use business name initials.</div></div>
+      <div class="fg"><label>Logo <span style="font-weight:400;color:var(--gray);">(optional)</span></label>
+        <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;">
+          <div id="sLogoPreview" style="width:64px;height:64px;border:1px solid var(--bdr);border-radius:6px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+            <span style="font-size:10px;color:var(--gray);text-align:center;">No logo</span>
+          </div>
+          <div style="flex:1;min-width:180px;">
+            <label class="btn bo bsm" style="cursor:pointer;display:inline-block;margin-bottom:5px;">&#128247; Upload Image<input type="file" id="sLogoFile" accept="image/*" style="display:none;" onchange="logoUpload(this)"/></label>
+            <button class="btn br bsm" onclick="logoClear()" id="sLogoClearBtn" style="display:none;">&#10005; Remove</button>
+            <div style="margin-top:4px;"><input id="sLogo" placeholder="or paste image URL" oninput="logoUrlChange(this.value)" style="font-size:11px;"/></div>
+            <div class="hint">Upload your business logo — shown on printed receipts.</div>
+          </div>
+        </div>
+      </div>
       <div class="fg"><label>Default "Issued by" name <span style="font-weight:400;color:var(--gray);">(optional)</span></label><input id="sIssuedBy" placeholder="e.g. Sarah Nakato"/><div class="hint">Staff member name shown at the bottom of receipts.</div></div>
     </div>
     <div class="card"><div class="ct"><span class="ico-emoji">&#128272;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> EFRIS Credentials</div>
@@ -997,7 +1012,11 @@
       <div class="fg"><label>Device Number (DSN)</label><input id="sDsn"/></div>
       <div class="fg"><label>EFRIS Password</label><input id="sPas" type="password"/></div>
       <div class="fg"><label>BRN (optional)</label><input id="sBrn"/></div>
-      <button class="btn bo bsm efris-only" onclick="fetchMyDetails()" style="font-size:11px;margin-top:2px;">&#8595; Auto-fill Business Details from EFRIS</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+        <button class="btn bo bsm efris-only" onclick="testEfrisConn()" id="efrisConnBtn">&#128268; Test EFRIS Connection</button>
+        <button class="btn bo bsm efris-only" onclick="fetchMyDetails()" style="font-size:11px;">&#8595; Auto-fill from EFRIS</button>
+      </div>
+      <div id="sEfrisR" class="mt"></div>
     </div>
     <div class="card"><div class="ct"><span class="ico-emoji">&#128279;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> System</div>
       <div class="fg"><label>Manager.io Endpoint</label><input id="sMgr"/></div>
@@ -1133,7 +1152,10 @@ function apCFG(){
   const b=$('mBadge');
   if(b){b.textContent=CFG.sandbox?'SANDBOX':'PRODUCTION';b.className='badge '+(CFG.sandbox?'bsb':'bprd');}
   sv('sLeg',CFG.legalName);sv('sTrd',CFG.tradeName);sv('sAdr',CFG.address);sv('sPh',CFG.phone);sv('sEm',CFG.email);
-  sv('sLogo',CFG.logoUrl||'');sv('sIssuedBy',CFG.issuedBy||'');
+  const logoVal=CFG.logoUrl||'';
+  if(logoVal.startsWith('data:')){ sv('sLogo',''); } else { sv('sLogo',logoVal); }
+  logoShowPreview(logoVal);
+  sv('sIssuedBy',CFG.issuedBy||'');
   sv('sTin',CFG.tin);sv('sDsn',CFG.deviceNo);sv('sPas',CFG.efrisPassword);sv('sBrn',CFG.brn);
   sv('sMgr',CFG.managerEndpoint);sv('sTok',CFG.accessToken);
   TG.vatReg=!!CFG.vatReg;TG.sandbox=CFG.sandbox!==false;TG.efrisEnabled=CFG.efrisEnabled!==false;
@@ -1141,9 +1163,47 @@ function apCFG(){
   ['sTS','t3s'].forEach(id=>utg(id,TG.sandbox));
   ['sEfris','t1e'].forEach(id=>utg(id,TG.efrisEnabled));
 }
+function logoUpload(input){
+  const file=input.files[0]; if(!file) return;
+  if(file.size>300*1024){ alert('Logo must be under 300KB'); input.value=''; return; }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const b64=e.target.result;
+    CFG.logoUrl=b64; gvi('sLogo') && (document.getElementById('sLogo').value='');
+    logoShowPreview(b64);
+    sv2(CFG);
+  };
+  reader.readAsDataURL(file);
+}
+function logoUrlChange(val){
+  CFG.logoUrl=val;
+  logoShowPreview(val);
+}
+function logoShowPreview(src){
+  const el=$('sLogoPreview'); const btn=$('sLogoClearBtn'); if(!el) return;
+  if(src){ el.innerHTML='<img src="'+esc(src)+'" style="max-width:64px;max-height:64px;object-fit:contain;" onerror="this.parentElement.innerHTML=\'<span style=font-size:10px;color:#c62828>Load error</span>\'"/>'; if(btn)btn.style.display='inline-block'; }
+  else { el.innerHTML='<span style="font-size:10px;color:var(--gray);text-align:center;">No logo</span>'; if(btn)btn.style.display='none'; }
+}
+function logoClear(){ CFG.logoUrl=''; document.getElementById('sLogo').value=''; document.getElementById('sLogoFile').value=''; logoShowPreview(''); sv2(CFG); }
+
+async function testEfrisConn(){
+  const btn=$('efrisConnBtn'); const res=$('sEfrisR');
+  const tin=gvi('sTin'); const dsn=gvi('sDsn'); const pwd=gvi('sPas');
+  if(!tin||!dsn||!pwd){ ht('sEfrisR','<div class="st se">Enter TIN, Device No and EFRIS Password first</div>'); return; }
+  btn.disabled=true; btn.textContent='⏳ Testing…';
+  ht('sEfrisR','<div class="st si">Connecting to URA EFRIS…</div>');
+  try{
+    const r=await fetch(RELAY+'/api/efris/test-connection',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin,deviceNo:dsn,password:pwd,mode:TG.sandbox?'sandbox':'production'})});
+    const d=await r.json();
+    ht('sEfrisR',d.success?'<div class="st ss">✅ '+esc(d.message)+'</div>':'<div class="st se">❌ '+esc(d.error)+'</div>');
+  }catch(e){ ht('sEfrisR','<div class="st se">❌ '+esc(e.message)+'</div>'); }
+  btn.disabled=false; btn.textContent='🔌 Test EFRIS Connection';
+}
+
 function saveSt(){
   CFG.legalName=gvi('sLeg');CFG.tradeName=gvi('sTrd');CFG.address=gvi('sAdr');CFG.phone=gvi('sPh');CFG.email=gvi('sEm');
-  CFG.logoUrl=gvi('sLogo');CFG.issuedBy=gvi('sIssuedBy');
+  if(gvi('sLogo')) CFG.logoUrl=gvi('sLogo');
+  CFG.issuedBy=gvi('sIssuedBy');
   CFG.tin=gvi('sTin');CFG.deviceNo=gvi('sDsn');CFG.efrisPassword=gvi('sPas');CFG.brn=gvi('sBrn');
   CFG.managerEndpoint=gvi('sMgr').replace(/\/+$/,'');CFG.accessToken=gvi('sTok');
   CFG.vatReg=TG.vatReg;CFG.sandbox=TG.sandbox;CFG.efrisEnabled=TG.efrisEnabled;
@@ -2556,6 +2616,7 @@ function gOnTypeChange(){
   const isGoods=typeVal==='Goods';
   const vw=$('gValuationWrap'); if(vw) vw.style.display=isGoods?'':'none';
   const sw=$('gStockWrap'); if(sw) sw.style.display=isGoods?'':'none';
+  const sm=$('stockMgmtCard'); if(sm) sm.style.display=isGoods?'':'none';
   gLoadAccounts();
 }
 
@@ -2567,6 +2628,7 @@ async function gLoadAccounts(){
   const isGoods=typeVal==='Goods';
   const vw=$('gValuationWrap'); if(vw) vw.style.display=isGoods?'':'none';
   const sw=$('gStockWrap'); if(sw) sw.style.display=isGoods?'':'none';
+  const sm2=$('stockMgmtCard'); if(sm2) sm2.style.display=isGoods?'':'none';
   const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
   if(!ep||!tk)return;
   if(!_acctLoaded){
