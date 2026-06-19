@@ -199,6 +199,7 @@
     <button class="tab on efris-only" id="tabSub" onclick="showT('tSub',this)"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Submit</button>
     <button class="tab efris-only" id="tabStat" onclick="showT('tStat',this)"><span class="ico-emoji">&#128203;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Status</button>
     <button class="tab" id="tabGds" onclick="showT('tGds',this)"><span class="ico-emoji">&#128230;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Goods</button>
+    <button class="tab efris-only" id="tabBulk" onclick="showT('tBulk',this)"><span class="ico-emoji">&#9654;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Bulk</button>
     <button class="tab efris-only" id="tabHist" onclick="showT('tHist',this);histLoad(1)"><span class="ico-emoji">&#128203;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4"/><polyline points="3 3 3 7 7 7"/></svg> History</button>
     <button class="tab" id="tabNum" onclick="showT('tNum',this);numLoad()"><span class="ico-emoji">&#128290;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg> Numbers</button>
     <button class="tab" onclick="showT('tGd',this)"><span class="ico-emoji">&#10067;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Guide</button>
@@ -325,6 +326,24 @@
       <div class="st se" id="errMsg"></div>
       <div id="errHint"></div>
       <button class="btn bo bsm mt" onclick="retry()"><span class="ico-emoji">&#128260;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Try Again</button>
+    </div>
+  </div>
+
+  <!-- ══ BULK TAB ══ -->
+  <div id="tBulk" class="hidden">
+    <div class="card">
+      <div class="ct">&#9654; Bulk Submit to EFRIS</div>
+      <p style="font-size:12px;color:var(--gray);margin:0 0 10px;">Enter Manager invoice IDs (one per line). Each will be loaded and submitted to EFRIS in sequence.</p>
+      <textarea id="bulkIds" rows="6" placeholder="INV-0001&#10;INV-0002&#10;INV-0003" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:12px;padding:8px;border:1px solid var(--brd);border-radius:6px;resize:vertical;"></textarea>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
+        <button class="btn bsm" id="bulkStartBtn" onclick="bulkStart()">&#9654; Start Bulk Submit</button>
+        <button class="btn bo bsm" onclick="bulkClear()">Clear</button>
+        <span id="bulkSummary" style="font-size:12px;color:var(--gray);"></span>
+      </div>
+    </div>
+    <div class="card" id="bulkResultCard" style="display:none;">
+      <div class="ct">Results</div>
+      <div id="bulkResults"></div>
     </div>
   </div>
 
@@ -919,7 +938,7 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 
 function showScr(id){ document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on')); const e=$(id);if(e)e.classList.add('on'); }
 function showT(id,btn){
-  ['tSub','tStat','tGds','tGd','tNum','tHist','tSet'].forEach(t=>{const e=$(t);if(e)e.classList.add('hidden');});
+  ['tSub','tStat','tGds','tGd','tNum','tHist','tBulk','tSet'].forEach(t=>{const e=$(t);if(e)e.classList.add('hidden');});
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   const e=$(id);if(e)e.classList.remove('hidden');
   if(btn)btn.classList.add('on');
@@ -1297,6 +1316,94 @@ async function histDelete(id){
   if(!confirm('Remove this log entry?')) return;
   await fetch(RELAY+'/api/submission-log/'+id, {method:'DELETE'});
   histLoad(_histPage);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Bulk Submit
+// ══════════════════════════════════════════════════════════════
+var _bulkRunning = false;
+
+function bulkClear(){ const el=$('bulkIds'); if(el) el.value=''; ht('bulkSummary',''); }
+
+async function bulkStart(){
+  if(_bulkRunning){ alert('Bulk submit is already running.'); return; }
+  if(!CFG.tin){ alert('Complete setup in Settings first.'); return; }
+  const raw = ($('bulkIds')||{}).value || '';
+  const ids = raw.split(/[\n,;]+/).map(s=>s.trim()).filter(Boolean);
+  if(!ids.length){ alert('Enter at least one invoice ID.'); return; }
+  _bulkRunning = true;
+  const btn = $('bulkStartBtn'); if(btn){ btn.disabled=true; btn.textContent='Running…'; }
+  const rc = $('bulkResultCard'); if(rc) rc.style.display='';
+  const rows = ids.map(id => ({ id, status:'pending', fdn:'', error:'' }));
+  function renderBulkTable(){
+    const icons = { pending:'⬜', running:'⏳', ok:'✅', err:'❌' };
+    let h = '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+      + '<thead><tr style="background:var(--bg2);text-align:left;">'
+      + '<th style="padding:5px 8px;">#</th>'
+      + '<th style="padding:5px 8px;">Invoice ID</th>'
+      + '<th style="padding:5px 8px;">Status</th>'
+      + '<th style="padding:5px 8px;">FDN</th>'
+      + '<th style="padding:5px 8px;">Detail</th>'
+      + '</tr></thead><tbody>';
+    rows.forEach((r,i)=>{
+      h += '<tr style="border-bottom:1px solid var(--brd);">'
+        + '<td style="padding:4px 8px;color:var(--gray);">'+(i+1)+'</td>'
+        + '<td style="padding:4px 8px;font-family:monospace;">'+esc(r.id)+'</td>'
+        + '<td style="padding:4px 8px;">'+icons[r.status]+' '+esc(r.status)+'</td>'
+        + '<td style="padding:4px 8px;font-family:monospace;font-size:11px;">'+esc(r.fdn||'—')+'</td>'
+        + '<td style="padding:4px 8px;font-size:11px;color:'+(r.status==='err'?'#c62828':r.status==='ok'?'#2e7d32':'var(--gray)')+';">'+esc(r.error||'')+'</td>'
+        + '</tr>';
+    });
+    h += '</tbody></table>';
+    ht('bulkResults', h);
+    const done=rows.filter(r=>r.status==='ok').length, errs=rows.filter(r=>r.status==='err').length, total=rows.length;
+    ht('bulkSummary', done+'/'+total+' succeeded'+(errs?' · '+errs+' failed':''));
+  }
+  renderBulkTable();
+  const ep = CFG.managerEndpoint||MGR_EP, tk = CFG.accessToken||MGR_TK;
+  for(let i=0;i<rows.length;i++){
+    const row=rows[i];
+    row.status='running'; renderBulkTable();
+    try{
+      // Load invoice from Manager
+      const invUrl=RELAY+'/api/manager/invoice?ep='+encodeURIComponent(ep)+'&tk='+encodeURIComponent(tk)+'&key='+encodeURIComponent(row.id);
+      const invR=await fetch(invUrl);
+      const invD=await invR.json();
+      if(!invD.success) throw new Error(invD.error||'Failed to load invoice');
+      // Set global state so buildInv() works
+      INV=invD.data; DKEY=row.id;
+      // Auto-detect customer type
+      const s=INV.CustomFields||{};
+      const sGet=(...k)=>{ for(const n of k){if(s[n])return s[n];} return null; };
+      const custTINval=(INV.Customer&&INV.Customer.TIN)||INV.CustomerTIN||'';
+      const isForeign=!!(INV.PassportNum||INV.Nationality);
+      const mgrCT=sGet('Customer Type','CustomerType');
+      const ctMap={'B2C':'b2c','B2B':'b2b','B2G':'b2g','Foreign':'foreign','b2c':'b2c','b2b':'b2b','b2g':'b2g','foreign':'foreign'};
+      _custType = (mgrCT && ctMap[mgrCT.trim()]) || (isForeign?'foreign':custTINval?'b2b':'b2c');
+      if(_custType==='b2b') sv('cTIN', custTINval||'');
+      else if(_custType==='b2g'){ sv('cGovTIN', custTINval||''); sv('cGovDept',(INV.Customer&&INV.Customer.Name)||''); }
+      else if(_custType==='foreign'){ sv('cPassport',INV.PassportNum||''); sv('cNationality',INV.Nationality||''); sv('cForeignName',(INV.Customer&&INV.Customer.Name)||''); }
+      const mgrPM=sGet('Payment Method','PaymentMethod');
+      const pmMap={'Cash':'101','Credit':'102','Debit Card':'103','Card':'103','Card (Visa/Mastercard)':'103','Mobile Money':'104','MTN Momo':'104','Airtel Pay':'104','Cheque':'105','Bank Transfer':'106'};
+      _payWays=[{mode:(mgrPM&&pmMap[mgrPM.trim()])||'101',amount:''}];
+      // Check not already submitted
+      const existFDN=s['Fiscal Document Number']||s['EFRIS FDN']||'';
+      if(existFDN){ row.status='ok'; row.fdn=existFDN; row.error='Already submitted (FDN exists)'; renderBulkTable(); continue; }
+      // Submit T109
+      const payload={invoice:buildInv(),config:{tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',businessName:CFG.legalName,tradeName:CFG.tradeName,businessAddress:CFG.address,brn:CFG.brn,phone:CFG.phone,email:CFG.email,vatRegistered:CFG.vatReg}};
+      const subR=await fetch(RELAY+'/api/efris/submit-invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const subD=await subR.json();
+      if(!subD.success) throw new Error(subD.error||'EFRIS rejected');
+      // Save to Manager
+      await fetch(RELAY+'/api/efris/save-to-manager',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,documentKey:DKEY,vatRegistered:!!(CFG.vatReg),efrisData:{fdn:subD.fdn,qrCode:subD.qrCode,antifakeCode:subD.antifakeCode,deviceNo:subD.deviceNo,issuedDate:subD.issuedDate,invoiceId:subD.invoiceId,validationUrl:subD.validationUrl}})});
+      row.status='ok'; row.fdn=subD.fdn||''; row.error='';
+    }catch(e){ row.status='err'; row.error=e.message; }
+    renderBulkTable();
+    // Small delay between submissions to avoid rate limiting
+    if(i<rows.length-1) await new Promise(r=>setTimeout(r,800));
+  }
+  _bulkRunning=false;
+  if(btn){ btn.disabled=false; btn.textContent='▶ Start Bulk Submit'; }
 }
 
 // ══════════════════════════════════════════════════════════════
