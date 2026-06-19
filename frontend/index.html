@@ -199,6 +199,7 @@
     <button class="tab on efris-only" id="tabSub" onclick="showT('tSub',this)"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Submit</button>
     <button class="tab efris-only" id="tabStat" onclick="showT('tStat',this)"><span class="ico-emoji">&#128203;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Status</button>
     <button class="tab" id="tabGds" onclick="showT('tGds',this)"><span class="ico-emoji">&#128230;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Goods</button>
+    <button class="tab" id="tabWalk" onclick="showT('tWalk',this);wkInit()"><span class="ico-emoji">&#128687;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Walk-in</button>
     <button class="tab efris-only" id="tabBulk" onclick="showT('tBulk',this)"><span class="ico-emoji">&#9654;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Bulk</button>
     <button class="tab efris-only" id="tabHist" onclick="showT('tHist',this);histLoad(1)"><span class="ico-emoji">&#128203;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4"/><polyline points="3 3 3 7 7 7"/></svg> History</button>
     <button class="tab" id="tabNum" onclick="showT('tNum',this);numLoad()"><span class="ico-emoji">&#128290;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg> Numbers</button>
@@ -326,6 +327,84 @@
       <div class="st se" id="errMsg"></div>
       <div id="errHint"></div>
       <button class="btn bo bsm mt" onclick="retry()"><span class="ico-emoji">&#128260;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Try Again</button>
+    </div>
+  </div>
+
+  <!-- ══ WALK-IN TAB ══ -->
+  <div id="tWalk" class="hidden">
+    <div class="card">
+      <div class="ct">&#128687; Walk-in Receipt</div>
+      <p style="font-size:12px;color:var(--gray);margin:0 0 12px;">Create a receipt on the spot — no Manager invoice needed. Fill in customer details and line items, then submit to EFRIS or print directly.</p>
+
+      <!-- Customer -->
+      <div class="sec-hd" style="font-size:12px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Customer</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <div class="fg" style="margin:0;"><label>Customer Name</label><input id="wkCustName" placeholder="Walk-in Customer"/></div>
+        <div class="fg" style="margin:0;"><label>Currency</label>
+          <select id="wkCurr" onchange="wkCurrChange()">
+            <option value="UGX">UGX — Uganda Shilling</option>
+            <option value="USD">USD — US Dollar</option>
+            <option value="EUR">EUR — Euro</option>
+            <option value="GBP">GBP — British Pound</option>
+            <option value="KES">KES — Kenya Shilling</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;" id="wkFxRow" class="hidden">
+        <div class="fg" style="margin:0;"><label>Exchange Rate (1 <span id="wkFxLbl">USD</span> = UGX)</label><input id="wkFxVal" type="number" placeholder="e.g. 3700" oninput="wkRecalc()"/></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;margin-bottom:12px;" id="wkCustTypeGrid">
+        <button type="button" class="ctype-btn on" data-wktype="b2c" onclick="wkSetType('b2c')">Walk-in / Local</button>
+        <button type="button" class="ctype-btn" data-wktype="b2b" onclick="wkSetType('b2b')">Business (B2B)</button>
+        <button type="button" class="ctype-btn" data-wktype="b2g" onclick="wkSetType('b2g')">Government</button>
+        <button type="button" class="ctype-btn" data-wktype="foreign" onclick="wkSetType('foreign')">Foreign</button>
+      </div>
+      <div id="wkCustB2b" class="cust-fields" style="display:none;margin-bottom:8px;">
+        <div class="fg" style="margin:0;"><label>Business TIN</label><input id="wkTIN" placeholder="1000XXXXXXX"/></div>
+      </div>
+      <div id="wkCustB2g" class="cust-fields" style="display:none;margin-bottom:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="fg" style="margin:0;"><label>Government TIN</label><input id="wkGovTIN"/></div>
+          <div class="fg" style="margin:0;"><label>Department / Ministry</label><input id="wkGovDept"/></div>
+        </div>
+      </div>
+      <div id="wkCustForeign" class="cust-fields" style="display:none;margin-bottom:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <div class="fg" style="margin:0;"><label>Full Name</label><input id="wkForeignName"/></div>
+          <div class="fg" style="margin:0;"><label>Passport No.</label><input id="wkPassport"/></div>
+          <div class="fg" style="margin:0;"><label>Nationality</label><input id="wkNationality" placeholder="e.g. Kenyan"/></div>
+        </div>
+      </div>
+
+      <!-- Line Items -->
+      <div class="sec-hd" style="font-size:12px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px;">Line Items</div>
+      <div id="wkLines"></div>
+      <button class="btn bo bsm" onclick="wkAddLine()" style="margin-top:6px;">+ Add Line</button>
+
+      <!-- Payment -->
+      <div class="sec-hd" style="font-size:12px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px;">Payment Method</div>
+      <div id="wkPayList"></div>
+      <button class="btn bo bsm" onclick="wkAddPay()" style="margin-top:4px;">+ Split payment</button>
+
+      <!-- Totals -->
+      <div id="wkTotals" style="margin-top:14px;text-align:right;font-size:13px;"></div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+        <button class="btn bsm efris-only" id="wkBtnSubmit" onclick="wkSubmit()">📤 Submit to EFRIS &amp; Print</button>
+        <button class="btn bo bsm" onclick="wkPrint()">🖨 Print (no EFRIS)</button>
+        <button class="btn bo bsm" onclick="wkReset()" style="margin-left:auto;">↺ Reset</button>
+      </div>
+    </div>
+    <!-- Result card -->
+    <div class="card" id="wkRCard" style="display:none;">
+      <div class="ct" id="wkRTitle">✓ Submitted</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+        <div><span style="color:var(--gray);">FDN</span><br><strong id="wkRFDN" style="font-family:monospace;"></strong></div>
+        <div><span style="color:var(--gray);">Verification Code</span><br><strong id="wkRAF" style="font-family:monospace;"></strong></div>
+      </div>
+      <div id="wkRVerify" style="margin-top:8px;"></div>
+      <button class="btn bsm" onclick="wkPrintAfterSubmit()" style="margin-top:10px;">🖨 Print Receipt</button>
     </div>
   </div>
 
@@ -938,7 +1017,7 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 
 function showScr(id){ document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on')); const e=$(id);if(e)e.classList.add('on'); }
 function showT(id,btn){
-  ['tSub','tStat','tGds','tGd','tNum','tHist','tBulk','tSet'].forEach(t=>{const e=$(t);if(e)e.classList.add('hidden');});
+  ['tSub','tStat','tGds','tGd','tNum','tHist','tBulk','tWalk','tSet'].forEach(t=>{const e=$(t);if(e)e.classList.add('hidden');});
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   const e=$(id);if(e)e.classList.remove('hidden');
   if(btn)btn.classList.add('on');
@@ -1316,6 +1395,235 @@ async function histDelete(id){
   if(!confirm('Remove this log entry?')) return;
   await fetch(RELAY+'/api/submission-log/'+id, {method:'DELETE'});
   histLoad(_histPage);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  Walk-in Receipt
+// ══════════════════════════════════════════════════════════════
+var _wkType='b2c', _wkLines=[], _wkPays=[], _wkLastResult=null;
+
+function wkInit(){
+  if(_wkLines.length) return; // already initialised
+  wkReset();
+}
+
+function wkReset(){
+  _wkType='b2c'; _wkLines=[{desc:'',qty:1,unit:'Each',price:0,vatRate:0,discount:0,itemCode:'',catPath:''}]; _wkPays=[{mode:'101',amount:''}]; _wkLastResult=null;
+  sv('wkCustName',''); sv('wkTIN',''); sv('wkGovTIN',''); sv('wkGovDept',''); sv('wkForeignName',''); sv('wkPassport',''); sv('wkNationality','');
+  const rc=$('wkRCard'); if(rc) rc.style.display='none';
+  const fc=document.getElementById('wkCurr'); if(fc) fc.value='UGX';
+  hd('wkFxRow');
+  wkSetType('b2c'); wkRenderLines(); wkRenderPays(); wkRecalc();
+}
+
+function wkSetType(t){
+  _wkType=t;
+  document.querySelectorAll('[data-wktype]').forEach(b=>b.classList.toggle('on',b.dataset.wktype===t));
+  ['wkCustB2b','wkCustB2g','wkCustForeign'].forEach(id=>{ const el=$(id); if(el) el.style.display='none'; });
+  const map={b2b:'wkCustB2b',b2g:'wkCustB2g',foreign:'wkCustForeign'};
+  if(map[t]){ const el=$(map[t]); if(el) el.style.display=''; }
+}
+
+function wkCurrChange(){
+  const c=(document.getElementById('wkCurr')||{}).value||'UGX';
+  if(c!=='UGX'){ sh('wkFxRow'); tx('wkFxLbl',c); } else hd('wkFxRow');
+  wkRecalc();
+}
+
+function wkRenderLines(){
+  const el=$('wkLines'); if(!el) return;
+  if(!_wkLines.length){ el.innerHTML=''; return; }
+  let h='<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:4px;">'
+    +'<thead><tr style="background:var(--bg2);">'
+    +'<th style="padding:4px 6px;text-align:left;font-weight:500;">Description</th>'
+    +'<th style="padding:4px 6px;width:60px;">Qty</th>'
+    +'<th style="padding:4px 6px;width:60px;">Unit</th>'
+    +'<th style="padding:4px 6px;width:100px;">Unit Price</th>'
+    +'<th style="padding:4px 6px;width:70px;">VAT %</th>'
+    +'<th style="padding:4px 6px;width:80px;">Discount</th>'
+    +'<th style="padding:4px 6px;width:80px;text-align:right;">Total</th>'
+    +'<th style="padding:4px 6px;width:24px;"></th>'
+    +'</tr></thead><tbody>';
+  _wkLines.forEach((l,i)=>{
+    const tot=Math.round(((l.qty||1)*(l.price||0)*(1+(l.vatRate||0)/100)-(l.discount||0))*100)/100;
+    h+='<tr style="border-bottom:1px solid var(--brd);">'
+      +'<td style="padding:3px 4px;"><input value="'+esc(l.desc)+'" style="width:100%;font-size:12px;" oninput="_wkLines['+i+'].desc=this.value" placeholder="Item or service description"/></td>'
+      +'<td style="padding:3px 4px;"><input type="number" value="'+esc(l.qty)+'" style="width:100%;font-size:12px;text-align:right;" oninput="_wkLines['+i+'].qty=+this.value;wkRecalc()"/></td>'
+      +'<td style="padding:3px 4px;"><input value="'+esc(l.unit)+'" style="width:100%;font-size:12px;" oninput="_wkLines['+i+'].unit=this.value" placeholder="Each"/></td>'
+      +'<td style="padding:3px 4px;"><input type="number" value="'+esc(l.price)+'" style="width:100%;font-size:12px;text-align:right;" oninput="_wkLines['+i+'].price=+this.value;wkRecalc()"/></td>'
+      +'<td style="padding:3px 4px;"><input type="number" value="'+esc(l.vatRate)+'" style="width:100%;font-size:12px;text-align:right;" oninput="_wkLines['+i+'].vatRate=+this.value;wkRecalc()" placeholder="0"/></td>'
+      +'<td style="padding:3px 4px;"><input type="number" value="'+esc(l.discount)+'" style="width:100%;font-size:12px;text-align:right;" oninput="_wkLines['+i+'].discount=+this.value;wkRecalc()" placeholder="0"/></td>'
+      +'<td style="padding:3px 4px;text-align:right;">'+fn(tot)+'</td>'
+      +(_wkLines.length>1?'<td style="padding:3px 4px;"><button onclick="_wkLines.splice('+i+',1);wkRenderLines();wkRecalc()" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:14px;">✕</button></td>':'<td></td>')
+      +'</tr>';
+  });
+  h+='</tbody></table>';
+  el.innerHTML=h;
+}
+
+function wkAddLine(){ _wkLines.push({desc:'',qty:1,unit:'Each',price:0,vatRate:0,discount:0}); wkRenderLines(); wkRecalc(); }
+
+function wkRenderPays(){
+  const el=$('wkPayList'); if(!el) return;
+  let h='';
+  _wkPays.forEach((pw,i)=>{
+    const opts=PAY_MODES.map(([v,n])=>'<option value="'+v+'"'+(pw.mode===v?' selected':'')+'>'+n+'</option>').join('');
+    h+='<div style="display:flex;gap:5px;align-items:center;margin-bottom:4px;">'
+      +'<select style="flex:1;font-size:11px;" onchange="_wkPays['+i+'].mode=this.value">'+opts+'</select>'
+      +'<input type="number" style="width:110px;font-size:12px;padding:4px 6px;" placeholder="Amount (blank=full)" value="'+(pw.amount||'')+'" oninput="_wkPays['+i+'].amount=this.value"/>'
+      +(_wkPays.length>1?'<button onclick="_wkPays.splice('+i+',1);wkRenderPays()" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:15px;">✕</button>':'<span style="width:20px;display:inline-block;"></span>')
+      +'</div>';
+  });
+  el.innerHTML=h;
+}
+
+function wkAddPay(){ _wkPays.push({mode:'101',amount:''}); wkRenderPays(); }
+
+function wkRecalc(){
+  const subtotal=_wkLines.reduce((s,l)=>s+(l.qty||1)*(l.price||0),0);
+  const vatTotal=_wkLines.reduce((s,l)=>s+(l.qty||1)*(l.price||0)*(l.vatRate||0)/100,0);
+  const discTotal=_wkLines.reduce((s,l)=>s+(l.discount||0),0);
+  const total=subtotal+vatTotal-discTotal;
+  const curr=(document.getElementById('wkCurr')||{}).value||'UGX';
+  const fx=parseFloat((document.getElementById('wkFxVal')||{}).value||'1')||1;
+  let h='<div style="display:inline-block;border:1px solid var(--brd);border-radius:6px;padding:8px 14px;font-size:12px;">';
+  h+='<div style="display:flex;justify-content:space-between;gap:30px;"><span>Subtotal</span><strong>'+curr+' '+fn(subtotal)+'</strong></div>';
+  if(vatTotal) h+='<div style="display:flex;justify-content:space-between;gap:30px;"><span>VAT</span><strong>'+curr+' '+fn(vatTotal)+'</strong></div>';
+  if(discTotal) h+='<div style="display:flex;justify-content:space-between;gap:30px;"><span>Discount</span><strong>−'+curr+' '+fn(discTotal)+'</strong></div>';
+  h+='<div style="display:flex;justify-content:space-between;gap:30px;border-top:1px solid var(--brd);margin-top:4px;padding-top:4px;font-size:13px;"><span><strong>Total</strong></span><strong>'+curr+' '+fn(total)+'</strong></div>';
+  if(curr!=='UGX'&&fx>1) h+='<div style="color:var(--gray);font-size:10px;margin-top:2px;">≈ UGX '+fn(total*fx)+'</div>';
+  h+='</div>';
+  ht('wkTotals',h);
+}
+
+function wkBuildInvoice(){
+  const curr=(document.getElementById('wkCurr')||{}).value||'UGX';
+  const fx=parseFloat((document.getElementById('wkFxVal')||{}).value||'1')||1;
+  const custName=gvi('wkCustName')||'Walk-in Customer';
+  const subtotal=_wkLines.reduce((s,l)=>s+(l.qty||1)*(l.price||0),0);
+  const vatTotal=_wkLines.reduce((s,l)=>s+(l.qty||1)*(l.price||0)*(l.vatRate||0)/100,0);
+  const discTotal=_wkLines.reduce((s,l)=>s+(l.discount||0),0);
+  const total=subtotal+vatTotal-discTotal;
+  // Map to EFRIS invoice structure
+  const t=_wkType;
+  let buyerDetails={};
+  if(t==='b2b') buyerDetails={buyerTin:gvi('wkTIN')||'',buyerType:'10',buyerNinBrn:''};
+  else if(t==='b2g') buyerDetails={buyerTin:gvi('wkGovTIN')||'',buyerType:'20',buyerNinBrn:'',buyerLegalName:gvi('wkGovDept')||''};
+  else if(t==='foreign') buyerDetails={buyerPassportNum:gvi('wkPassport')||'',buyerType:'30',buyerNationality:gvi('wkNationality')||'',buyerLegalName:gvi('wkForeignName')||''};
+  else buyerDetails={buyerType:'10',buyerTin:'',buyerNinBrn:''};
+  const payModes=_wkPays.map((pw,i)=>({paymentMode:pw.mode||'101',paymentAmount:pw.amount?parseFloat(pw.amount)||0:(i===0?total:0)})).filter(p=>p.paymentAmount>0);
+  return {
+    basicInformation:{
+      invoiceKind: CFG.vatReg ? '1' : '2',
+      invoiceType: '1',
+      currency: curr,
+      invoiceIndustryCodes:'101',
+      buyerDetails,
+      sellerDetails:{ tin:CFG.tin, legalName:CFG.legalName||CFG.tradeName||'Business' }
+    },
+    goodsDetails: _wkLines.map((l,i)=>({
+      item: l.desc||('Item '+(i+1)),
+      itemCode: l.itemCode||('WLK'+(i+1).toString().padStart(3,'0')),
+      quantity: l.qty||1,
+      unitOfMeasure: l.unit||'Each',
+      unitPrice: l.price||0,
+      totalAmount: Math.round(((l.qty||1)*(l.price||0))*100)/100,
+      taxRate: l.vatRate||0,
+      taxAmount: Math.round(((l.qty||1)*(l.price||0)*(l.vatRate||0)/100)*100)/100,
+      discountTotal: l.discount||0,
+      orderNumber: String(i+1),
+      taxRule: (l.vatRate||0)>0 ? (CFG.vatReg?'A':'B') : 'B',
+      categoryPath: l.catPath||'',
+    })),
+    payWay: payModes.length ? payModes : [{paymentMode:'101',paymentAmount:total}],
+    summary:{ netAmount:subtotal, taxAmount:vatTotal, grossAmount:total, discountTotal:discTotal },
+    _walkIn: true,
+    _custName: custName,
+    _total: total,
+    _currency: curr,
+    _fx: fx,
+  };
+}
+
+async function wkSubmit(){
+  if(!CFG.tin){ alert('Complete EFRIS settings first.'); return; }
+  const btn=$('wkBtnSubmit'); if(btn){ btn.disabled=true; btn.textContent='Submitting…'; }
+  try{
+    const inv=wkBuildInvoice();
+    const r=await fetch(RELAY+'/api/efris/submit-invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({invoice:inv,config:{tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',businessName:CFG.legalName,tradeName:CFG.tradeName,businessAddress:CFG.address,brn:CFG.brn,phone:CFG.phone,email:CFG.email,vatRegistered:CFG.vatReg}})});
+    const d=await r.json();
+    if(!d.success) throw new Error(d.error||'EFRIS submission failed');
+    _wkLastResult=d;
+    const rc=$('wkRCard'); if(rc) rc.style.display='';
+    const _dl=CFG.vatReg?'Tax Invoice':'e-Receipt';
+    ht('wkRTitle','✓ '+_dl+' issued — submitted to URA EFRIS');
+    tx('wkRFDN',d.fdn||'—'); tx('wkRAF',d.antifakeCode||'—');
+    ht('wkRVerify',d.validationUrl?'<a href="'+esc(d.validationUrl)+'" target="_blank" rel="noopener" style="font-size:11px;color:#1565c0;">🔗 Verify on URA EFRIS Portal</a>':'');
+    wkPrintAfterSubmit();
+  }catch(e){ alert('Error: '+e.message); }
+  if(btn){ btn.disabled=false; btn.textContent='📤 Submit to EFRIS & Print'; }
+}
+
+function wkPrint(){
+  const inv=wkBuildInvoice();
+  _openReceiptWith(inv, null);
+}
+
+function wkPrintAfterSubmit(){
+  const inv=wkBuildInvoice();
+  _openReceiptWith(inv, _wkLastResult);
+}
+
+function _openReceiptWith(inv, efris){
+  const p=new URLSearchParams();
+  const custName=inv._custName||'Walk-in Customer';
+  p.set('custName',custName);
+  p.set('custTin','');
+  p.set('custType',_wkType||'b2c');
+  p.set('invoiceNo','WLK-'+Date.now());
+  p.set('issueDate',new Date().toISOString().slice(0,10));
+  p.set('currency',inv._currency||'UGX');
+  p.set('fxRate',inv._fx||1);
+  p.set('bizName',CFG.legalName||CFG.tradeName||'');
+  p.set('bizAddress',CFG.address||'');
+  p.set('bizPhone',CFG.phone||'');
+  p.set('bizEmail',CFG.email||'');
+  p.set('bizTIN',CFG.tin||'');
+  p.set('bizLogo',CFG.logoUrl||'');
+  p.set('issuedBy',CFG.issuedBy||'');
+  p.set('vatReg',CFG.vatReg?'1':'0');
+  const docType=(efris&&efris.fdn)?(CFG.vatReg?'Tax Invoice':'e-Receipt'):'Receipt';
+  p.set('docType',docType);
+  if(efris&&efris.fdn){
+    p.set('fdn',efris.fdn||'');
+    p.set('antifakeCode',efris.antifakeCode||'');
+    p.set('qrCode',efris.validationUrl||efris.qrCode||'');
+    p.set('submissionDate',efris.issuedDate||new Date().toISOString());
+    p.set('deviceNo',efris.deviceNo||CFG.deviceNo||'');
+  }
+  const lines=inv.goodsDetails||[];
+  p.set('lines',JSON.stringify(lines.map(l=>({
+    itemName:l.item||l.description||'',
+    itemCode:l.itemCode||'',
+    qty:l.quantity||1,
+    unitPrice:l.unitPrice||0,
+    lineTotal:l.totalAmount||0,
+    vatRate:l.taxRate||0,
+    vatAmount:l.taxAmount||0,
+    discount:l.discountTotal||0,
+    unit:l.unitOfMeasure||'Each',
+    categoryPath:l.categoryPath||'',
+    commodityCode:l.itemCode||'',
+  }))));
+  p.set('payMethods',JSON.stringify((inv.payWay||[]).map(pw=>{
+    const lbl=PAY_MODES.find(m=>m[0]===pw.paymentMode);
+    return {label:lbl?lbl[1]:'Cash',amount:pw.paymentAmount};
+  })));
+  p.set('subTotal',inv.summary?inv.summary.netAmount:inv._total||0);
+  p.set('vatTotal',inv.summary?inv.summary.taxAmount:0);
+  p.set('discTotal',inv.summary?inv.summary.discountTotal:0);
+  p.set('grandTotal',inv._total||0);
+  window.open(RELAY+'/receipt?'+p.toString(),'_blank');
 }
 
 // ══════════════════════════════════════════════════════════════
