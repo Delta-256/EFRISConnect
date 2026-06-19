@@ -199,7 +199,7 @@
       <div id="dItems"></div>
       <div id="fxRow" class="hidden mt">
         <div class="al aw">&#128177; Non-UGX detected. Enter today's exchange rate:</div>
-        <div class="fg"><label>1 <span id="fxLbl">USD</span> = ? UGX</label><input type="number" id="fxVal" placeholder="e.g. 3650"/></div>
+        <div class="fg"><label>1 <span id="fxLbl">USD</span> = ? UGX <button type="button" class="btn bo bsm" onclick="fetchFxRate()" id="fxFetchBtn" style="margin-left:6px;">&#128257; Auto-fetch (Bank of Uganda)</button></label><input type="number" id="fxVal" placeholder="e.g. 3650"/><span id="fxFetchStatus" style="font-size:11px;color:var(--gray);margin-top:2px;display:block;"></span></div>
       </div>
       <!-- Customer Type selector -->
       <div class="fg mt">
@@ -292,6 +292,7 @@
       <div style="font-size:10px;text-transform:uppercase;color:var(--txtl);letter-spacing:.4px;">Fiscal Document Number (FDN)</div>
       <div class="fdn" id="rFDN"></div>
       <div style="font-size:11px;margin-top:4px;">Antifake Code: <strong id="rAF">&mdash;</strong></div>
+      <div id="rQR" style="margin-top:8px;"></div>
       <hr><div id="mgrSave"></div>
     </div>
     <div class="card hidden" id="errCard">
@@ -460,6 +461,15 @@
           <p style="font-size:11px;color:var(--gray);margin-bottom:8px;">Pull items already in Manager.io and configure their EFRIS commodity codes here.</p>
           <button class="btn bo bsm" onclick="gLoadManagerItems()" id="gBtnImport">&#128260; Load Manager Items</button>
           <div id="gManagerItemsList" style="margin-top:8px;max-height:250px;overflow-y:auto;"></div>
+        </div>
+        <div class="card efris-only" style="margin-bottom:9px;">
+          <div class="ct">&#128269; Search EFRIS Registered Goods (T131)</div>
+          <p style="font-size:11px;color:var(--gray);margin-bottom:8px;">Search goods already registered in EFRIS under your TIN.</p>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="t131Query" placeholder="Search by name or code…" style="flex:1;" onkeydown="if(event.key==='Enter')t131Search()"/>
+            <button class="btn bo bsm" onclick="t131Search()">&#128269; Search</button>
+          </div>
+          <div id="t131Results" style="margin-top:8px;max-height:220px;overflow-y:auto;"></div>
         </div>
         <div class="g-tbl">
           <table>
@@ -837,6 +847,7 @@ async function doSubmit(){
     steps[1].st='don';steps[2].st='don';steps[3].st=d1.success?'don':'err';setProg(steps);
     if(!d1.success)throw new Error(d1.error||'EFRIS submission failed');
     sh('rCard');tx('rFDN',d1.fdn||'—');tx('rAF',d1.antifakeCode||'—');
+    ht('rQR',d1.qrCode?'<img src="'+esc(d1.qrCode)+'" alt="QR Code" style="width:100px;height:100px;margin-top:4px;" onerror="this.style.display=\'none\'"/>':'');
     steps[4].st='act';setProg(steps);
     await saveMgr(d1.fdn,d1.qrCode,d1.antifakeCode,d1.deviceNo,d1.issuedDate,d1.invoiceId);
     steps[4].st='don';setProg(steps);
@@ -907,6 +918,7 @@ async function doCreditNote(){
     sh('rCard');
     ht('rFDN','<span style="color:#c62828;">&#8617; CREDIT NOTE</span> '+esc(d1.fdn||'—'));
     tx('rAF',d1.antifakeCode||'—');
+    ht('rQR',d1.qrCode?'<img src="'+esc(d1.qrCode)+'" alt="QR Code" style="width:100px;height:100px;margin-top:4px;" onerror="this.style.display=\'none\'"/>':'');
     // Step 2: Create credit note record in Manager
     const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
     let cnKey=null;
@@ -1685,6 +1697,48 @@ async function gRetrySyncEfris(i){
   }catch(e){ alert('Network error: '+e.message); btn.disabled=false; btn.textContent='↑ EFRIS'; }
 }
 
+async function fetchFxRate(){
+  const cur=$('fxLbl')&&$('fxLbl').textContent||'USD';
+  const btn=$('fxFetchBtn'); const st=$('fxFetchStatus');
+  if(btn)btn.disabled=true;
+  if(st)st.textContent='Fetching…';
+  try{
+    const r=await fetch(RELAY+'/api/fx-rates');
+    const d=await r.json();
+    if(d.success&&d.rates&&d.rates[cur]){
+      sv('fxVal',String(d.rates[cur]));
+      if(st)st.textContent='✓ Bank of Uganda mid-rate: 1 '+cur+' = '+d.rates[cur].toLocaleString()+' UGX'+(d.cached?' (cached)':'');
+    } else {
+      if(st)st.textContent='Rate for '+cur+' not found. Enter manually.';
+    }
+  }catch(e){
+    if(st)st.textContent='Could not fetch rates. Enter manually.';
+  }
+  if(btn)btn.disabled=false;
+}
+
+async function t131Search(){
+  const q=($('t131Query')&&$('t131Query').value)||'';
+  const el=$('t131Results'); if(!el)return;
+  if(!CFG.tin||!CFG.deviceNo){el.innerHTML='<div class="al aw">Add TIN and Device No. in Settings first.</div>';return;}
+  el.innerHTML='<div class="st si"><span class="sp">⏳</span> Searching EFRIS…</div>';
+  try{
+    const r=await fetch(RELAY+'/api/efris/search-goods',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',query:q})});
+    const d=await r.json();
+    if(!d.success){el.innerHTML='<div class="al aw">'+esc(d.error||'Search failed')+'</div>';return;}
+    if(!d.items||!d.items.length){el.innerHTML='<div class="al ai">No results found for "'+esc(q)+'".</div>';return;}
+    el.innerHTML='<table style="width:100%;font-size:11px;border-collapse:collapse;">'
+      +'<thead><tr><th style="text-align:left;padding:4px;border-bottom:1px solid var(--bdr);">Code</th><th style="text-align:left;padding:4px;border-bottom:1px solid var(--bdr);">Name</th><th style="text-align:left;padding:4px;border-bottom:1px solid var(--bdr);">Type</th><th style="text-align:left;padding:4px;border-bottom:1px solid var(--bdr);">Unit</th><th style="text-align:left;padding:4px;border-bottom:1px solid var(--bdr);">Price</th></tr></thead>'
+      +'<tbody>'+d.items.map(it=>'<tr style="border-bottom:1px solid #f5f5f5;">'
+        +'<td style="padding:4px;font-family:monospace;">'+esc(it.goodsCode||'')+'</td>'
+        +'<td style="padding:4px;">'+esc(it.goodsName||it.name||'')+'</td>'
+        +'<td style="padding:4px;">'+esc(it.goodsTypeCode==='101'?'Goods':'Service')+'</td>'
+        +'<td style="padding:4px;">'+esc(it.measureUnit||'')+'</td>'
+        +'<td style="padding:4px;">'+esc(it.unitPrice||'')+'</td>'
+        +'</tr>').join('')+'</tbody></table>';
+  }catch(e){el.innerHTML='<div class="al aw">Network error: '+esc(e.message)+'</div>';}
+}
+
 let _mgrItems=[];
 async function gLoadManagerItems(){
   const btn=$('gBtnImport');
@@ -1992,6 +2046,7 @@ async function doCreateReceipt(managerOnly){
     steps[3].st='don'; prog();
     renderInv(INV); showScr('sMain');
     sh('rCard'); tx('rFDN',sd.fdn||'—'); tx('rAF',sd.antifakeCode||'—');
+    ht('rQR',sd.qrCode?'<img src="'+esc(sd.qrCode)+'" alt="QR Code" style="width:100px;height:100px;margin-top:4px;" onerror="this.style.display=\'none\'"/>':'');
   }catch(err){
     console.error(err);
     const s=steps.find(x=>x.st==='act'); if(s)s.st='err'; prog();

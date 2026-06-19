@@ -1129,13 +1129,15 @@ app.post('/api/efris/register-goods', async (req, res) => {
     // currency is required by T130, but it wants the EFRIS dictionary code (not "UGX").
     // Resolve via the T115 data dictionary.
     const t130Currency = await resolveEfrisCurrency(item.cur || 'UGX', tin, deviceNo, session, eu);
+    // Services (goodsTypeCode=102): URA requires measureUnit='101' (Each/Unit) not '102'
+    // rc:2981 fires when the measure unit doesn't match the type's default.
+    // For goods (101): use the item's uomCode. For services (102): always '101'.
+    const serviceUom = '101';
     const t130Payload = {
-      goodsCode:          item.code,
-      goodsName:          item.name,
+      goodsCode:             item.code,
+      goodsName:             item.name,
       goodsTypeCode,
-      // Services (goodsTypeCode=102) must use measureUnit '102' — physical unit
-      // codes are rejected with rc:2981 "default measure unit should be '102'"
-      measureUnit:        goodsTypeCode === '102' ? '102' : uomCode,
+      measureUnit:           goodsTypeCode === '102' ? serviceUom : uomCode,
       unitPrice:             String(parseFloat(item.price) || 0),
       currency:              t130Currency,
       commodityCategoryId:   item.comCode || '',
@@ -1519,6 +1521,59 @@ app.post('/api/manager/test', async (req, res) => {
     }
   } catch(e) {
     res.json({ success: false, error: e.message, hint: e.message.includes('ECONNREFUSED') ? 'Manager is not running.' : 'Check your Manager URL' });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+//  FX RATE — Bank of Uganda mid-rate (cached 1h)
+// ══════════════════════════════════════════════════════════════
+let _fxCache = { ts: 0, rates: {} };
+app.get('/api/fx-rates', async (req, res) => {
+  try {
+    if (Date.now() - _fxCache.ts < 3600000 && Object.keys(_fxCache.rates).length) {
+      return res.json({ success: true, rates: _fxCache.rates, cached: true });
+    }
+    // Bank of Uganda XML rates feed
+    const xml = await new Promise((resolve, reject) => {
+      https.get('https://www.bou.or.ug/bou/bouwebsite/bouwebsitecontent/statistics/exchangerates/ExchangeRates.xml', r => {
+        let d = ''; r.on('data', c => d += c); r.on('end', () => resolve(d));
+      }).on('error', reject);
+    });
+    const rates = {};
+    const re = /<Currency code="([A-Z]{3})"[^>]*>[\s\S]*?<MidRate>([\d.]+)<\/MidRate>/g;
+    let m;
+    while ((m = re.exec(xml)) !== null) rates[m[1]] = parseFloat(m[2]);
+    _fxCache = { ts: Date.now(), rates };
+    res.json({ success: true, rates });
+  } catch (e) {
+    res.json({ success: false, error: e.message, rates: {} });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+//  T131 — Search EFRIS registered goods
+// ══════════════════════════════════════════════════════════════
+app.post('/api/efris/search-goods', async (req, res) => {
+  const { tin, deviceNo, efrisPassword, mode, query } = req.body || {};
+  if (!tin || !deviceNo || !efrisPassword) return res.json({ success: false, error: 'Missing EFRIS credentials' });
+  try {
+    const eu = mode === 'sandbox' ? 'https://efristest.ura.go.ug/efrisws/ws/taapp' : 'https://efris.ura.go.ug/efrisws/ws/taapp';
+    const session = await getSession(eu, tin, deviceNo, efrisPassword);
+    const payload = { goodsName: query || '', goodsCode: '', pageNo: '1', pageSize: '20' };
+    const t131 = await efrisCall(eu, efrisEnvEnc('T131', payload, tin, deviceNo, session.aesKey, session.privatePem));
+    const outerRc = t131.data?.returnStateInfo?.returnCode;
+    if (outerRc !== '00') return res.json({ success: false, error: t131.data?.returnStateInfo?.returnMessage || 'T131 failed' });
+    let items = [];
+    if (t131.data?.data?.content) {
+      try {
+        const raw = aesDecryptStr(t131.data.data.content, session.aesKey);
+        const parsed = JSON.parse(raw);
+        items = Array.isArray(parsed) ? parsed : (parsed.goodsList || parsed.list || []);
+      } catch(e) { /* no items */ }
+    }
+    res.json({ success: true, items });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
   }
 });
 
