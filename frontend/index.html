@@ -160,19 +160,19 @@
     <div class="ob on" id="ob1">
       <div class="al ai"><strong>Step 1 &mdash; About Your Business</strong></div>
       <div class="trow" style="border:1px solid var(--bdr);border-radius:6px;padding:9px 11px;background:var(--bg);margin-bottom:10px;"><div><div class="tlbl">Are you registered on EFRIS?</div><div class="tdsc">Turn ON if you have a URA TIN &amp; EFRIS account. OFF = use for Manager.io item setup only.</div></div><div class="tog on" id="t1e" onclick="tg('t1e','efrisEnabled')"></div></div>
-      <div class="fg"><label>Legal Business Name *</label><input id="o1a" placeholder="e.g. Two Servants Tours &amp; Safaris Ltd"/><div class="hint">As registered with URSB</div></div>
-      <div class="fg"><label>Trade / Receipt Name</label><input id="o1b" placeholder="Name shown on receipts (if different)"/></div>
-      <div class="fg"><label>Business Address *</label><input id="o1c" placeholder="e.g. Plot 14 Kimaka Road, Entebbe"/></div>
+      <div class="fg"><label>Legal Business Name *</label><input id="o1a" placeholder="e.g. Acacia Safaris Uganda Ltd"/><div class="hint">As registered with URSB</div></div>
+      <div class="fg"><label>Trade / Receipt Name</label><input id="o1b" placeholder="e.g. Acacia Safaris (if different from legal name)"/></div>
+      <div class="fg"><label>Business Address *</label><input id="o1c" placeholder="e.g. Plot 45, Kampala Road, Kampala"/></div>
       <div class="fg"><label>Phone</label><input id="o1d" placeholder="+256"/></div>
       <div class="fg"><label>Email</label><input id="o1e" type="email" placeholder="accounts@business.ug"/></div>
       <button class="btn bg" onclick="obn(1)">Next &rarr;</button>
     </div>
     <div class="ob" id="ob2">
-      <div class="al aw"><strong>EFRIS Credentials (from URA)</strong></div>
-      <div class="fg"><label>TIN *</label><input id="o2a" placeholder="e.g. 1015292010"/><div class="hint">Your 10-digit URA number</div></div>
-      <div class="fg"><label>Device Number (DSN) *</label><input id="o2b" placeholder="e.g. 1015292010_01"/><div class="hint">EFRIS portal &rarr; Device Management</div></div>
-      <div class="fg"><label>EFRIS Password *</label><input id="o2c" type="password" placeholder="Your URA EFRIS portal password"/></div>
-      <div class="fg"><label>BRN (optional)</label><input id="o2d" placeholder="Business Registration Number"/></div>
+      <div class="al aw"><strong>EFRIS Credentials — from your URA EFRIS portal</strong></div>
+      <div class="fg"><label>TIN *</label><input id="o2a" placeholder="e.g. 1000123456"/><div class="hint">Your 10-digit URA Taxpayer ID — on your URA registration certificate</div></div>
+      <div class="fg"><label>Device Number (DSN) *</label><input id="o2b" placeholder="e.g. 1000123456_01"/><div class="hint">Log into efristest.ura.go.ug (or efris.ura.go.ug) → Device Management → My Devices → copy the DSN</div></div>
+      <div class="fg"><label>EFRIS Password *</label><input id="o2c" type="password" placeholder="Your URA EFRIS portal login password"/><div class="hint">Same password you use to log into the EFRIS website</div></div>
+      <div class="fg"><label>BRN (optional)</label><input id="o2d" placeholder="e.g. 80020001234"/><div class="hint">Business Registration Number from URSB — leave blank if you don't have one</div></div>
       <div class="row"><button class="btn bo" onclick="obb(2)">&larr; Back</button><button class="btn bg" onclick="obn(2)">Next &rarr;</button></div>
     </div>
     <div class="ob" id="ob3">
@@ -185,8 +185,8 @@
     <div class="ob" id="ob4">
       <div class="al ai"><strong>Manager.io Connection</strong></div>
       <div class="al as">&#10003; Relay server is running &mdash; this page is served by it.</div>
-      <div class="fg"><label>Manager.io API Endpoint *</label><input id="o4a" value="http://localhost:8090/api2"/><div class="hint">Docker/Server: <code>http://localhost:8090/api2</code></div></div>
-      <div class="fg"><label>Access Token *</label><input id="o4b" placeholder="Paste your Manager access token"/><div class="hint">Manager &rarr; Settings &rarr; API Keys &rarr; New Key</div></div>
+      <div class="fg"><label>Manager.io API Endpoint *</label><input id="o4a" value="http://localhost:8090/api2"/><div class="hint">The URL of your Manager.io server + <code>/api2</code>. Common: <code>http://localhost:8080/api2</code> (desktop) · <code>http://localhost:8090/api2</code> (Docker). Check Manager's address bar for the right host/port.</div></div>
+      <div class="fg"><label>Access Token *</label><input id="o4b" placeholder="Paste your Manager API token here"/><div class="hint">In Manager: Settings → API Keys → Add Key → copy the token. ⚠ You only see the token once — copy it immediately.</div></div>
       <button class="btn bgld" onclick="testMgr('o4a','o4b','mgrR')">&#128279; Test Manager Connection</button>
       <div id="mgrR"></div>
       <div class="row mt"><button class="btn bo" onclick="obb(4)">&larr; Back</button><button class="btn bg" onclick="finOB()">&#10003; Save &amp; Start</button></div>
@@ -389,7 +389,7 @@
           <div class="fg efris-only"><label>Target URA Commodity Code *</label><input type="text" id="gFldComCode" readonly/></div>
           <button class="btn bo efris-only" id="gPickComBtn" style="margin-bottom:8px;" onclick="gStartCommodityPicker()">&#128194; Choose / change EFRIS commodity category</button>
           <div class="fg"><label>My Product Code (Internal Code) *</label><input type="text" id="gFldCode" placeholder="e.g. Test 002"/></div>
-          <div class="fg"><label>Item Description Name (Invoice Display Value) *</label><input type="text" id="gFldName" placeholder="e.g. Sipi Falls Easter Excursion"/></div>
+          <div class="fg"><label>Item Description Name (Invoice Display Value) *</label><input type="text" id="gFldName" placeholder="e.g. Airport Transfer — Entebbe to Kampala"/></div>
           <div class="g2">
             <div class="fg"><label>Currency *</label>
               <select id="gFldCur">
@@ -504,19 +504,223 @@
   </div>
 
   <div id="tGd" class="hidden">
-    <div class="card">
-      <div class="ct"><span class="ico-emoji">&#128214;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> How to Use</div>
-      <div class="gs"><div class="gn">1</div><div class="gb"><h4>Open a Sales Invoice in Manager.io</h4><p>Click your EFRIS custom button &mdash; invoice details load automatically.</p></div></div>
-      <div class="gs"><div class="gn">2</div><div class="gb"><h4>Review the details shown</h4><p>Check customer name, amount and items.</p></div></div>
-      <div class="gs"><div class="gn">3</div><div class="gb"><h4>Click "Submit to URA EFRIS"</h4><p>Allow 10&ndash;20 seconds for URA to respond.</p></div></div>
-      <div class="gs"><div class="gn">4</div><div class="gb"><h4>FDN saved automatically</h4><p>Written to the EFRIS FDN field on your Manager invoice.</p></div></div>
-      <div class="gs"><div class="gn">5</div><div class="gb"><h4>Use Goods tab to configure items</h4><p>Browse URA commodity tree and sync items to Manager.io as inventory or non-inventory items.</p></div></div>
-      <hr>
-      <div class="al aw mt"><strong>Sad face icon in Manager panel?</strong><br>Manager requires HTTPS. Your custom button URL must be HTTPS — use your Cloudflare Tunnel URL:<br><code>https://goods.twoservants.com/extension</code></div>
-      <div class="al aw"><strong>Authentication failed?</strong><br>Check TIN, Device No. and EFRIS Password in Settings.</div>
-      <div class="al aw"><strong>Manager not saving?</strong><br>Check access token and that custom fields exist in Manager Settings &rarr; Custom Fields &rarr; Sales Invoices.</div>
-      <div class="al aw"><strong>Goods not appearing in URA?</strong><br>Enable &ldquo;Also register in EFRIS goods registry&rdquo; toggle in the Goods tab when syncing items.</div>
+
+    <!-- Section nav -->
+    <div style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 4px;">
+      <button class="btn bo bsm" onclick="gdShow('gdSetup')">⚙ Initial Setup</button>
+      <button class="btn bo bsm" onclick="gdShow('gdSubmit')">📤 Submitting Receipts</button>
+      <button class="btn bo bsm" onclick="gdShow('gdGoods')">📦 Goods &amp; Items</button>
+      <button class="btn bo bsm" onclick="gdShow('gdCust')">👥 Customer Types</button>
+      <button class="btn bo bsm" onclick="gdShow('gdFix')">🔧 Troubleshooting</button>
     </div>
+
+    <!-- ── SETUP ── -->
+    <div id="gdSetup" class="card">
+      <div class="ct">⚙ Initial Setup — Step by Step</div>
+
+      <div class="gs"><div class="gn">1</div><div class="gb">
+        <h4>Get your Manager.io Access Token</h4>
+        <p>Open Manager.io in a new tab. Go to <strong>Settings → API Keys → Add API Key</strong>. Give it any name (e.g. "EFRISConnect"). Copy the long token that appears — you only see it once.<br>
+        <em>💡 If you don't see API Keys, you are on Manager Cloud. Go to your business → Settings → API → Add Key.</em></p>
+      </div></div>
+
+      <div class="gs"><div class="gn">2</div><div class="gb">
+        <h4>Get your Manager.io Endpoint URL</h4>
+        <p>This is the address EFRISConnect uses to talk to Manager. Common values:<br>
+        <code>http://localhost:8080/api2</code> — Manager on the same computer<br>
+        <code>http://localhost:8090/api2</code> — Manager in Docker<br>
+        <code>http://YOUR-SERVER-IP:8080/api2</code> — Manager on a local server<br>
+        <em>💡 Open Manager, look at the address bar — use that hostname and port, add <code>/api2</code> at the end.</em></p>
+      </div></div>
+
+      <div class="gs"><div class="gn">3</div><div class="gb">
+        <h4>Get your URA EFRIS credentials</h4>
+        <p><strong>TIN</strong> — your 10-digit URA Taxpayer Identification Number (on your URA registration certificate).<br>
+        <strong>Device Number (DSN)</strong> — open <a href="https://efristest.ura.go.ug" target="_blank" rel="noopener">efristest.ura.go.ug</a> (sandbox) or <a href="https://efris.ura.go.ug" target="_blank" rel="noopener">efris.ura.go.ug</a> (live) → log in → <strong>Device Management → My Devices</strong>. Your DSN looks like <code>1234567890_01</code>.<br>
+        <strong>Password</strong> — the same password you use to log into the EFRIS portal.</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">4</div><div class="gb">
+        <h4>Add the EFRISConnect button in Manager</h4>
+        <p>In Manager go to <strong>Settings → Custom Buttons → New Custom Button</strong>.<br>
+        Set <strong>Name</strong>: <em>EFRISConnect</em> (or "Submit to EFRIS")<br>
+        Set <strong>Placement</strong>: Sales Invoices (list) or Sales Invoice (single document)<br>
+        Set <strong>URL</strong>: your EFRISConnect HTTPS address — e.g. <code id="extUrlDisplay">https://YOUR-DOMAIN/extension</code><br>
+        <em>⚠ Manager requires HTTPS for custom buttons. If you see a sad-face icon, the URL is not HTTPS. Use your Cloudflare/domain URL, not <code>http://localhost</code>.</em></p>
+      </div></div>
+
+      <div class="gs"><div class="gn">5</div><div class="gb">
+        <h4>Create Manager Custom Fields for EFRIS data</h4>
+        <p>These fields let EFRIS data (FDN, verification code, QR) be saved back into your Manager documents.<br>
+        Go to <strong>Manager → Settings → Custom Fields → Sales Invoices → Add Custom Field</strong>. Create these fields (spelling must match exactly):<br>
+        <code>Fiscal Document Number</code> — type: Text<br>
+        <code>Verification Code</code> — type: Text<br>
+        <code>QR Code</code> — type: <strong>QR Code</strong> (this renders as a scannable barcode on PDFs)<br>
+        <code>Submission Date</code> — type: Text<br>
+        <code>Status</code> — type: Text<br>
+        <em>💡 Repeat for Sales Receipts if you use receipts as well.</em></p>
+      </div></div>
+
+      <div class="gs"><div class="gn">6</div><div class="gb">
+        <h4>Run through First-Time Setup</h4>
+        <p>Click <strong>Settings</strong> if you've already completed setup, or re-open EFRISConnect to run the setup wizard. Fill in all fields. Test the Manager connection — it should show ✓ Connected. Save &amp; Start.</p>
+      </div></div>
+    </div>
+
+    <!-- ── SUBMIT ── -->
+    <div id="gdSubmit" class="card hidden">
+      <div class="ct">📤 Submitting a Receipt or Invoice</div>
+
+      <div class="gs"><div class="gn">1</div><div class="gb">
+        <h4>Open a Sales Invoice in Manager</h4>
+        <p>In Manager, go to <strong>Sales → Sales Invoices</strong>. Open the invoice you want to submit. Click your <strong>EFRISConnect</strong> custom button — the invoice details will load automatically in EFRISConnect.</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">2</div><div class="gb">
+        <h4>Set the Customer Type</h4>
+        <p>EFRISConnect auto-detects the customer type from the invoice, but you can override it:<br>
+        <strong>Walk-in / Local</strong> — individual Ugandan customer, no TIN<br>
+        <strong>Business (B2B)</strong> — company with a TIN<br>
+        <strong>Government (B2G)</strong> — Ministry, department, or government body<br>
+        <strong>Foreign / Tourist</strong> — non-Ugandan customer (enter passport number)<br>
+        <em>💡 For B2B/B2G customers, enter their TIN so URA can match the transaction.</em></p>
+      </div></div>
+
+      <div class="gs"><div class="gn">3</div><div class="gb">
+        <h4>Foreign currency invoices</h4>
+        <p>If the invoice is in USD, EUR, or another currency, an exchange rate box will appear. Enter today's Bank of Uganda rate, or click <strong>Auto-fetch</strong> to pull it automatically.<br>
+        <em>💡 URA requires all amounts in UGX equivalent. The rate is used only for EFRIS — your Manager invoice stays in the original currency.</em></p>
+      </div></div>
+
+      <div class="gs"><div class="gn">4</div><div class="gb">
+        <h4>Preview, then Submit</h4>
+        <p>Click <strong>Preview T109</strong> to see exactly what will be sent to URA — check item codes, amounts, and VAT. When ready, click <strong>Submit to URA EFRIS</strong>. Allow 10–20 seconds for URA to respond.</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">5</div><div class="gb">
+        <h4>You receive a Fiscal Document Number (FDN)</h4>
+        <p>On success, URA returns an FDN and Verification Code. EFRISConnect automatically saves these to your Manager invoice custom fields. The document title in Manager is updated to <strong>e-Receipt</strong> (non-VAT) or <strong>Tax Invoice</strong> (VAT-registered).</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">6</div><div class="gb">
+        <h4>Print the professional receipt (optional)</h4>
+        <p>After submission, click <strong>Print Professional Receipt / PDF</strong>. A clean, branded A4 receipt opens in a new tab with the QR code already embedded. Use your browser's Print → Save as PDF.</p>
+      </div></div>
+    </div>
+
+    <!-- ── GOODS ── -->
+    <div id="gdGoods" class="card hidden">
+      <div class="ct">📦 Configuring Goods &amp; Services</div>
+
+      <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">URA requires every item on a fiscal receipt to be registered in the EFRIS goods registry with a commodity code. Do this once per item type.</p>
+
+      <div class="gs"><div class="gn">1</div><div class="gb">
+        <h4>Go to Goods tab → My Items</h4>
+        <p>This shows items you have already configured. Each item needs an <strong>EFRIS Commodity Code</strong> (from URA's goods classification tree) to be accepted by URA.</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">2</div><div class="gb">
+        <h4>Add a new item</h4>
+        <p>Click <strong>Add / Edit Item</strong>. Fill in:<br>
+        <strong>My Product Code</strong> — your internal code (e.g. <code>SVC-001</code>)<br>
+        <strong>Item Name</strong> — how it appears on invoices<br>
+        <strong>Category</strong> — choose <em>Goods</em> or <em>Services</em><br>
+        <strong>Unit of Measure</strong> — e.g. Each, Hour, Day, Person<br>
+        Then click <strong>Choose EFRIS Commodity Category</strong> to browse URA's classification tree and select the right code.</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">3</div><div class="gb">
+        <h4>Search already-registered items (T131)</h4>
+        <p>Use the <strong>Search EFRIS Registry</strong> box to check if an item is already registered on EFRIS under your TIN. Enter a keyword — results show the commodity code, name, and unit.</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">4</div><div class="gb">
+        <h4>Sync to Manager.io</h4>
+        <p>Click <strong>Sync to Manager</strong> to create or update the item in Manager as a Non-Inventory Item. Enable <strong>Also register in EFRIS goods registry</strong> to send it to URA's T130 registry at the same time.<br>
+        <em>⚠ Items must exist in EFRIS before they can appear on a fiscal receipt. URA rejects invoices with unregistered item codes.</em></p>
+      </div></div>
+    </div>
+
+    <!-- ── CUSTOMER TYPES ── -->
+    <div id="gdCust" class="card hidden">
+      <div class="ct">👥 Customer Types &amp; Manager Custom Fields</div>
+
+      <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">URA requires each receipt to declare the type of buyer. EFRISConnect auto-detects this from the invoice, but you can also set it permanently on a Manager customer.</p>
+
+      <div style="background:#f0f4f0;border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:12px;">
+        <strong>Auto-detection rules:</strong><br>
+        • Customer has a TIN → <strong>B2B</strong> (business)<br>
+        • Customer name contains "Ministry", "Authority", "Department", "Government" → <strong>B2G</strong><br>
+        • Invoice has a Passport field → <strong>Foreign</strong><br>
+        • None of the above → <strong>Walk-in / Local</strong>
+      </div>
+
+      <div class="gs"><div class="gn">A</div><div class="gb">
+        <h4>Set Customer Type permanently in Manager</h4>
+        <p>Create a custom field on Customers: go to <strong>Manager → Settings → Custom Fields → Customers → Add Custom Field</strong>.<br>
+        Name it <code>Customer Type</code>, type: <strong>Text</strong>.<br>
+        Then on each customer record set it to one of: <code>B2C</code>, <code>B2B</code>, <code>B2G</code>, or <code>Foreign</code>.<br>
+        EFRISConnect will read this field and use it automatically — no manual selection needed each time.</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">B</div><div class="gb">
+        <h4>B2B — Business customers</h4>
+        <p>Enter the customer's URA TIN. EFRISConnect can verify it (Verify TIN button) — URA returns the registered business name, which you can use to confirm you have the right company.</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">C</div><div class="gb">
+        <h4>B2G — Government customers</h4>
+        <p>Enter the Ministry or Department name in the field provided, and their TIN if available. Government bodies are exempt from certain taxes — URA uses the B2G designation to track this.</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">D</div><div class="gb">
+        <h4>Foreign / Tourist customers</h4>
+        <p>Enter the customer's passport number and nationality/country. This is required by URA for all non-Ugandan buyers. The receipt will be marked as a foreign transaction — no TIN is required.</p>
+      </div></div>
+    </div>
+
+    <!-- ── TROUBLESHOOTING ── -->
+    <div id="gdFix" class="card hidden">
+      <div class="ct">🔧 Troubleshooting</div>
+
+      <div class="gs"><div class="gn">!</div><div class="gb">
+        <h4>Sad face / broken icon in Manager panel</h4>
+        <p>Manager only shows custom button content over <strong>HTTPS</strong>. The URL you entered must start with <code>https://</code> — not <code>http://</code> and not <code>localhost</code>. Use your Cloudflare Tunnel or domain URL. The correct URL is shown in Settings under "Extension URLs".</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">!</div><div class="gb">
+        <h4>Authentication failed / rc:58 or similar</h4>
+        <p>Check your TIN, Device Number (DSN), and EFRIS Password in Settings. The Device Number must match a device registered under your TIN on the EFRIS portal. Log into <a href="https://efristest.ura.go.ug" target="_blank" rel="noopener">efristest.ura.go.ug</a> → Device Management to confirm.</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">!</div><div class="gb">
+        <h4>rc:2981 — wrong unit of measure</h4>
+        <p>This means URA rejected the unit of measure for your item. For <strong>services</strong> the correct unit code is <code>101</code> (Unit). Go to Goods tab, edit the item, and re-sync it.</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">!</div><div class="gb">
+        <h4>rc:41 — item code not in EFRIS registry</h4>
+        <p>At least one item on the invoice has not been registered in EFRIS. Go to the Goods tab, find the item, enable <strong>Also register in EFRIS goods registry</strong>, and sync it. Then re-submit the invoice.</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">!</div><div class="gb">
+        <h4>Manager not saving FDN / "Manager save failed"</h4>
+        <p>Two things to check:<br>
+        1. <strong>Access Token</strong> — verify it in Settings → System → Test Manager Connection.<br>
+        2. <strong>Custom Fields</strong> — the fields <code>Fiscal Document Number</code>, <code>Verification Code</code>, <code>QR Code</code>, <code>Status</code>, and <code>Submission Date</code> must exist on Sales Invoices (and Sales Receipts) in Manager Settings → Custom Fields.</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">!</div><div class="gb">
+        <h4>Invoice was already submitted (duplicate)</h4>
+        <p>URA rejects a second submission for the same invoice. If you need to reverse a receipt, use the <strong>Credit Note</strong> button on the Status tab — this cancels the original with URA and records a reversal in Manager.</p>
+      </div></div>
+
+      <div class="gs"><div class="gn">!</div><div class="gb">
+        <h4>Switching from Sandbox to Production</h4>
+        <p>Once you have tested at least 3–5 invoices successfully in sandbox, go to <strong>Settings</strong> and turn off <strong>Sandbox Mode</strong>. All submissions will then go to the live URA EFRIS system. Your TIN, Device Number and Password remain the same.</p>
+      </div></div>
+    </div>
+
   </div>
 
   <div id="tSet" class="hidden">
@@ -536,7 +740,7 @@
     <div class="card"><div class="ct"><span class="ico-emoji">&#128279;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> System</div>
       <div class="fg"><label>Manager.io Endpoint</label><input id="sMgr"/></div>
       <div class="fg"><label>Access Token</label><input id="sTok"/></div>
-      <div class="al ai"><strong>Extension URLs:</strong><br>&#127760; Cloudflare (use this in Manager): <code>https://goods.twoservants.com/extension</code><br>Local HTTP: <code>http://localhost:3000/extension</code></div>
+      <div class="al ai"><strong>Extension URLs:</strong><br>&#127760; Cloudflare (use this in Manager): <code id="extUrlDisplay">https://YOUR-DOMAIN/extension</code><br>Local HTTP: <code>http://localhost:3000/extension</code></div>
       <div class="trow mt"><div><div class="tlbl">Registered on EFRIS</div><div class="tdsc">Enable fiscal receipting &amp; goods registry features</div></div><div class="tog on" id="sEfris" onclick="tg('sEfris','efrisEnabled');gApplyEfrisMode()"></div></div>
       <div class="trow"><div><div class="tlbl">VAT Registered</div><div class="tdsc">18% VAT on sales</div></div><div class="tog" id="sTV" onclick="tg('sTV','vatReg')"></div></div>
       <div class="trow"><div><div class="tlbl">Sandbox Mode</div><div class="tdsc">EFRIS test environment</div></div><div class="tog on" id="sTS" onclick="tg('sTS','sandbox')"></div></div>
@@ -560,10 +764,10 @@
     </div>
     <div id="pickList"></div>
     <div id="ctxDbg" style="font-size:10px;color:#8a6d00;background:#fffbe6;border:1px solid #ffe58f;border-radius:5px;padding:5px 8px;margin:8px 0;word-break:break-all;"></div>
-    <div class="al as">&#10003; Server is online &mdash; Cloudflare Tunnel active at <code>goods.twoservants.com</code></div>
+    <div class="al as">&#10003; Server is online &mdash; <code id="extHostDisplay">YOUR-DOMAIN</code></div>
     <div class="al ai mt">
       <strong>Use this URL in Manager custom button:</strong><br>
-      <code>https://goods.twoservants.com/extension</code><br><br>
+      <code id="extUrlDisplay">https://YOUR-DOMAIN/extension</code><br><br>
       <strong>If you see a sad face icon</strong>, go to Manager &rarr; Settings &rarr; Custom Buttons &rarr; verify the URL is exactly as above.
     </div>
     <button class="btn bgld mt" onclick="showT('tSet',null);showScr('sMain')">&#9881; Go to Settings</button>
@@ -917,6 +1121,14 @@ async function saveMgr(fdn,qrCode,antifakeCode,deviceNo,issuedDate,invoiceId,val
     const d=await r.json();
     ht('mgrSave',d.success?'<div class="st ss">&#10003; EFRIS data saved to Manager.io</div>':'<div class="al aw">&#9888; FDN=<strong>'+fdn+'</strong> received but Manager save failed.<br>'+(d.error||'')+'</div>');
   }catch(e){ ht('mgrSave','<div class="al aw">&#9888; FDN: <strong>'+fdn+'</strong> — note this down.</div>'); }
+}
+
+// ── Guide section nav ──────────────────────────────────────────
+function gdShow(id){
+  ['gdSetup','gdSubmit','gdGoods','gdCust','gdFix'].forEach(s=>{
+    const el=document.getElementById(s);
+    if(el) el.classList.toggle('hidden', s!==id);
+  });
 }
 
 // ── _lastEfrisResult: stored after each successful submission ──
@@ -1948,6 +2160,11 @@ async function gImportManagerItem(idx){
 
 // ── Init ──────────────────────────────────────────────────────
 function init(){
+  // Populate dynamic extension URL everywhere it appears
+  const _extUrl = (window.location.protocol==='https:'?'https:':'https:') + '//' + window.location.host + '/extension';
+  document.querySelectorAll('#extUrlDisplay').forEach(el=>{ el.textContent=_extUrl; });
+  const _host = window.location.host;
+  document.querySelectorAll('#extHostDisplay').forEach(el=>{ el.textContent=_host; });
   rDots();
   gLoadItems();
   if(gItems.length) gRefreshList();
