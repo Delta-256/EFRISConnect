@@ -300,6 +300,7 @@
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;">
         <button class="btn bo bsm" onclick="doPreview()" style="flex:0 0 auto;"><span class="ico-emoji">&#128065;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview</button>
+        <button class="btn bo bsm" onclick="openReceipt()" style="flex:0 0 auto;" title="Print receipt without submitting to EFRIS">&#128438; Print</button>
         <button class="btn bg" id="btnSub" onclick="doSubmit()" style="flex:1;"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Submit to URA EFRIS</button>
       </div>
       <div id="subProg"></div>
@@ -1138,52 +1139,87 @@ function openReceipt() {
   const r = _lastEfrisResult;
   const inv = INV || {};
   const p = new URLSearchParams();
+
   // Business
-  p.set('bizName',  CFG.businessName || '');
-  p.set('bizAddr',  CFG.businessAddress || '');
+  p.set('bizName',  CFG.legalName || CFG.businessName || '');
+  p.set('bizAddr',  CFG.businessAddress || CFG.address || '');
   p.set('bizTin',   CFG.tin || '');
   p.set('bizPhone', CFG.phone || '');
   p.set('bizEmail', CFG.email || '');
   p.set('logoUrl',  CFG.logoUrl || '');
-  // Document
-  p.set('docType',  CFG.vatReg ? 'Tax Invoice' : 'e-Receipt');
-  p.set('fdn',      (r && r.fdn) || '');
+
+  // Document — if no EFRIS result yet, it's a plain receipt
+  const hasFDN = !!(r && r.fdn);
+  const docType = hasFDN ? (CFG.vatReg ? 'Tax Invoice' : 'e-Receipt') : (inv.IsReceipt ? 'Receipt' : 'Invoice');
+  p.set('docType',   docType);
+  p.set('fdn',       (r && r.fdn) || '');
+  p.set('ref',       inv.Reference || inv.InvoiceNumber || (r && r.fdn) || '');
   const d = inv.Date || inv.IssueDate || '';
-  p.set('date',     d ? new Date(d).toLocaleDateString('en-UG',{day:'2-digit',month:'short',year:'numeric'}) : '');
-  p.set('currency', inv.Currency || 'UGX');
+  p.set('date',      d ? new Date(d).toLocaleDateString('en-UG',{day:'2-digit',month:'short',year:'numeric'}) : '');
+  p.set('dueDate',   inv.DueDate || '');
+  p.set('currency',  inv.Currency || 'UGX');
+
   // Customer
   const cn = (inv.Customer&&inv.Customer.Name)||inv.BuyerName||inv.CustomerName||'Walk-in Customer';
-  p.set('custName', cn);
-  p.set('custTin',  (inv.Customer&&inv.Customer.TIN)||inv.CustomerTIN||'');
-  // Payment
-  const modes={'101':'Cash','102':'Credit','103':'Debit Card','104':'Mobile Money','105':'Cheque','106':'Bank Transfer'};
-  const pm = inv.PayWays && inv.PayWays.length ? (modes[inv.PayWays[0].mode]||inv.PayWays[0].mode) : (modes[String(inv.PaymentMode||'101')]||'Cash');
-  p.set('payMethod', pm);
-  // Lines
-  const lines = (inv.Lines||[]).map(l=>({
-    name: l.Item||l.ItemName||l.Description||'',
-    desc: '',
-    qty:  l.Qty||l.Quantity||1,
-    rate: l.UnitPrice||l.Price||0,
-    total: l.Total||l.LineTotal||0
-  }));
+  p.set('custName',  cn);
+  p.set('custTin',   (inv.Customer&&inv.Customer.TIN)||inv.CustomerTIN||'');
+  p.set('custType',  _custType || '');
+  p.set('custAddr',  (inv.Customer&&inv.Customer.Address)||inv.CustomerAddress||'');
+  p.set('passport',  inv.PassportNum || '');
+  p.set('nationality', inv.Nationality || '');
+
+  // Payment methods — pass as JSON array [{label, amount}]
+  const modeNames={'101':'Cash','102':'Credit','103':'Debit Card','104':'Mobile Money (MTN/Airtel)','105':'Cheque','106':'Bank Transfer'};
+  let payMs = [];
+  if (inv.PayWays && inv.PayWays.length) {
+    payMs = inv.PayWays.map(pw=>({ label: modeNames[pw.mode]||pw.mode||'Cash', amount: pw.amount ? String(pw.amount) : '' }));
+  } else {
+    payMs = [{ label: modeNames[String(inv.PaymentMode||'101')]||'Cash', amount: '' }];
+  }
+  p.set('payMethods', encodeURIComponent(JSON.stringify(payMs)));
+  p.set('payTerms',   inv.PaymentTerms || inv.Terms || '');
+
+  // Lines — enrich with EFRIS item data from gItems if available
+  const gMap = {};
+  (window.gItems||[]).forEach(gi=>{ if(gi.managerKey||gi.code) gMap[gi.managerKey||gi.code]=gi; });
+  const lines = (inv.Lines||[]).map(l=>{
+    const gi = gMap[l.ItemKey||l.Key||l.Item] || {};
+    const gross = parseFloat(String(l.Total||l.LineTotal||0).replace(/,/g,''));
+    const qty   = parseFloat(String(l.Qty||l.Quantity||1));
+    const rate  = parseFloat(String(l.UnitPrice||l.Price||0).replace(/,/g,''));
+    const vatR  = CFG.vatReg ? 18 : 0;
+    const vatA  = CFG.vatReg ? +(gross * 18/118).toFixed(2) : 0;
+    return {
+      name:          gi.name || l.Item || l.ItemName || l.Description || '',
+      desc:          l.LineDescription || l.Memo || '',
+      itemCode:      gi.code || l.ItemCode || '',
+      commodityCode: gi.commodityCode || gi.comCode || '',
+      categoryPath:  gi.categoryPath  || gi.catPath  || '',
+      unit:          gi.uom || l.Unit || '',
+      qty, rate, vatRate: vatR, vatAmt: vatA, discount: l.Discount || 0, total: gross
+    };
+  });
   if (lines.length) p.set('lines', encodeURIComponent(JSON.stringify(lines)));
+
   // Totals
-  const gross = inv.Gross||inv.Total||inv.GrossTotal||'';
-  const tax   = inv.TaxAmount||inv.Tax||'0.00';
+  const gross = inv.Gross || inv.Total || inv.GrossTotal || '';
+  const tax   = inv.TaxAmount || inv.Tax || (CFG.vatReg ? '' : '0.00');
   p.set('grandTotal', String(gross));
-  p.set('subtotal',   String(inv.Net||inv.Subtotal||gross));
+  p.set('subtotal',   String(inv.Net || inv.Subtotal || gross));
   p.set('taxAmount',  String(tax));
-  p.set('showTax',    CFG.vatReg ? '1' : '0');
-  // EFRIS
-  p.set('verCode',      (r && r.antifakeCode) || '');
-  p.set('subDate',      new Date().toISOString().slice(0,10));
-  p.set('deviceNo',     CFG.deviceNo || '');
-  p.set('validationUrl',(r && r.validationUrl) || '');
-  // Description
-  p.set('description',  inv.Description || inv.Reference || '');
-  // Issued by — not in CFG by default, skip if empty
-  p.set('issuedBy', CFG.issuedBy || '');
+  p.set('discount',   String(inv.Discount || inv.DiscountAmount || '0'));
+  p.set('showVat',    CFG.vatReg ? '1' : '0');
+
+  // EFRIS fields (empty = non-EFRIS receipt, footer won't show)
+  p.set('verCode',       (r && r.antifakeCode) || '');
+  p.set('subDate',       hasFDN ? new Date().toISOString().slice(0,10) : '');
+  p.set('deviceNo',      hasFDN ? (CFG.deviceNo || '') : '');
+  p.set('validationUrl', (r && r.validationUrl) || '');
+
+  // Meta
+  p.set('description', inv.Description || inv.Reference || '');
+  p.set('issuedBy',    CFG.issuedBy || '');
+
   window.open('/receipt.html?' + p.toString(), '_blank');
 }
 

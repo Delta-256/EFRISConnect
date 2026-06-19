@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
-/* ── Token system ─────────────────────────────────── */
+/* ── Token system ── */
 :root {
   --ground:    #ffffff;
   --text:      #1a1a1a;
@@ -19,351 +19,125 @@
   --accent:    #1b4332;
   --accent-lt: #2d6a4f;
   --stamp:     #c9963a;
-  --stamp-lt:  #f5e6c8;
   --mono:      'DM Mono', monospace;
   --serif:     'DM Serif Display', serif;
   --sans:      'Inter', sans-serif;
 }
-
-/* ── Reset ────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 14px; }
-body {
-  font-family: var(--sans);
-  background: #e8ece8;
-  color: var(--text);
-  min-height: 100vh;
-  padding: 24px 0 60px;
-}
+html { font-size: 13px; }
+body { font-family: var(--sans); background: #e8ece8; color: var(--text); min-height: 100vh; padding: 20px 0 60px; }
 
-/* ── Controls panel (screen only) ────────────────── */
+/* ── Controls (screen only) ── */
 #controls {
-  max-width: 794px;
-  margin: 0 auto 20px;
-  background: #fff;
-  border-radius: 10px;
-  padding: 14px 20px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px 24px;
-  align-items: center;
-  box-shadow: 0 1px 4px rgba(0,0,0,.12);
-  font-size: 12px;
+  max-width: 794px; margin: 0 auto 16px; background: #fff;
+  border-radius: 10px; padding: 12px 18px;
+  display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12); font-size: 12px;
 }
-#controls label { display: flex; align-items: center; gap: 6px; color: #374151; font-weight: 500; cursor: pointer; }
-#controls input[type=color] { width: 28px; height: 24px; border: 1px solid var(--border); border-radius: 4px; padding: 1px; cursor: pointer; }
-#controls input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; }
+#controls label { display: flex; align-items: center; gap: 5px; color: #374151; font-weight: 500; cursor: pointer; }
+#controls input[type=color] { width: 26px; height: 22px; border: 1px solid var(--border); border-radius: 3px; padding: 1px; cursor: pointer; }
+#controls input[type=checkbox] { accent-color: var(--accent); width: 13px; height: 13px; }
 #controls select { font-size: 12px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 4px; background: #fff; }
-.ctrl-sep { width: 1px; height: 24px; background: var(--border); }
-#printBtn {
-  margin-left: auto;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 7px 18px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  letter-spacing: .3px;
-}
+.ctrl-sep { width: 1px; height: 22px; background: var(--border); }
+#printBtn { margin-left: auto; background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 7px 16px; font-size: 12px; font-weight: 600; cursor: pointer; }
 #printBtn:hover { background: var(--accent-lt); }
 
-/* ── A4 sheet ─────────────────────────────────────── */
-#sheet {
-  width: 794px;
-  min-height: 1123px;
-  margin: 0 auto;
-  background: var(--ground);
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
+/* ── A4 Sheet ── */
+#sheet { width: 794px; min-height: 1123px; margin: 0 auto; background: var(--ground); display: flex; flex-direction: column; }
 
-/* ── Header band ──────────────────────────────────── */
-#hdr {
-  background: var(--accent);
-  padding: 28px 36px 24px;
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-  position: relative;
-}
-#hdrLeft {
-  flex: 1;
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-}
-#logo {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
-  border-radius: 6px;
-  background: rgba(255,255,255,.12);
-  flex-shrink: 0;
-}
-#logoPlaceholder {
-  width: 56px;
-  height: 56px;
-  border-radius: 6px;
-  background: rgba(255,255,255,.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-family: var(--serif);
-  font-size: 22px;
-  color: rgba(255,255,255,.7);
-  letter-spacing: -1px;
-}
+/* ── Header band ── */
+#hdr { background: var(--accent); padding: 24px 32px 20px; display: flex; align-items: flex-start; gap: 18px; }
+#hdrLeft { flex: 1; display: flex; align-items: flex-start; gap: 14px; }
+#logo { width: 52px; height: 52px; object-fit: contain; border-radius: 5px; background: rgba(255,255,255,.12); flex-shrink: 0; }
+#logoPlaceholder { width: 52px; height: 52px; border-radius: 5px; background: rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: var(--serif); font-size: 20px; color: rgba(255,255,255,.7); }
 #bizBlock { flex: 1; }
-#bizName {
-  font-family: var(--serif);
-  font-size: 20px;
-  color: #fff;
-  line-height: 1.15;
-  margin-bottom: 5px;
-}
-#bizDetails {
-  font-size: 11px;
-  color: rgba(255,255,255,.72);
-  line-height: 1.7;
-}
+#bizName { font-family: var(--serif); font-size: 19px; color: #fff; line-height: 1.15; margin-bottom: 4px; }
+#bizDetails { font-size: 10.5px; color: rgba(255,255,255,.70); line-height: 1.7; }
 #bizDetails span { display: block; }
 
-/* stamp block */
-#stamp {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  flex-shrink: 0;
-}
-#docTypeStamp {
-  border: 2px solid var(--stamp);
-  border-radius: 4px;
-  padding: 5px 14px 4px;
-  background: rgba(201,150,58,.10);
-}
-#docTypeStamp span {
-  font-family: var(--serif);
-  font-size: 22px;
-  color: var(--stamp);
-  letter-spacing: 2px;
-  display: block;
-  line-height: 1;
-}
-#docMeta {
-  text-align: right;
-  font-size: 11px;
-  color: rgba(255,255,255,.65);
-  line-height: 1.75;
-}
+/* stamp */
+#stamp { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+#docTypeStamp { border: 2px solid var(--stamp); border-radius: 4px; padding: 4px 13px 3px; background: rgba(201,150,58,.10); }
+#docTypeStamp span { font-family: var(--serif); font-size: 20px; color: var(--stamp); letter-spacing: 2px; display: block; line-height: 1; }
+#docMeta { text-align: right; font-size: 10.5px; color: rgba(255,255,255,.65); line-height: 1.75; }
 #docMeta strong { color: rgba(255,255,255,.92); font-weight: 600; font-family: var(--mono); letter-spacing: .5px; }
 
-/* ── Sub-header: customer + dates ─────────────────── */
-#subhdr {
-  padding: 18px 36px;
-  border-bottom: 1.5px solid var(--border);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-}
-.sh-block { padding: 0 0 0 0; }
-.sh-block + .sh-block { border-left: 1.5px solid var(--border); padding-left: 24px; }
-.sh-label {
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 4px;
-}
-.sh-value { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.55; }
-.sh-value .tin { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+/* ── Sub-header: bill to + payment info ── */
+#subhdr { padding: 14px 32px; border-bottom: 1.5px solid var(--border); display: grid; grid-template-columns: 1fr 1fr; }
+.sh-block + .sh-block { border-left: 1.5px solid var(--border); padding-left: 20px; }
+.sh-label { font-size: 9px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+.sh-value { font-size: 12.5px; font-weight: 500; color: var(--text); line-height: 1.5; }
+.sh-sub { font-size: 10.5px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
 
-/* ── Description line ─────────────────────────────── */
-#descLine {
-  padding: 10px 36px;
-  font-size: 11.5px;
-  color: var(--muted);
-  border-bottom: 1.5px solid var(--border);
-  font-style: italic;
-}
+/* ── Description line ── */
+#descLine { padding: 8px 32px; font-size: 11px; color: var(--muted); border-bottom: 1.5px solid var(--border); font-style: italic; }
 
-/* ── Line items table ─────────────────────────────── */
-#itemsWrap { padding: 0 36px; flex: 1; }
-#itemsTable {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 0;
-}
-#itemsTable thead tr {
-  background: var(--accent);
-}
+/* ── Line items ── */
+#itemsWrap { padding: 0 32px; flex: 1; }
+#itemsTable { width: 100%; border-collapse: collapse; }
+#itemsTable thead tr { background: var(--accent); }
 #itemsTable thead th {
-  padding: 9px 10px;
-  text-align: left;
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,.85);
+  padding: 8px 8px; text-align: left; font-size: 8.5px; font-weight: 600;
+  letter-spacing: .9px; text-transform: uppercase; color: rgba(255,255,255,.82);
 }
-#itemsTable thead th:not(:first-child) { text-align: right; }
+#itemsTable thead th.r { text-align: right; }
 #itemsTable tbody tr:nth-child(even) { background: var(--row-alt); }
-#itemsTable tbody td {
-  padding: 9px 10px;
-  font-size: 12px;
-  vertical-align: top;
-  border-bottom: 1px solid #eef0ee;
-}
-#itemsTable tbody td:not(:first-child) { text-align: right; }
-.item-name { font-weight: 500; }
-.item-desc { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+#itemsTable tbody td { padding: 8px 8px; font-size: 11.5px; vertical-align: top; border-bottom: 1px solid #eef0ee; }
+#itemsTable tbody td.r { text-align: right; font-family: var(--mono); font-size: 11px; }
+.itm-cat { font-size: 9.5px; color: var(--accent); font-weight: 600; letter-spacing: .3px; margin-bottom: 1px; }
+.itm-code { font-family: var(--mono); font-size: 9px; color: var(--muted); margin-bottom: 2px; }
+.itm-name { font-weight: 500; font-size: 11.5px; }
+.itm-desc { font-size: 10px; color: var(--muted); margin-top: 1px; }
+.vat-badge { display: inline-block; background: #e8f5e9; color: #2d6a4f; font-size: 8.5px; font-weight: 700; padding: 1px 4px; border-radius: 3px; letter-spacing: .3px; vertical-align: middle; }
+.disc-val { color: #c62828; }
 
-/* ── Totals block ─────────────────────────────────── */
-#totalsWrap {
-  padding: 0 36px 0;
-  display: flex;
-  justify-content: flex-end;
-}
-#totalsTable {
-  width: 260px;
-  border-collapse: collapse;
-  margin-top: 0;
-}
-#totalsTable tr td {
-  padding: 5px 10px;
-  font-size: 12px;
-}
-#totalsTable tr td:last-child { text-align: right; font-family: var(--mono); }
-#totalsTable .tot-label { color: var(--muted); }
-#totalsTable .tot-line td { border-top: 1.5px solid var(--border); }
-#totalsTable .tot-grand td {
-  font-size: 14px;
-  font-weight: 600;
-  padding-top: 8px;
-  color: var(--accent);
-}
-#totalsTable .tot-words td {
-  font-size: 10px;
-  color: var(--muted);
-  padding-top: 2px;
-  font-style: italic;
-  white-space: normal;
-}
+/* ── Totals ── */
+#bottomZone { padding: 0 32px; display: flex; align-items: flex-end; gap: 20px; margin-top: 4px; }
+#paymentBlock { flex: 1; font-size: 11px; }
+#paymentBlock .pb-label { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+#paymentBlock .pb-row { display: flex; gap: 6px; align-items: center; margin-bottom: 3px; }
+#paymentBlock .pb-method { font-weight: 600; font-size: 11.5px; }
+#paymentBlock .pb-amount { font-family: var(--mono); color: var(--muted); font-size: 10.5px; }
+#payTermsBlock { font-size: 10.5px; color: var(--muted); margin-top: 8px; }
+#payTermsBlock strong { color: var(--text); }
+#totalsTable { width: 240px; border-collapse: collapse; flex-shrink: 0; }
+#totalsTable td { padding: 4px 8px; font-size: 11.5px; }
+#totalsTable td:last-child { text-align: right; font-family: var(--mono); }
+.tot-label { color: var(--muted); }
+.tot-line td { border-top: 1.5px solid var(--border); }
+.tot-disc td { color: #c62828; }
+.tot-grand td { font-size: 14px; font-weight: 600; padding-top: 8px; color: var(--accent); }
+.tot-words td { font-size: 9.5px; color: var(--muted); padding-top: 2px; font-style: italic; white-space: normal; }
 
-/* ── Paid stamp ───────────────────────────────────── */
-#paidWrap {
-  padding: 10px 36px;
-  display: flex;
-  justify-content: flex-end;
-}
-#paidStamp {
-  border: 2.5px solid #2d6a4f;
-  border-radius: 4px;
-  padding: 4px 18px;
-  color: #2d6a4f;
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-}
-
-/* ── Served by ────────────────────────────────────── */
-#servedBy {
-  padding: 6px 36px 0;
-  font-size: 11px;
-  color: var(--muted);
-}
+/* ── Paid + issued-by bar ── */
+#stampBar { padding: 8px 32px 4px; display: flex; align-items: center; justify-content: space-between; }
+#paidStamp { border: 2.5px solid #2d6a4f; border-radius: 4px; padding: 3px 16px; color: #2d6a4f; font-weight: 700; font-size: 12px; letter-spacing: 2.5px; text-transform: uppercase; }
+#servedBy { font-size: 10.5px; color: var(--muted); }
 #servedBy strong { color: var(--text); }
 
-/* ── Footer / verification zone ──────────────────── */
-#footer {
-  margin: 20px 36px 28px;
-  border: 1.5px solid var(--border);
-  border-radius: 6px;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: 1fr auto;
-}
-#footerLeft {
-  padding: 16px 20px;
-  border-right: 1.5px solid var(--border);
-}
-#footerLabel {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-#footerLabel::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-.efris-row {
-  display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 4px 8px;
-  margin-bottom: 5px;
-  align-items: baseline;
-}
-.efris-key {
-  font-size: 10px;
-  color: var(--muted);
-  font-weight: 500;
-}
-.efris-val {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text);
-  font-weight: 500;
-  word-break: break-all;
-}
-.efris-val.fdn {
-  font-size: 13px;
-  color: var(--accent);
-  font-weight: 600;
-}
-#footerRight {
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  background: #fafafa;
-  min-width: 120px;
-}
-#qrBox { width: 90px; height: 90px; }
-#qrBox canvas, #qrBox img { width: 90px !important; height: 90px !important; }
-#qrLabel {
-  font-size: 8.5px;
-  text-align: center;
-  color: var(--muted);
-  line-height: 1.4;
-}
+/* ── EFRIS footer ── */
+#footer { margin: 14px 32px 24px; border: 1.5px solid var(--border); border-radius: 6px; overflow: hidden; display: grid; grid-template-columns: 1fr auto; }
+#footerLeft { padding: 14px 18px; border-right: 1.5px solid var(--border); }
+#footerLabel { font-size: 8.5px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+#footerLabel::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.efris-row { display: grid; grid-template-columns: 150px 1fr; gap: 3px 8px; margin-bottom: 4px; align-items: baseline; }
+.efris-key { font-size: 9.5px; color: var(--muted); font-weight: 500; }
+.efris-val { font-family: var(--mono); font-size: 10.5px; color: var(--text); font-weight: 500; word-break: break-all; }
+.efris-val.fdn { font-size: 12.5px; color: var(--accent); font-weight: 600; }
+#footerRight { padding: 12px 14px; display: flex; flex-direction: column; align-items: center; gap: 5px; background: #fafafa; min-width: 114px; }
+#qrBox { width: 84px; height: 84px; }
+#qrBox canvas, #qrBox img { width: 84px !important; height: 84px !important; }
+#qrLabel { font-size: 8px; text-align: center; color: var(--muted); line-height: 1.4; }
 
-/* ── URA tagline ──────────────────────────────────── */
-#uraTag {
-  margin: 0 36px 20px;
-  font-size: 10px;
-  color: var(--muted);
-  text-align: center;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-}
+/* ── Non-EFRIS footer ── */
+#simpleFooter { margin: 14px 32px 24px; padding: 10px 0; border-top: 1.5px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--muted); }
+#simpleFooter strong { color: var(--text); }
+
+/* ── URA tagline ── */
+#uraTag { margin: 0 32px 18px; font-size: 9.5px; color: var(--muted); text-align: center; padding-top: 6px; border-top: 1px solid var(--border); }
 #uraTag strong { color: var(--accent); }
 
-/* ── Print styles ─────────────────────────────────── */
+/* ── Print ── */
 @media print {
   body { background: white; padding: 0; }
   #controls { display: none !important; }
@@ -374,162 +148,107 @@ body {
 </head>
 <body>
 
-<!-- ── Controls (screen only) ── -->
+<!-- Controls -->
 <div id="controls">
-  <label>
-    Primary colour
-    <input type="color" id="clrAccent" value="#1b4332" oninput="applyColors()"/>
-  </label>
-  <label>
-    Stamp colour
-    <input type="color" id="clrStamp" value="#c9963a" oninput="applyColors()"/>
-  </label>
+  <label>Primary colour <input type="color" id="clrAccent" value="#1b4332" oninput="applyColors()"/></label>
+  <label>Stamp colour <input type="color" id="clrStamp" value="#c9963a" oninput="applyColors()"/></label>
   <div class="ctrl-sep"></div>
-  <label>
-    <input type="checkbox" id="chkLogo" checked onchange="toggleVis('logoArea', this.checked)"/>
-    Show logo
-  </label>
-  <label>
-    <input type="checkbox" id="chkServed" checked onchange="toggleVis('servedBy', this.checked)"/>
-    Show "Served by"
-  </label>
-  <label>
-    <input type="checkbox" id="chkDesc" checked onchange="toggleVis('descLine', this.checked)"/>
-    Show description
-  </label>
+  <label><input type="checkbox" id="chkLogo" checked onchange="toggleVis('logoArea',this.checked)"/> Logo</label>
+  <label><input type="checkbox" id="chkServed" checked onchange="toggleVis('servedBy',this.checked)"/> Served by</label>
+  <label><input type="checkbox" id="chkCodes" checked onchange="toggleCodes(this.checked)"/> EFRIS codes</label>
   <div class="ctrl-sep"></div>
-  <label>
-    Doc type
-    <select id="selDocType" onchange="setDocType(this.value)">
-      <option value="e-Receipt">e-Receipt</option>
-      <option value="Tax Invoice">Tax Invoice</option>
-      <option value="Credit Note">Credit Note</option>
-    </select>
-  </label>
+  <label>Type <select id="selDocType" onchange="setDocType(this.value)">
+    <option value="Receipt">Receipt</option>
+    <option value="e-Receipt">e-Receipt</option>
+    <option value="Tax Invoice">Tax Invoice</option>
+    <option value="Invoice">Invoice</option>
+    <option value="Credit Note">Credit Note</option>
+  </select></label>
   <button id="printBtn" onclick="window.print()">Print / Save PDF</button>
 </div>
 
-<!-- ── A4 Sheet ── -->
 <div id="sheet">
 
   <!-- Header -->
   <div id="hdr">
     <div id="hdrLeft">
       <div id="logoArea">
-        <img id="logo" src="" alt="Logo" style="display:none"/>
-        <div id="logoPlaceholder">TS</div>
+        <img id="logo" src="" alt="" style="display:none"/>
+        <div id="logoPlaceholder"></div>
       </div>
       <div id="bizBlock">
-        <div id="bizName">Two Servants Ltd</div>
+        <div id="bizName"></div>
         <div id="bizDetails">
-          <span id="bizAddr">Plot 20, Kampala Road, Entebbe Municipality, Wakiso District, Uganda</span>
-          <span id="bizTin">TIN: <span id="bizTinVal">—</span></span>
-          <span id="bizPhone">—</span>
-          <span id="bizEmail">—</span>
+          <span id="bizAddr"></span>
+          <span id="bizTinLine"></span>
+          <span id="bizContact"></span>
         </div>
       </div>
     </div>
     <div id="stamp">
-      <div id="docTypeStamp">
-        <span id="docTypeLabel">e-Receipt</span>
-      </div>
+      <div id="docTypeStamp"><span id="docTypeLabel">Receipt</span></div>
       <div id="docMeta">
-        <div>No. <strong id="metaFDN">—</strong></div>
+        <div>No. <strong id="metaRef">—</strong></div>
         <div>Date <strong id="metaDate">—</strong></div>
+        <div id="metaFDNLine" style="display:none;">FDN <strong id="metaFDN">—</strong></div>
         <div>Currency <strong id="metaCurrency">UGX</strong></div>
       </div>
     </div>
   </div>
 
-  <!-- Customer + dates -->
+  <!-- Customer + payment header -->
   <div id="subhdr">
     <div class="sh-block">
       <div class="sh-label">Issued to</div>
       <div class="sh-value" id="custName">—</div>
-      <div class="sh-value tin" id="custTin"></div>
-      <div class="sh-value" id="custAddr" style="font-size:11px;color:#6b7280;margin-top:2px;"></div>
+      <div class="sh-sub" id="custMeta"></div>
     </div>
     <div class="sh-block">
-      <div class="sh-label">Payment</div>
-      <div class="sh-value" id="payMethod">—</div>
-      <div class="sh-value" id="payDate" style="font-size:11px;color:#6b7280;margin-top:2px;"></div>
+      <div class="sh-label">Payment &amp; Terms</div>
+      <div id="payMethodsList"></div>
+      <div class="sh-sub" id="payTermsLine"></div>
+      <div class="sh-sub" id="custTypeLine"></div>
     </div>
   </div>
 
-  <!-- Description -->
+  <!-- Description / reference -->
   <div id="descLine"></div>
 
   <!-- Line items -->
   <div id="itemsWrap">
     <table id="itemsTable">
       <thead>
-        <tr>
-          <th style="width:40%">Item</th>
-          <th style="width:14%">Qty</th>
-          <th style="width:20%">Unit Price</th>
-          <th style="width:20%">Amount</th>
-          <th style="width:6%"></th>
-        </tr>
+        <tr id="tblHead"></tr>
       </thead>
       <tbody id="itemsBody"></tbody>
     </table>
   </div>
 
-  <!-- Totals -->
-  <div id="totalsWrap">
-    <table id="totalsTable">
-      <tbody>
-        <tr>
-          <td class="tot-label">Subtotal</td>
-          <td id="totSubtotal">—</td>
-        </tr>
-        <tr id="taxRow">
-          <td class="tot-label">Tax (18% VAT)</td>
-          <td id="totTax">0.00</td>
-        </tr>
-        <tr class="tot-line tot-grand">
-          <td>Total</td>
-          <td id="totGrand">—</td>
-        </tr>
-        <tr class="tot-words">
-          <td colspan="2" id="totWords"></td>
-        </tr>
-      </tbody>
-    </table>
+  <!-- Totals + payment breakdown -->
+  <div id="bottomZone">
+    <div id="paymentBlock">
+      <div class="pb-label">Payment received</div>
+      <div id="paymentRows"></div>
+      <div id="payTermsBlock"></div>
+    </div>
+    <table id="totalsTable"><tbody id="totalsBody"></tbody></table>
   </div>
 
-  <!-- Paid stamp -->
-  <div id="paidWrap">
+  <!-- Paid stamp + issued by -->
+  <div id="stampBar">
     <div id="paidStamp">Paid in Full</div>
+    <div id="servedBy"></div>
   </div>
 
-  <!-- Served by -->
-  <div id="servedBy">Issued by: <strong id="issuedByName">—</strong></div>
-
-  <!-- Verification footer -->
-  <div id="footer">
+  <!-- EFRIS verification footer (shown only if FDN present) -->
+  <div id="footer" style="display:none;">
     <div id="footerLeft">
       <div id="footerLabel">URA EFRIS Verification</div>
-      <div class="efris-row">
-        <span class="efris-key">Fiscal Document No.</span>
-        <span class="efris-val fdn" id="fFDN">—</span>
-      </div>
-      <div class="efris-row">
-        <span class="efris-key">Verification Code</span>
-        <span class="efris-val" id="fVerCode">—</span>
-      </div>
-      <div class="efris-row">
-        <span class="efris-key">Submission Date</span>
-        <span class="efris-val" id="fSubDate">—</span>
-      </div>
-      <div class="efris-row">
-        <span class="efris-key">Device No.</span>
-        <span class="efris-val" id="fDevice">—</span>
-      </div>
-      <div class="efris-row">
-        <span class="efris-key">Status</span>
-        <span class="efris-val" style="color:#2d6a4f;font-weight:600;" id="fStatus">Submitted</span>
-      </div>
+      <div class="efris-row"><span class="efris-key">Fiscal Document No.</span><span class="efris-val fdn" id="fFDN">—</span></div>
+      <div class="efris-row"><span class="efris-key">Verification Code</span><span class="efris-val" id="fVerCode">—</span></div>
+      <div class="efris-row"><span class="efris-key">Submission Date</span><span class="efris-val" id="fSubDate">—</span></div>
+      <div class="efris-row"><span class="efris-key">Device No.</span><span class="efris-val" id="fDevice">—</span></div>
+      <div class="efris-row"><span class="efris-key">Status</span><span class="efris-val" style="color:#2d6a4f;font-weight:600;">Submitted to URA</span></div>
     </div>
     <div id="footerRight">
       <div id="qrBox"></div>
@@ -537,198 +256,329 @@ body {
     </div>
   </div>
 
-  <div id="uraTag">
-    This document was electronically submitted to <strong>Uganda Revenue Authority (URA) EFRIS</strong> and
-    bears a valid Fiscal Document Number. Verify at <strong>efris.ura.go.ug</strong>
+  <!-- Simple footer for non-EFRIS -->
+  <div id="simpleFooter">
+    <div><strong id="sfBizName"></strong></div>
+    <div id="sfNote">Thank you for your business.</div>
+    <div id="sfContact"></div>
+  </div>
+
+  <!-- URA tagline (EFRIS only) -->
+  <div id="uraTag" style="display:none;">
+    This document was electronically submitted to <strong>Uganda Revenue Authority (URA) EFRIS</strong>
+    and bears a valid Fiscal Document Number. Verify at <strong>efris.ura.go.ug</strong>
   </div>
 
 </div><!-- /sheet -->
 
 <script>
-/* ════════════════════════════════════════════════
-   RECEIPT DATA — populated from URL params or
-   injected by EFRISConnect after submission.
-   ════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════
+   URL param reader
+════════════════════════════════════════════ */
+const _ps = new URLSearchParams(window.location.search);
+function qp(k, def) { return _ps.get(k) || def || ''; }
+function qpBool(k) { return _ps.get(k) === '1'; }
+function qpJSON(k) { try { return JSON.parse(decodeURIComponent(_ps.get(k)||'null'))||[]; } catch(e){ return []; } }
 
-// Parse URL parameters (EFRISConnect will append these after submission)
-function qp(k) {
-  return new URLSearchParams(window.location.search).get(k) || '';
-}
-
-// ── Sample / demo data (overridden by URL params) ──
+/* ── DATA ── */
 const DATA = {
   // Business
-  bizName:    qp('bizName')    || 'Two Servants Ltd',
-  bizAddr:    qp('bizAddr')    || 'Plot 20, Kampala Road, Entebbe, Wakiso District, Uganda',
-  bizTin:     qp('bizTin')     || '',
-  bizPhone:   qp('bizPhone')   || '',
-  bizEmail:   qp('bizEmail')   || '',
-  logoUrl:    qp('logoUrl')    || '',
-  logoInit:   qp('logoInit')   || 'TS',
+  bizName:   qp('bizName',  'Your Business Name'),
+  bizAddr:   qp('bizAddr',  ''),
+  bizTin:    qp('bizTin',   ''),
+  bizPhone:  qp('bizPhone', ''),
+  bizEmail:  qp('bizEmail', ''),
+  logoUrl:   qp('logoUrl',  ''),
+  logoInit:  qp('logoInit', ''),
 
   // Document
-  docType:    qp('docType')    || 'e-Receipt',
-  fdn:        qp('fdn')        || '325043855047',
-  date:       qp('date')       || new Date().toLocaleDateString('en-UG', {day:'2-digit',month:'short',year:'numeric'}),
-  currency:   qp('currency')   || 'UGX',
+  docType:   qp('docType',  'Receipt'),
+  ref:       qp('ref',      '') || qp('fdn', ''),
+  fdn:       qp('fdn',      ''),
+  date:      qp('date',     new Date().toLocaleDateString('en-UG',{day:'2-digit',month:'short',year:'numeric'})),
+  currency:  qp('currency', 'UGX'),
+  dueDate:   qp('dueDate',  ''),
 
   // Customer
-  custName:   qp('custName')   || 'Walk-in Customer',
-  custTin:    qp('custTin')    || '',
-  custAddr:   qp('custAddr')   || '',
+  custName:  qp('custName', 'Walk-in Customer'),
+  custTin:   qp('custTin',  ''),
+  custType:  qp('custType', ''),  // B2C / B2B / B2G / Foreign
+  custAddr:  qp('custAddr', ''),
+  passport:  qp('passport', ''),
+  nationality: qp('nationality', ''),
 
   // Payment
-  payMethod:  qp('payMethod')  || 'Cash',
-  payDate:    qp('payDate')    || '',
-
-  // Description
-  description: qp('description') || '',
-
-  // Lines: JSON-encoded array [{name, desc, qty, rate, total}]
-  lines: (() => {
-    try { return JSON.parse(decodeURIComponent(qp('lines'))); } catch(e) { return []; }
-  })(),
-
-  // Totals
-  subtotal:   qp('subtotal')   || '',
-  taxAmount:  qp('taxAmount')  || '0.00',
-  grandTotal: qp('grandTotal') || '',
-  grandWords: qp('grandWords') || '',
-  showTax:    qp('showTax')    === '1',
-
-  // Issued by
-  issuedBy:   qp('issuedBy')   || '',
-
-  // EFRIS
-  verCode:    qp('verCode')    || '79289983322183978289',
-  subDate:    qp('subDate')    || '',
-  deviceNo:   qp('deviceNo')   || '',
-  validationUrl: qp('validationUrl') || '',
-};
-
-// ── Demo lines if none provided ──
-if (!DATA.lines || DATA.lines.length === 0) {
-  DATA.lines = [
-    { name: 'Day Trip — Ngamba Island Chimpanzee Sanctuary', desc: 'Half-day guided experience', qty: 2, rate: '98.00', total: '196.00' }
-  ];
-  DATA.subtotal   = DATA.subtotal   || '196.00';
-  DATA.grandTotal = DATA.grandTotal || '196.00';
-  DATA.grandWords = DATA.grandWords || 'One hundred ninety-six US dollars only';
-}
-
-/* ════════════════════════════════════════════════
-   RENDER
-   ════════════════════════════════════════════════ */
-function fmt(n) {
-  const num = parseFloat(String(n).replace(/,/g,''));
-  if (isNaN(num)) return n || '—';
-  return num.toLocaleString('en-UG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function render() {
-  // Business
-  document.getElementById('bizName').textContent     = DATA.bizName;
-  document.getElementById('bizAddr').textContent     = DATA.bizAddr;
-  document.getElementById('bizTinVal').textContent   = DATA.bizTin  || '—';
-  document.getElementById('bizPhone').textContent    = DATA.bizPhone || '';
-  document.getElementById('bizEmail').textContent    = DATA.bizEmail || '';
-
-  // Logo
-  if (DATA.logoUrl) {
-    const img = document.getElementById('logo');
-    img.src = DATA.logoUrl;
-    img.style.display = 'block';
-    document.getElementById('logoPlaceholder').style.display = 'none';
-  } else {
-    document.getElementById('logoPlaceholder').textContent = DATA.logoInit;
-  }
-
-  // Doc type
-  setDocType(DATA.docType);
-  document.getElementById('metaFDN').textContent      = DATA.fdn       || '—';
-  document.getElementById('metaDate').textContent     = DATA.date      || '—';
-  document.getElementById('metaCurrency').textContent = DATA.currency  || 'UGX';
-  document.getElementById('selDocType').value         = DATA.docType;
-
-  // Customer
-  document.getElementById('custName').textContent = DATA.custName || '—';
-  if (DATA.custTin) document.getElementById('custTin').textContent = 'TIN: ' + DATA.custTin;
-  if (DATA.custAddr) document.getElementById('custAddr').textContent = DATA.custAddr;
-
-  // Payment
-  document.getElementById('payMethod').textContent = DATA.payMethod || '—';
-  if (DATA.payDate) document.getElementById('payDate').textContent = DATA.payDate;
-
-  // Description
-  const dl = document.getElementById('descLine');
-  if (DATA.description) { dl.textContent = DATA.description; }
-  else { dl.style.display = 'none'; }
+  // payMethods: [{label, amount}]  or single string
+  payMethods: qpJSON('payMethods'),
+  payMethod:  qp('payMethod', ''),
+  payTerms:   qp('payTerms', ''),
 
   // Lines
-  const tbody = document.getElementById('itemsBody');
-  tbody.innerHTML = DATA.lines.map(l =>
-    `<tr>
-      <td><div class="item-name">${esc(l.name)}</div>${l.desc ? `<div class="item-desc">${esc(l.desc)}</div>` : ''}</td>
-      <td>${esc(String(l.qty))}</td>
-      <td>${fmt(l.rate)}</td>
-      <td>${fmt(l.total)}</td>
-      <td></td>
-    </tr>`
-  ).join('');
+  // [{name, desc, itemCode, commodityCode, categoryPath, qty, unit, rate, vatRate, vatAmt, discount, total}]
+  lines: qpJSON('lines'),
 
   // Totals
-  document.getElementById('totSubtotal').textContent = fmt(DATA.subtotal);
-  document.getElementById('totTax').textContent      = fmt(DATA.taxAmount);
-  document.getElementById('totGrand').textContent    = fmt(DATA.grandTotal);
-  document.getElementById('totWords').textContent    = DATA.grandWords || '';
-  if (!DATA.showTax) document.getElementById('taxRow').style.display = 'none';
+  subtotal:   qp('subtotal',   ''),
+  discount:   qp('discount',   ''),
+  taxAmount:  qp('taxAmount',  ''),
+  grandTotal: qp('grandTotal', ''),
+  grandWords: qp('grandWords', ''),
+  showVat:    qpBool('showVat'),
 
   // Issued by
-  const sb = document.getElementById('servedBy');
-  if (DATA.issuedBy) { document.getElementById('issuedByName').textContent = DATA.issuedBy; }
-  else { sb.style.display = 'none'; }
+  issuedBy:  qp('issuedBy', ''),
 
-  // EFRIS footer
-  document.getElementById('fFDN').textContent     = DATA.fdn     || '—';
-  document.getElementById('fVerCode').textContent = DATA.verCode || '—';
-  document.getElementById('fSubDate').textContent = DATA.subDate || new Date().toISOString().slice(0,10);
-  document.getElementById('fDevice').textContent  = DATA.deviceNo || '—';
+  // EFRIS
+  verCode:       qp('verCode',       ''),
+  subDate:       qp('subDate',       ''),
+  deviceNo:      qp('deviceNo',      ''),
+  validationUrl: qp('validationUrl', ''),
+};
 
-  // QR code
-  const qrUrl = DATA.validationUrl || DATA.verCode || DATA.fdn;
-  if (qrUrl && typeof QRCode !== 'undefined') {
-    new QRCode(document.getElementById('qrBox'), {
-      text: qrUrl,
-      width: 90,
-      height: 90,
-      colorDark: '#1b4332',
-      colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M
-    });
-  }
+/* ── Demo data when opened directly ── */
+const _isDemo = !_ps.has('bizName');
+if (_isDemo) {
+  Object.assign(DATA, {
+    bizName:  'Acacia Safaris Uganda Ltd',
+    bizAddr:  'Plot 45, Kampala Road, Kampala, Uganda',
+    bizTin:   '1000987654',
+    bizPhone: '+256 700 123 456',
+    bizEmail: 'accounts@business.ug',
+    logoInit: 'AS',
+    docType:  'e-Receipt',
+    ref:      '325043855047',
+    fdn:      '325043855047',
+    date:     new Date().toLocaleDateString('en-UG',{day:'2-digit',month:'short',year:'numeric'}),
+    currency: 'UGX',
+    custName: 'James Omondi',
+    custType: 'B2C',
+    payMethods: [{label:'Mobile Money (MTN)', amount:'360,000.00'}],
+    payTerms: 'Paid on receipt',
+    showVat: false,
+    subtotal: '360,000.00',
+    grandTotal: '360,000.00',
+    grandWords: 'Uganda Shillings Three Hundred Sixty Thousand only',
+    issuedBy: 'Sarah Nakato',
+    verCode:  '79289983322183978289',
+    subDate:  new Date().toISOString().slice(0,10),
+    deviceNo: '1000987654_01',
+    validationUrl: 'https://efristest.ura.go.ug/site_new/#/invoiceValidation?invoiceNo=325043855047&antiFakeCode=79289983322183978289',
+    lines: [
+      {
+        name: 'Lake Mburo Safari — Day Trip',
+        desc: 'Full-day guided wildlife drive',
+        itemCode: 'TOUR-LMB-001',
+        commodityCode: '90121501',
+        categoryPath: 'Travel and Food and Lodging and Entertainment Services >> Travel facilitation >> Travel agents',
+        qty: 2, unit: 'Person', rate: '180,000.00',
+        vatRate: 0, vatAmt: '0.00', discount: '0.00', total: '360,000.00'
+      }
+    ]
+  });
 }
 
-function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+/* ════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════ */
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function fmt(n, curr) {
+  const num = parseFloat(String(n||0).replace(/,/g,''));
+  if (isNaN(num)) return String(n||'—');
+  const s = num.toLocaleString('en-UG',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return curr ? (curr + ' ' + s) : s;
+}
+
+function shortCat(path) {
+  if (!path) return '';
+  const parts = path.split('>>').map(p=>p.trim()).filter(Boolean);
+  // Show last 2 segments joined with ›
+  return parts.slice(-2).join(' › ');
+}
+
+function el(id) { return document.getElementById(id); }
+function setTxt(id, v) { const e=el(id); if(e) e.textContent=v; }
+function setHTML(id, v) { const e=el(id); if(e) e.innerHTML=v; }
+
+/* ════════════════════════════════════════════
+   RENDER
+════════════════════════════════════════════ */
+function render() {
+  const D = DATA;
+  const hasFDN = !!D.fdn;
+
+  /* ── Business ── */
+  setTxt('bizName', D.bizName);
+  setTxt('bizAddr', D.bizAddr);
+  if (D.bizTin) setTxt('bizTinLine', 'TIN: ' + D.bizTin);
+  const contact = [D.bizPhone, D.bizEmail].filter(Boolean).join('  ·  ');
+  if (contact) setTxt('bizContact', contact);
+
+  /* ── Logo ── */
+  if (D.logoUrl) {
+    el('logo').src = D.logoUrl;
+    el('logo').style.display = 'block';
+    el('logoPlaceholder').style.display = 'none';
+  } else {
+    el('logoPlaceholder').textContent = D.logoInit || D.bizName.charAt(0).toUpperCase();
+  }
+
+  /* ── Stamp / doc type ── */
+  setDocType(D.docType);
+  el('selDocType').value = D.docType;
+  setTxt('metaRef', D.ref || D.fdn || '—');
+  setTxt('metaDate', D.date || '—');
+  setTxt('metaCurrency', D.currency || 'UGX');
+  if (hasFDN) {
+    el('metaFDNLine').style.display = '';
+    setTxt('metaFDN', D.fdn);
+  }
+
+  /* ── Customer ── */
+  setTxt('custName', D.custName || '—');
+  const custMeta = [];
+  if (D.custTin) custMeta.push('TIN: ' + D.custTin);
+  if (D.custAddr) custMeta.push(D.custAddr);
+  if (D.passport) custMeta.push('Passport: ' + D.passport + (D.nationality ? ' (' + D.nationality + ')' : ''));
+  setHTML('custMeta', custMeta.map(esc).join('<br>'));
+
+  /* ── Payment methods ── */
+  let methods = D.payMethods.length ? D.payMethods : (D.payMethod ? [{label: D.payMethod, amount:''}] : [{label:'Cash', amount:''}]);
+  setHTML('payMethodsList', methods.map(m =>
+    `<div class="sh-value">${esc(m.label)}${m.amount ? `<span style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:8px;">${esc(m.amount)}</span>` : ''}</div>`
+  ).join(''));
+  if (D.payTerms) setHTML('payTermsLine', `<span>Terms: ${esc(D.payTerms)}</span>${D.dueDate ? ` · Due: ${esc(D.dueDate)}`:''}` );
+
+  const typeLabels = {B2C:'Individual',B2B:'Business',B2G:'Government',Foreign:'Foreign / Tourist'};
+  if (D.custType && typeLabels[D.custType]) {
+    setTxt('custTypeLine', 'Customer type: ' + typeLabels[D.custType]);
+  }
+
+  /* ── Description line ── */
+  if (D.description) { el('descLine').textContent = D.description; }
+  else { el('descLine').style.display = 'none'; }
+
+  /* ── Determine columns ── */
+  const hasCodes    = D.lines.some(l => l.commodityCode || l.itemCode || l.categoryPath);
+  const hasDiscount = D.lines.some(l => parseFloat(String(l.discount||0).replace(/,/g,'')) > 0);
+  const hasVat      = D.showVat || D.lines.some(l => parseFloat(String(l.vatAmt||0).replace(/,/g,'')) > 0);
+
+  /* ── Table header ── */
+  const heads = [];
+  heads.push(`<th style="width:${hasCodes?'36%':'50%'}">Item &amp; Description</th>`);
+  if (hasCodes) heads.push(`<th style="width:14%">URA Category &amp; Code</th>`);
+  heads.push(`<th class="r" style="width:8%">Qty</th>`);
+  heads.push(`<th class="r" style="width:12%">Unit Price</th>`);
+  if (hasVat) heads.push(`<th class="r" style="width:10%">VAT</th>`);
+  if (hasDiscount) heads.push(`<th class="r" style="width:10%">Discount</th>`);
+  heads.push(`<th class="r" style="width:${hasVat||hasDiscount?'12%':'18%'}">Amount</th>`);
+  el('tblHead').innerHTML = heads.join('');
+
+  /* ── Table rows ── */
+  el('itemsBody').innerHTML = D.lines.map(l => {
+    const catShort = shortCat(l.categoryPath);
+    const vatNum   = parseFloat(String(l.vatAmt||0).replace(/,/g,''));
+    const discNum  = parseFloat(String(l.discount||0).replace(/,/g,''));
+
+    let itemCell = '';
+    if (hasCodes) {
+      if (catShort) itemCell += `<div class="itm-cat">${esc(catShort)}</div>`;
+      if (l.commodityCode) itemCell += `<div class="itm-code">Code: ${esc(l.commodityCode)}${l.itemCode ? ' · ' + esc(l.itemCode) : ''}</div>`;
+      else if (l.itemCode) itemCell += `<div class="itm-code">${esc(l.itemCode)}</div>`;
+    }
+    itemCell += `<div class="itm-name">${esc(l.name)}</div>`;
+    if (l.desc) itemCell += `<div class="itm-desc">${esc(l.desc)}</div>`;
+
+    // For the "codes" cell: show category path + commodity code
+    let codeCell = '';
+    if (hasCodes) {
+      if (catShort) codeCell += `<div class="itm-cat" style="font-size:9px;">${esc(catShort)}</div>`;
+      if (l.commodityCode) codeCell += `<div class="itm-code" style="font-size:9.5px;">${esc(l.commodityCode)}</div>`;
+    }
+
+    let vatCell = '', discCell = '';
+    if (hasVat) {
+      if (vatNum > 0) {
+        vatCell = `<td class="r"><span class="vat-badge">${l.vatRate||18}%</span><br>${fmt(l.vatAmt)}</td>`;
+      } else {
+        vatCell = `<td class="r" style="color:var(--muted);font-size:10px;">—</td>`;
+      }
+    }
+    if (hasDiscount) {
+      discCell = discNum > 0
+        ? `<td class="r disc-val">-${fmt(l.discount)}</td>`
+        : `<td class="r" style="color:var(--muted);">—</td>`;
+    }
+
+    return `<tr>
+      <td>${itemCell}</td>
+      ${hasCodes ? `<td>${codeCell}</td>` : ''}
+      <td class="r">${esc(String(l.qty||1))}${l.unit ? `<br><span style="font-size:9.5px;color:var(--muted);">${esc(l.unit)}</span>` : ''}</td>
+      <td class="r">${fmt(l.rate)}</td>
+      ${vatCell}
+      ${discCell}
+      <td class="r"><strong>${fmt(l.total)}</strong></td>
+    </tr>`;
+  }).join('');
+
+  /* ── Payment breakdown ── */
+  setHTML('paymentRows', methods.map(m =>
+    `<div class="pb-row"><span class="pb-method">${esc(m.label)}</span>${m.amount?`<span class="pb-amount">${esc(m.amount)}</span>`:''}</div>`
+  ).join(''));
+  if (D.payTerms) el('payTermsBlock').innerHTML = `Terms: <strong>${esc(D.payTerms)}</strong>${D.dueDate ? ' · Due: <strong>'+esc(D.dueDate)+'</strong>' : ''}`;
+
+  /* ── Totals ── */
+  const subNum  = parseFloat(String(D.subtotal||0).replace(/,/g,''));
+  const discNum2= parseFloat(String(D.discount||0).replace(/,/g,''));
+  const taxNum  = parseFloat(String(D.taxAmount||0).replace(/,/g,''));
+  const totNum  = parseFloat(String(D.grandTotal||0).replace(/,/g,''));
+  const rows = [];
+  rows.push(`<tr><td class="tot-label">Subtotal</td><td>${fmt(D.subtotal||D.grandTotal)}</td></tr>`);
+  if (discNum2 > 0) rows.push(`<tr class="tot-disc"><td class="tot-label">Discount</td><td>-${fmt(D.discount)}</td></tr>`);
+  if (taxNum > 0)   rows.push(`<tr><td class="tot-label">VAT (18%)</td><td>${fmt(D.taxAmount)}</td></tr>`);
+  rows.push(`<tr class="tot-line tot-grand"><td>Total</td><td>${fmt(D.grandTotal||D.subtotal)}</td></tr>`);
+  if (D.grandWords) rows.push(`<tr class="tot-words"><td colspan="2">${esc(D.grandWords)}</td></tr>`);
+  el('totalsBody').innerHTML = rows.join('');
+
+  /* ── Issued by ── */
+  if (D.issuedBy) { el('servedBy').innerHTML = `Issued by: <strong>${esc(D.issuedBy)}</strong>`; }
+  else { el('servedBy').style.display = 'none'; }
+
+  /* ── EFRIS footer vs simple footer ── */
+  if (hasFDN) {
+    el('footer').style.display    = '';
+    el('simpleFooter').style.display = 'none';
+    el('uraTag').style.display    = '';
+    setTxt('fFDN',     D.fdn     || '—');
+    setTxt('fVerCode', D.verCode || '—');
+    setTxt('fSubDate', D.subDate || new Date().toISOString().slice(0,10));
+    setTxt('fDevice',  D.deviceNo|| '—');
+    const qrContent = D.validationUrl || D.verCode || D.fdn;
+    if (qrContent && typeof QRCode !== 'undefined') {
+      new QRCode(el('qrBox'), { text: qrContent, width: 84, height: 84, colorDark: '#1b4332', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    }
+  } else {
+    el('footer').style.display    = 'none';
+    el('simpleFooter').style.display = '';
+    el('uraTag').style.display    = 'none';
+    setTxt('sfBizName', D.bizName);
+    const sfContact = [D.bizPhone, D.bizEmail].filter(Boolean).join('  ·  ');
+    if (sfContact) setTxt('sfContact', sfContact);
+  }
 }
 
 /* ── Controls ── */
 function applyColors() {
-  const a = document.getElementById('clrAccent').value;
-  const s = document.getElementById('clrStamp').value;
+  const a = el('clrAccent').value;
+  const s = el('clrStamp').value;
   document.documentElement.style.setProperty('--accent', a);
-  document.documentElement.style.setProperty('--stamp',  s);
-  // derive light versions
   document.documentElement.style.setProperty('--accent-lt', a);
+  document.documentElement.style.setProperty('--stamp', s);
 }
-
-function toggleVis(id, show) {
-  const el = document.getElementById(id);
-  if (el) el.style.display = show ? '' : 'none';
-}
-
-function setDocType(val) {
-  document.getElementById('docTypeLabel').textContent = val;
+function toggleVis(id, show) { const e=el(id); if(e) e.style.display = show?'':'none'; }
+function setDocType(val) { setTxt('docTypeLabel', val); }
+function toggleCodes(show) {
+  document.querySelectorAll('.itm-cat, .itm-code').forEach(e => e.style.display = show?'':'none');
 }
 
 /* ── Init ── */
