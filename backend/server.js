@@ -348,6 +348,7 @@ async function getSession(tin, deviceNo, password, efrisBaseUrl) {
   if (rcOf(t103) && rcOf(t103) !== '00') {
     throw new Error('EFRIS login (T103) failed (' + rcOf(t103) + '): ' + rmOf(t103));
   }
+  if (!aesKey) throw new Error('No AES key — private key not found or could not decrypt the EFRIS session key. Add your EFRIS private key PEM to the EFRIS_PRIVATE_KEY GitHub Secret and redeploy.');
   return session;
 }
 

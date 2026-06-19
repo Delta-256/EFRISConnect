@@ -6,6 +6,7 @@ COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY backend/server.js ./
+COPY backend/data/ ./data/
 COPY frontend/ /frontend/
 
 ARG EFRIS_PRIVATE_KEY
