@@ -1953,6 +1953,12 @@ app.get('/extension', (req, res) => {
 // ── Static files and SPA fallback ────────────────────────────
 const FRONTEND = path.join(__dirname, '..', 'frontend');
 app.use(express.static(FRONTEND));
+
+// Dedicated receipt viewer — must be before the SPA catch-all
+app.get('/receipt', (req, res) => {
+  res.sendFile(path.join(FRONTEND, 'receipt.html'));
+});
+
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api/') && req.path !== '/extension') {
     res.sendFile(path.join(FRONTEND, 'index.html'));

@@ -84,7 +84,9 @@
   .gn{width:19px;height:19px;background:var(--g);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
   .gb h4{font-size:11px;color:var(--gd);margin-bottom:1px;}.gb p{font-size:11px;color:var(--gray);}
   code{background:#f5f5f5;padding:1px 4px;border-radius:3px;font-family:'Courier New',monospace;font-size:10px;color:#c62828;}
-  .ftr{background:var(--gd);color:rgba(255,255,255,.85);padding:9px 13px;font-size:10px;text-align:center;line-height:1.7;}
+  .ftr{background:var(--gd);color:rgba(255,255,255,.85);padding:9px 13px;font-size:10px;text-align:center;line-height:1.7;margin-top:auto;}
+  body{display:flex;flex-direction:column;min-height:100vh;}
+  .scr,.wrap,#sNone{flex:1;}
   .ftr a{color:var(--gold);text-decoration:none;}.reg{color:rgba(255,255,255,.5);font-size:9px;}
   .hidden{display:none!important;}.mt{margin-top:7px;}hr{border:none;border-top:1px solid var(--bdr);margin:8px 0;}
   .ctype-btn{padding:6px 4px;font-size:11px;border:1px solid var(--bdr);border-radius:5px;background:#f9f9f9;cursor:pointer;color:var(--txt);transition:all .15s;}
@@ -1505,6 +1507,7 @@ async function histDelete(id){
 var _wkType='b2c', _wkLines=[], _wkPays=[], _wkLastResult=null;
 
 function wkInit(){
+  wkLoadCatalog(); wkRebuildDatalist();
   if(_wkLines.length) return; // already initialised
   wkReset();
 }
@@ -1549,13 +1552,13 @@ function wkRenderLines(){
   _wkLines.forEach((l,i)=>{
     const tot=Math.round(((l.qty||1)*(l.price||0)*(1+(l.vatRate||0)/100)-(l.discount||0))*100)/100;
     h+='<tr style="border-bottom:1px solid var(--brd);">'
-      +'<td style="padding:3px 4px;"><input value="'+esc(l.desc)+'" style="width:100%;font-size:12px;" oninput="_wkLines['+i+'].desc=this.value" placeholder="Item or service description"/></td>'
-      +'<td style="padding:3px 4px;"><input type="number" value="'+esc(l.qty)+'" style="width:100%;font-size:12px;text-align:right;" oninput="_wkLines['+i+'].qty=+this.value;wkRecalc()"/></td>'
-      +'<td style="padding:3px 4px;"><input value="'+esc(l.unit)+'" style="width:100%;font-size:12px;" oninput="_wkLines['+i+'].unit=this.value" placeholder="Each"/></td>'
-      +'<td style="padding:3px 4px;"><input type="number" value="'+esc(l.price)+'" style="width:100%;font-size:12px;text-align:right;" oninput="_wkLines['+i+'].price=+this.value;wkRecalc()"/></td>'
-      +'<td style="padding:3px 4px;"><input type="number" value="'+esc(l.vatRate)+'" style="width:100%;font-size:12px;text-align:right;" oninput="_wkLines['+i+'].vatRate=+this.value;wkRecalc()" placeholder="0"/></td>'
-      +'<td style="padding:3px 4px;"><input type="number" value="'+esc(l.discount)+'" style="width:100%;font-size:12px;text-align:right;" oninput="_wkLines['+i+'].discount=+this.value;wkRecalc()" placeholder="0"/></td>'
-      +'<td style="padding:3px 4px;text-align:right;">'+fn(tot)+'</td>'
+      +'<td style="padding:3px 4px;position:relative;"><input list="wkItemList" value="'+esc(l.desc)+'" style="width:100%;font-size:12px;" oninput="_wkLines['+i+'].desc=this.value;wkAutoFillItem('+i+',this.value)" placeholder="Item or service description"/></td>'
+      +'<td style="padding:3px 4px;"><input type="number" value="'+esc(l.qty)+'" style="width:100%;font-size:12px;text-align:right;" oninput="_wkLines['+i+'].qty=+this.value;wkRecalc();wkUpdateTot('+i+')"/></td>'
+      +'<td style="padding:3px 4px;"><input list="wkUnitList" value="'+esc(l.unit)+'" style="width:100%;font-size:12px;" oninput="_wkLines['+i+'].unit=this.value" placeholder="Each"/></td>'
+      +'<td style="padding:3px 4px;"><input type="number" value="'+esc(l.price)+'" style="width:100%;font-size:12px;text-align:right;" oninput="_wkLines['+i+'].price=+this.value;wkRecalc();wkUpdateTot('+i+')"/></td>'
+      +'<td style="padding:3px 4px;"><input type="number" value="'+esc(l.vatRate)+'" style="width:100%;font-size:12px;text-align:right;" oninput="_wkLines['+i+'].vatRate=+this.value;wkRecalc();wkUpdateTot('+i+')" placeholder="0"/></td>'
+      +'<td style="padding:3px 4px;"><input type="number" value="'+esc(l.discount)+'" style="width:100%;font-size:12px;text-align:right;" oninput="_wkLines['+i+'].discount=+this.value;wkRecalc();wkUpdateTot('+i+')" placeholder="0"/></td>'
+      +'<td style="padding:3px 4px;text-align:right;" id="wkTot_'+i+'">'+fn(tot)+'</td>'
       +(_wkLines.length>1?'<td style="padding:3px 4px;"><button onclick="_wkLines.splice('+i+',1);wkRenderLines();wkRecalc()" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:14px;">✕</button></td>':'<td></td>')
       +'</tr>';
   });
@@ -1567,19 +1570,74 @@ function wkAddLine(){ _wkLines.push({desc:'',qty:1,unit:'Each',price:0,vatRate:0
 
 function wkRenderPays(){
   const el=$('wkPayList'); if(!el) return;
+  const curr=(document.getElementById('wkCurr')||{}).value||'UGX';
+  const subtotal=_wkLines.reduce((s,l)=>s+(l.qty||1)*(l.price||0),0);
+  const vatTotal=_wkLines.reduce((s,l)=>s+(l.qty||1)*(l.price||0)*(l.vatRate||0)/100,0);
+  const discTotal=_wkLines.reduce((s,l)=>s+(l.discount||0),0);
+  const total=Math.round((subtotal+vatTotal-discTotal)*100)/100;
   let h='';
+  let allocatedSoFar=0;
   _wkPays.forEach((pw,i)=>{
     const opts=PAY_MODES.map(([v,n])=>'<option value="'+v+'"'+(pw.mode===v?' selected':'')+'>'+n+'</option>').join('');
-    h+='<div style="display:flex;gap:5px;align-items:center;margin-bottom:4px;">'
-      +'<select style="flex:1;font-size:11px;" onchange="_wkPays['+i+'].mode=this.value">'+opts+'</select>'
-      +'<input type="number" style="width:110px;font-size:12px;padding:4px 6px;" placeholder="Amount (blank=full)" value="'+(pw.amount||'')+'" oninput="_wkPays['+i+'].amount=this.value"/>'
-      +(_wkPays.length>1?'<button onclick="_wkPays.splice('+i+',1);wkRenderPays()" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:15px;">✕</button>':'<span style="width:20px;display:inline-block;"></span>')
+    const remaining=Math.max(0,Math.round((total-allocatedSoFar)*100)/100);
+    const hint=remaining>0&&i>0?'<span style="font-size:10px;color:var(--gray);margin-left:2px;">bal: '+fn(remaining)+'</span>':'';
+    allocatedSoFar+=pw.amount?parseFloat(pw.amount)||0:0;
+    h+='<div style="display:flex;gap:5px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">'
+      +'<select style="flex:1;min-width:120px;font-size:11px;" onchange="_wkPays['+i+'].mode=this.value;wkRecalc()">'+opts+'</select>'
+      +'<input type="number" style="width:110px;font-size:12px;padding:4px 6px;" placeholder="'+(i===0?fn(total):'Remaining: '+fn(remaining))+'" value="'+(pw.amount||'')+'" oninput="_wkPays['+i+'].amount=this.value;wkRenderPays()"/>'+hint
+      +(_wkPays.length>1?'<button onclick="_wkPays.splice('+i+',1);wkRenderPays();wkRecalc()" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:15px;">✕</button>':'<span style="width:20px;display:inline-block;"></span>')
       +'</div>';
   });
+  // Show unpaid balance if split payment doesn't add up
+  const totalAllocated=_wkPays.reduce((s,pw)=>s+(pw.amount?parseFloat(pw.amount)||0:0),0);
+  const unpaid=Math.round((total-totalAllocated)*100)/100;
+  if(_wkPays.length>1 && unpaid>0.01){
+    h+='<div style="color:#c62828;font-size:11px;margin-top:2px;">⚠ Unpaid balance: <strong>'+curr+' '+fn(unpaid)+'</strong></div>';
+  } else if(_wkPays.length>1 && unpaid<-0.01){
+    h+='<div style="color:#f9a825;font-size:11px;margin-top:2px;">⚠ Overpaid by: <strong>'+curr+' '+fn(Math.abs(unpaid))+'</strong></div>';
+  }
   el.innerHTML=h;
 }
 
-function wkAddPay(){ _wkPays.push({mode:'102',amount:''}); wkRenderPays(); }
+function wkAddPay(){ _wkPays.push({mode:'102',amount:''}); wkRenderPays(); wkRecalc(); }
+
+function wkUpdateTot(i){
+  const l=_wkLines[i]; if(!l) return;
+  const tot=Math.round(((l.qty||1)*(l.price||0)*(1+(l.vatRate||0)/100)-(l.discount||0))*100)/100;
+  const el=$('wkTot_'+i); if(el) el.textContent=fn(tot);
+}
+
+let _wkCatalog=[];
+async function wkLoadCatalog(){
+  if(_wkCatalog.length) return;
+  try{
+    const ep=encodeURIComponent(CFG.managerEndpoint||'');
+    const tk=encodeURIComponent(CFG.accessToken||'');
+    if(!CFG.managerEndpoint) return;
+    const r=await fetch(RELAY+'/api/goods/manager-items?ep='+ep+'&tk='+tk);
+    const d=await r.json();
+    if(d.success && d.items) _wkCatalog=d.items;
+    wkRebuildDatalist();
+  }catch(e){}
+}
+function wkRebuildDatalist(){
+  let dl=document.getElementById('wkItemList');
+  if(!dl){ dl=document.createElement('datalist'); dl.id='wkItemList'; document.body.appendChild(dl); }
+  dl.innerHTML=_wkCatalog.map(it=>'<option value="'+esc(it.name||it.ItemName||'')+'">').join('');
+  let ul=document.getElementById('wkUnitList');
+  if(!ul){ ul=document.createElement('datalist'); ul.id='wkUnitList'; document.body.appendChild(ul); }
+  ul.innerHTML=['Each','kg','g','Litre','ml','Metre','cm','Box','Pair','Set','Pack','Piece','Hour','Day','Month','Per Person'].map(u=>'<option value="'+u+'">').join('');
+}
+function wkAutoFillItem(i,val){
+  const match=_wkCatalog.find(it=>(it.name||it.ItemName||'').toLowerCase()===val.toLowerCase());
+  if(!match) return;
+  const l=_wkLines[i];
+  if(match.price && !l.price){ l.price=match.price; }
+  if(match.ItemCode||match.code){ l.itemCode=match.ItemCode||match.code||''; }
+  if(match.efrisUom||match.EFRISUnitOfMeasure){ l.unit=match.efrisUom||match.EFRISUnitOfMeasure||l.unit; }
+  if(match.catPath||match.EFRISCommodityCode){ l.catPath=match.catPath||match.EFRISCommodityCode||''; }
+  wkRenderLines(); wkRecalc();
+}
 
 function wkRecalc(){
   const subtotal=_wkLines.reduce((s,l)=>s+(l.qty||1)*(l.price||0),0);
