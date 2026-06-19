@@ -1632,6 +1632,32 @@ function wkRenderLines(){
 
 function wkAddLine(){ _wkLines.push({desc:'',qty:1,unit:'Each',price:0,vatRate:0,discount:0}); wkRenderLines(); wkRecalc(); }
 
+function wkPayAmtInput(i, val){
+  _wkPays[i].amount = val;
+  // Update balance hints without re-rendering (preserves focus)
+  const curr=(document.getElementById('wkCurr')||{}).value||'UGX';
+  const subtotal=_wkLines.reduce((s,l)=>s+(l.qty||1)*(l.price||0),0);
+  const vatTotal=_wkLines.reduce((s,l)=>s+(l.qty||1)*(l.price||0)*(l.vatRate||0)/100,0);
+  const discTotal=_wkLines.reduce((s,l)=>s+(l.qty||1)*(l.price||0)*(l.discount||0)/100,0);
+  const total=Math.round((subtotal+vatTotal-discTotal)*100)/100;
+  let allocated=0;
+  _wkPays.forEach((pw,j)=>{
+    allocated+=pw.amount?parseFloat(pw.amount)||0:0;
+    const hint=$('wkPayHint_'+j);
+    if(hint&&j>0){
+      const remaining=Math.max(0,Math.round((total-(allocated-(pw.amount?parseFloat(pw.amount)||0:0)))*100)/100);
+      hint.innerHTML=remaining>0?'<span style="font-size:10px;color:var(--gray);margin-left:2px;">bal: '+fn(remaining)+'</span>':'';
+    }
+  });
+  const totalAllocated=_wkPays.reduce((s,pw)=>s+(pw.amount?parseFloat(pw.amount)||0:0),0);
+  const unpaid=Math.round((total-totalAllocated)*100)/100;
+  const el=$('wkPayUnpaid'); if(!el) return;
+  if(_wkPays.length>1&&unpaid>0.01) el.innerHTML='<span style="color:#c62828;">⚠ Unpaid balance: <strong>'+curr+' '+fn(unpaid)+'</strong></span>';
+  else if(_wkPays.length>1&&unpaid<-0.01) el.innerHTML='<span style="color:#f9a825;">⚠ Overpaid by: <strong>'+curr+' '+fn(Math.abs(unpaid))+'</strong></span>';
+  else el.innerHTML='';
+  wkRecalc();
+}
+
 function wkRenderPays(){
   const el=$('wkPayList'); if(!el) return;
   const curr=(document.getElementById('wkCurr')||{}).value||'UGX';
@@ -1648,18 +1674,17 @@ function wkRenderPays(){
     allocatedSoFar+=pw.amount?parseFloat(pw.amount)||0:0;
     h+='<div style="display:flex;gap:5px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">'
       +'<select style="flex:1;min-width:120px;font-size:11px;" onchange="_wkPays['+i+'].mode=this.value;wkRecalc()">'+opts+'</select>'
-      +'<input type="number" style="width:110px;font-size:12px;padding:4px 6px;" placeholder="'+(i===0?fn(total):'Remaining: '+fn(remaining))+'" value="'+(pw.amount||'')+'" oninput="_wkPays['+i+'].amount=this.value;wkRenderPays()"/>'+hint
+      +'<input type="number" style="width:110px;font-size:12px;padding:4px 6px;" placeholder="'+(i===0?fn(total):'Remaining: '+fn(remaining))+'" value="'+(pw.amount||'')+'" oninput="wkPayAmtInput('+i+',this.value)"/><span id="wkPayHint_'+i+'">'+hint+'</span>'
       +(_wkPays.length>1?'<button onclick="_wkPays.splice('+i+',1);wkRenderPays();wkRecalc()" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:15px;">✕</button>':'<span style="width:20px;display:inline-block;"></span>')
       +'</div>';
   });
   // Show unpaid balance if split payment doesn't add up
   const totalAllocated=_wkPays.reduce((s,pw)=>s+(pw.amount?parseFloat(pw.amount)||0:0),0);
   const unpaid=Math.round((total-totalAllocated)*100)/100;
-  if(_wkPays.length>1 && unpaid>0.01){
-    h+='<div style="color:#c62828;font-size:11px;margin-top:2px;">⚠ Unpaid balance: <strong>'+curr+' '+fn(unpaid)+'</strong></div>';
-  } else if(_wkPays.length>1 && unpaid<-0.01){
-    h+='<div style="color:#f9a825;font-size:11px;margin-top:2px;">⚠ Overpaid by: <strong>'+curr+' '+fn(Math.abs(unpaid))+'</strong></div>';
-  }
+  h+='<div id="wkPayUnpaid" style="font-size:11px;margin-top:2px;">';
+  if(_wkPays.length>1 && unpaid>0.01) h+='<span style="color:#c62828;">⚠ Unpaid balance: <strong>'+curr+' '+fn(unpaid)+'</strong></span>';
+  else if(_wkPays.length>1 && unpaid<-0.01) h+='<span style="color:#f9a825;">⚠ Overpaid by: <strong>'+curr+' '+fn(Math.abs(unpaid))+'</strong></span>';
+  h+='</div>';
   el.innerHTML=h;
 }
 
