@@ -1854,36 +1854,46 @@ function _openReceiptWith(inv, efris){
   const sub = lines.reduce((s,l)=>s+l.unitPrice*l.qty,0);
   const vat = lines.reduce((s,l)=>s+l.vatAmount,0);
   const disc = lines.reduce((s,l)=>s+l.discount,0);
-  p.set('custName',inv._custName||'Walk-in Customer');
-  p.set('custTin',inv.CustomerTIN||'');
-  p.set('custType',inv.CustomerType||_wkType||'b2c');
-  p.set('invoiceNo',inv.Reference||('WLK-'+Date.now()));
-  p.set('issueDate',inv.IssueDate||new Date().toISOString().slice(0,10));
-  p.set('currency',inv._currency||'UGX');
-  p.set('fxRate',inv._fx||1);
-  p.set('bizName',CFG.legalName||CFG.tradeName||'');
-  p.set('bizAddress',CFG.address||'');
-  p.set('bizPhone',CFG.phone||'');
-  p.set('bizEmail',CFG.email||'');
-  p.set('bizTIN',CFG.tin||'');
-  p.set('bizLogo',CFG.logoUrl||'');
-  p.set('issuedBy',CFG.issuedBy||'');
-  p.set('vatReg',CFG.vatReg?'1':'0');
+  p.set('custName', (inv._custName && inv._custName!=='Walk-in Customer') ? inv._custName : 'Cash Customer');
+  p.set('custTin',  inv.CustomerTIN||'');
+  p.set('custType', inv.CustomerType||_wkType||'b2c');
+  p.set('ref',      inv.Reference||('WLK-'+Date.now()));
+  p.set('date',     inv.IssueDate||new Date().toLocaleDateString('en-UG',{day:'2-digit',month:'short',year:'numeric'}));
+  p.set('currency', inv._currency||'UGX');
+  p.set('bizName',  CFG.legalName||CFG.tradeName||'');
+  p.set('bizAddr',  CFG.address||'');
+  p.set('bizPhone', CFG.phone||'');
+  p.set('bizEmail', CFG.email||'');
+  p.set('bizTin',   CFG.tin||'');
+  p.set('logoUrl',  CFG.logoUrl||'');
+  p.set('issuedBy', CFG.issuedBy||'');
   const docType=(efris&&efris.fdn)?(CFG.vatReg?'Tax Invoice':'e-Receipt'):'Receipt';
-  p.set('docType',docType);
+  p.set('docType',  docType);
+  p.set('showVat',  vat>0?'1':'0');
   if(efris&&efris.fdn){
-    p.set('fdn',efris.fdn||'');
-    p.set('antifakeCode',efris.antifakeCode||'');
-    p.set('qrCode',efris.validationUrl||efris.qrCode||'');
-    p.set('submissionDate',efris.issuedDate||new Date().toISOString());
-    p.set('deviceNo',efris.deviceNo||CFG.deviceNo||'');
+    p.set('fdn',          efris.fdn||'');
+    p.set('verCode',      efris.antifakeCode||efris.verCode||'');
+    p.set('invId',        efris.invoiceId||'');
+    p.set('validationUrl',efris.validationUrl||efris.qrCode||'');
+    p.set('subDate',      (efris.issuedDate||new Date().toISOString()).slice(0,10));
+    p.set('deviceNo',     efris.deviceNo||CFG.deviceNo||'');
   }
-  p.set('lines',JSON.stringify(lines));
-  p.set('payMethods',JSON.stringify(payArr));
-  p.set('subTotal',sub);
-  p.set('vatTotal',vat);
-  p.set('discTotal',disc);
-  p.set('grandTotal',inv._total||0);
+  p.set('lines',      JSON.stringify(lines.map(l=>({
+    name:l.itemName||'',desc:'',itemCode:l.itemCode||'',commodityCode:l.commodityCode||'',
+    categoryPath:l.categoryPath||'',qty:l.qty||1,unit:l.unit||'',
+    rate:l.unitPrice||0,vatRate:l.vatRate||0,vatAmt:l.vatAmount||0,
+    discount:l.discount||0,total:l.lineTotal||0
+  }))));
+  p.set('payMethods', JSON.stringify(payArr));
+  p.set('subtotal',   sub);
+  p.set('taxAmount',  vat);
+  p.set('discount',   disc);
+  p.set('grandTotal', inv._total||0);
+  // Cash tendered / change
+  const cashPay=payArr.find(m=>m.label&&m.label.toLowerCase().includes('cash'));
+  const cashAmt=cashPay?parseFloat(String(cashPay.amount||0).replace(/,/g,'')):0;
+  const totalAmt=parseFloat(String(inv._total||0).replace(/,/g,''))||0;
+  if(cashAmt>totalAmt+0.01){ p.set('cashTendered',cashAmt); p.set('cashChange',Math.round((cashAmt-totalAmt)*100)/100); }
   window.open(RELAY+'/receipt?'+p.toString(),'_blank');
 }
 

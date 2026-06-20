@@ -100,7 +100,7 @@ body { font-family: var(--sans); background: #e8ece8; color: var(--text); min-he
 #paymentBlock .pb-amount { font-family: var(--mono); color: var(--muted); font-size: 10.5px; }
 #payTermsBlock { font-size: 10.5px; color: var(--muted); margin-top: 8px; }
 #payTermsBlock strong { color: var(--text); }
-#totalsTable { width: 240px; border-collapse: collapse; flex-shrink: 0; }
+#totalsTable { width: 300px; border-collapse: collapse; flex-shrink: 0; }
 #totalsTable td { padding: 4px 8px; font-size: 11.5px; }
 #totalsTable td:last-child { text-align: right; font-family: var(--mono); }
 .tot-label { color: var(--muted); }
@@ -243,16 +243,20 @@ body { font-family: var(--sans); background: #e8ece8; color: var(--text); min-he
   <!-- EFRIS verification footer (shown only if FDN present) -->
   <div id="footer" style="display:none;">
     <div id="footerLeft">
-      <div id="footerLabel">URA EFRIS Verification</div>
-      <div class="efris-row"><span class="efris-key">Fiscal Document No.</span><span class="efris-val fdn" id="fFDN">—</span></div>
-      <div class="efris-row"><span class="efris-key">Verification Code</span><span class="efris-val" id="fVerCode">—</span></div>
+      <div id="footerLabel">UGX Fiscal INV Verification Number</div>
+      <div class="efris-row"><span class="efris-key">Buyer Name</span><span class="efris-val" id="fBuyer">—</span></div>
+      <div class="efris-row"><span class="efris-key">FDN No.</span><span class="efris-val fdn" id="fFDN">—</span></div>
+      <div class="efris-row"><span class="efris-key">UGX INV ID</span><span class="efris-val" id="fInvId" style="display:none;">—</span></div>
       <div class="efris-row"><span class="efris-key">Submission Date</span><span class="efris-val" id="fSubDate">—</span></div>
       <div class="efris-row"><span class="efris-key">Device No.</span><span class="efris-val" id="fDevice">—</span></div>
-      <div class="efris-row"><span class="efris-key">Status</span><span class="efris-val" style="color:#2d6a4f;font-weight:600;">Submitted to URA</span></div>
     </div>
     <div id="footerRight">
       <div id="qrBox"></div>
       <div id="qrLabel">Scan to verify<br>on URA EFRIS</div>
+      <div id="fVerCodeWrap" style="text-align:center;margin-top:6px;max-width:110px;">
+        <div style="font-size:8px;color:var(--muted);margin-bottom:2px;letter-spacing:.5px;text-transform:uppercase;">Verification Code</div>
+        <div id="fVerCode" style="font-family:var(--mono);font-size:8.5px;word-break:break-all;color:var(--text);">—</div>
+      </div>
     </div>
   </div>
 
@@ -330,16 +334,20 @@ const DATA = {
 
   // EFRIS
   verCode:       qp('verCode',       ''),
+  invId:         qp('invId',         ''),
   subDate:       qp('subDate',       ''),
   deviceNo:      qp('deviceNo',      ''),
   validationUrl: qp('validationUrl', ''),
+  // Cash tendered / change (for cash payments with overpayment)
+  cashTendered:  qp('cashTendered',  ''),
+  cashChange:    qp('cashChange',    ''),
 };
 
 /* ── Demo data when opened directly ── */
 const _isDemo = !_ps.has('bizName');
 if (_isDemo) {
   Object.assign(DATA, {
-    bizName:  'Acacia Safaris Uganda Ltd',
+    bizName:  'Demo Company Uganda Ltd',
     bizAddr:  'Plot 45, Kampala Road, Kampala, Uganda',
     bizTin:   '1000987654',
     bizPhone: '+256 700 123 456',
@@ -359,19 +367,36 @@ if (_isDemo) {
     grandTotal: '360,000.00',
     grandWords: 'Uganda Shillings Three Hundred Sixty Thousand only',
     issuedBy: 'Sarah Nakato',
-    verCode:  '79289983322183978289',
-    subDate:  new Date().toISOString().slice(0,10),
-    deviceNo: '1000987654_01',
-    validationUrl: 'https://efristest.ura.go.ug/site_new/#/invoiceValidation?invoiceNo=325043855047&antiFakeCode=79289983322183978289',
+    verCode:      '79289983322183978289',
+    invId:        '10977703248839344',
+    subDate:      new Date().toISOString().slice(0,10),
+    deviceNo:     '1000987654_01',
+    validationUrl:'https://efristest.ura.go.ug/site_new/#/invoiceValidation?invoiceNo=325043855047&antiFakeCode=79289983322183978289',
+    cashTendered: '400,000.00',
+    cashChange:   '40,000.00',
+    showVat: true,
+    subtotal:   '360,000.00',
+    taxAmount:   '46,441.00',
+    grandTotal: '360,000.00',
+    grandWords: 'Uganda Shillings Three Hundred Sixty Thousand only',
     lines: [
       {
-        name: 'Lake Mburo Safari — Day Trip',
-        desc: 'Full-day guided wildlife drive',
-        itemCode: 'TOUR-LMB-001',
+        name: 'Safari Day Trip — Per Person',
+        desc: 'Full-day guided wildlife drive, park fees included',
+        itemCode: 'TOUR-001',
         commodityCode: '90121501',
         categoryPath: 'Travel and Food and Lodging and Entertainment Services >> Travel facilitation >> Travel agents',
-        qty: 2, unit: 'Person', rate: '180,000.00',
-        vatRate: 0, vatAmt: '0.00', discount: '0.00', total: '360,000.00'
+        qty: 2, unit: 'Person', rate: '152,542.37',
+        vatRate: 18, vatAmt: '54,915.25', discount: '0.00', total: '360,000.00'
+      },
+      {
+        name: 'Bottled Water (500ml)',
+        desc: 'Complimentary items — exempt from VAT',
+        itemCode: 'MISC-001',
+        commodityCode: '50202302',
+        categoryPath: 'Food Beverage and Tobacco Products >> Beverages >> Water',
+        qty: 4, unit: 'Each', rate: '2,500.00',
+        vatRate: 0, vatAmt: '0.00', discount: '0.00', total: '10,000.00'
       }
     ]
   });
@@ -496,12 +521,19 @@ function render() {
       if (l.commodityCode) codeCell += `<div class="itm-code" style="font-size:9.5px;">${esc(l.commodityCode)}</div>`;
     }
 
+    // Tax flag: T = taxable (any rate > 0), EXMPT = exempt, ZERO = zero-rated
+    const vatRate = parseFloat(l.vatRate) || 0;
+    const taxFlag = vatRate > 0
+      ? `<span class="vat-badge" style="margin-left:4px;">${vatRate}% T</span>`
+      : (l.vatCat === 'B' ? `<span class="vat-badge" style="background:#fff8e1;color:#f9a825;margin-left:4px;">ZERO</span>`
+        : `<span class="vat-badge" style="background:#f5f5f5;color:var(--muted);margin-left:4px;">EXMPT</span>`);
+
     let vatCell = '', discCell = '';
     if (hasVat) {
       if (vatNum > 0) {
         vatCell = `<td class="r"><span class="vat-badge">${l.vatRate||18}%</span><br>${fmt(l.vatAmt)}</td>`;
       } else {
-        vatCell = `<td class="r" style="color:var(--muted);font-size:10px;">—</td>`;
+        vatCell = `<td class="r" style="color:var(--muted);font-size:10px;">Exempt</td>`;
       }
     }
     if (hasDiscount) {
@@ -510,14 +542,21 @@ function render() {
         : `<td class="r" style="color:var(--muted);">—</td>`;
     }
 
+    // Qty display: show "3 × 1,000" when qty > 1
+    const qtyNum = parseFloat(l.qty) || 1;
+    const qtyDisplay = qtyNum > 1
+      ? `${qtyNum} &times; ${fmt(l.rate)}`
+      : esc(String(l.qty||1));
+    const unitSpan = l.unit ? `<br><span style="font-size:9.5px;color:var(--muted);">${esc(l.unit)}</span>` : '';
+
     return `<tr>
       <td>${itemCell}</td>
       ${hasCodes ? `<td>${codeCell}</td>` : ''}
-      <td class="r">${esc(String(l.qty||1))}${l.unit ? `<br><span style="font-size:9.5px;color:var(--muted);">${esc(l.unit)}</span>` : ''}</td>
+      <td class="r">${qtyDisplay}${unitSpan}</td>
       <td class="r">${fmt(l.rate)}</td>
       ${vatCell}
       ${discCell}
-      <td class="r"><strong>${fmt(l.total)}</strong></td>
+      <td class="r"><strong>${fmt(l.total)}</strong>${taxFlag}</td>
     </tr>`;
   }).join('');
 
@@ -528,16 +567,54 @@ function render() {
   if (D.payTerms) el('payTermsBlock').innerHTML = `Terms: <strong>${esc(D.payTerms)}</strong>${D.dueDate ? ' · Due: <strong>'+esc(D.dueDate)+'</strong>' : ''}`;
 
   /* ── Totals ── */
-  const subNum  = parseFloat(String(D.subtotal||0).replace(/,/g,''));
   const discNum2= parseFloat(String(D.discount||0).replace(/,/g,''));
-  const taxNum  = parseFloat(String(D.taxAmount||0).replace(/,/g,''));
-  const totNum  = parseFloat(String(D.grandTotal||0).replace(/,/g,''));
   const rows = [];
-  rows.push(`<tr><td class="tot-label">Subtotal</td><td>${fmt(D.subtotal||D.grandTotal)}</td></tr>`);
-  if (discNum2 > 0) rows.push(`<tr class="tot-disc"><td class="tot-label">Discount</td><td>-${fmt(D.discount)}</td></tr>`);
-  if (taxNum > 0)   rows.push(`<tr><td class="tot-label">VAT (18%)</td><td>${fmt(D.taxAmount)}</td></tr>`);
-  rows.push(`<tr class="tot-line tot-grand"><td>Total</td><td>${fmt(D.grandTotal||D.subtotal)}</td></tr>`);
-  if (D.grandWords) rows.push(`<tr class="tot-words"><td colspan="2">${esc(D.grandWords)}</td></tr>`);
+
+  // VAT breakdown by category (matches URA receipt format)
+  const vatGroups = {};
+  D.lines.forEach(l => {
+    const rate = parseFloat(l.vatRate) || 0;
+    const key  = rate > 0 ? rate + '%' : (l.vatCat === 'B' ? 'ZERO' : 'EXMPT');
+    if (!vatGroups[key]) vatGroups[key] = { incl: 0, vat: 0 };
+    vatGroups[key].incl += parseFloat(String(l.total||0).replace(/,/g,''));
+    vatGroups[key].vat  += parseFloat(String(l.vatAmt||0).replace(/,/g,''));
+  });
+
+  const vatKeys = Object.keys(vatGroups);
+  const showBreakdown = vatKeys.length > 1 || (vatKeys.length === 1 && vatGroups[vatKeys[0]].vat > 0);
+
+  if (showBreakdown) {
+    // Header row
+    rows.push(`<tr><td class="tot-label" style="font-size:9px;letter-spacing:.8px;text-transform:uppercase;">VAT%</td><td class="tot-label" style="font-size:9px;letter-spacing:.8px;text-transform:uppercase;text-align:right;">Amt Incl.</td><td class="tot-label" style="font-size:9px;letter-spacing:.8px;text-transform:uppercase;text-align:right;">VAT</td></tr>`);
+    vatKeys.forEach(k => {
+      const g = vatGroups[k];
+      rows.push(`<tr style="border-top:1px solid var(--border)">
+        <td class="tot-label">${esc(k)}</td>
+        <td style="text-align:right;font-family:var(--mono);font-size:11px;">${fmt(g.incl)}</td>
+        <td style="text-align:right;font-family:var(--mono);font-size:11px;">${fmt(g.vat)}</td>
+      </tr>`);
+    });
+    const totalVat = vatKeys.reduce((s,k)=>s+vatGroups[k].vat,0);
+    const totalIncl = vatKeys.reduce((s,k)=>s+vatGroups[k].incl,0);
+    rows.push(`<tr style="border-top:1.5px solid var(--border)">
+      <td class="tot-label">TOTAL</td>
+      <td style="text-align:right;font-family:var(--mono);font-size:11px;">${fmt(totalIncl)}</td>
+      <td style="text-align:right;font-family:var(--mono);font-size:11px;">${fmt(totalVat)}</td>
+    </tr>`);
+  } else {
+    rows.push(`<tr><td class="tot-label">Subtotal</td><td>${fmt(D.subtotal||D.grandTotal)}</td></tr>`);
+    if (discNum2 > 0) rows.push(`<tr class="tot-disc"><td class="tot-label">Discount</td><td>-${fmt(D.discount)}</td></tr>`);
+  }
+
+  rows.push(`<tr class="tot-line tot-grand"><td>Total</td><td colspan="2">${fmt(D.grandTotal||D.subtotal)}</td></tr>`);
+  if (D.grandWords) rows.push(`<tr class="tot-words"><td colspan="3">${esc(D.grandWords)}</td></tr>`);
+
+  // Cash tendered / change
+  const tendered = parseFloat(String(D.cashTendered||0).replace(/,/g,''));
+  const change   = parseFloat(String(D.cashChange||0).replace(/,/g,''));
+  if (tendered > 0) rows.push(`<tr style="border-top:1px solid var(--border)"><td class="tot-label">Cash</td><td colspan="2" style="text-align:right;font-family:var(--mono);">${fmt(D.cashTendered)}</td></tr>`);
+  if (change > 0)   rows.push(`<tr><td class="tot-label">Change</td><td colspan="2" style="text-align:right;font-family:var(--mono);color:#c62828;">-${fmt(D.cashChange)}</td></tr>`);
+
   el('totalsBody').innerHTML = rows.join('');
 
   /* ── Issued by ── */
@@ -549,7 +626,11 @@ function render() {
     el('footer').style.display    = '';
     el('simpleFooter').style.display = 'none';
     el('uraTag').style.display    = '';
+    // Buyer name: B2C = "Cash Customer" (matches URA standard), B2B = company name
+    const buyerLabel = D.custType === 'B2B' || D.custType === 'B2G' ? D.custName : 'Cash Customer';
+    setTxt('fBuyer',   buyerLabel);
     setTxt('fFDN',     D.fdn     || '—');
+    if (D.invId) { setTxt('fInvId', D.invId); el('fInvId').style.display = ''; }
     setTxt('fVerCode', D.verCode || '—');
     setTxt('fSubDate', D.subDate || new Date().toISOString().slice(0,10));
     setTxt('fDevice',  D.deviceNo|| '—');
