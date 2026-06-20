@@ -238,7 +238,12 @@ const EFRIS_PRIVATE_KEY_PATHS = _pkEnv && !_pemContentFromEnv
 
 function loadPem(p) {
   if (_pemContentFromEnv) return _pemContentFromEnv;
-  try { return fs.readFileSync(p, 'utf8'); } catch(e) { return null; }
+  try {
+    let content = fs.readFileSync(p, 'utf8');
+    // Dockerfile `echo` can write literal \n instead of real newlines — fix it
+    if (content.includes('\\n')) content = content.replace(/\\n/g, '\n');
+    return content;
+  } catch(e) { return null; }
 }
 
 function resolveAesKey(passwordDes) {

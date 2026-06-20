@@ -544,34 +544,87 @@
               <div class="fg"><label>Account When Sold</label><select id="gFldWhenSold"><option value="">— Select account —</option></select></div>
               <div class="fg"><label>Account When Purchased</label><select id="gFldWhenPurchased"><option value="">— Select account —</option></select></div>
             </div>
-            <div class="fg">
-              <label>Division</label>
-              <input type="text" id="gDivSearch" placeholder="Search divisions…" oninput="gFilterDivs(this.value)" autocomplete="off" style="margin-bottom:4px;"/>
-              <select id="gFldDivision" onchange="gOnDivChange()" size="1"><option value="">— None —</option></select>
-              <label style="display:flex;align-items:center;gap:6px;margin-top:5px;font-weight:400;font-size:12px;cursor:pointer;">
-                <input type="checkbox" id="gFldAutoSalesDivision" onchange="gOnDivChange()"/> Also use as Sales Division
-              </label>
-            </div>
-            <div class="fg goods-only" id="gValuationWrap" style="display:none;">
-              <label>Valuation Method</label>
-              <select id="gFldCostMethod">
-                <option value="">— Use Manager default —</option>
-                <option value="0">Average Cost (AVCO)</option>
-                <option value="1">First In First Out (FIFO)</option>
-                <option value="2">Standard Cost</option>
-              </select>
-            </div>
-            <div class="fg goods-only" id="gStockWrap" style="display:none;">
-              <label>Initial Stock Quantity <span style="font-weight:400;color:var(--gray);">(after creating item, set opening stock)</span></label>
-              <div style="display:flex;gap:6px;align-items:center;">
-                <input type="number" id="gFldInitQty" placeholder="e.g. 50" min="0" step="any" style="flex:1;"/>
-                <button type="button" class="btn bo bsm" onclick="gSetInitialStock()" style="white-space:nowrap;">&#128230; Set Stock</button>
+            <div class="g2">
+              <div class="fg">
+                <label>Division</label>
+                <input type="text" id="gDivSearch" placeholder="Search divisions…" oninput="gFilterDivs(this.value)" autocomplete="off" style="margin-bottom:4px;"/>
+                <select id="gFldDivision" onchange="gOnDivChange()" size="1"><option value="">— None —</option></select>
+                <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-weight:400;font-size:12px;cursor:pointer;">
+                  <input type="checkbox" id="gFldAutoSalesDivision" onchange="gOnDivChange()"/>
+                  <span>Also apply as <strong>Sales Division</strong></span>
+                </label>
               </div>
-              <div id="gStockResult" style="font-size:11px;margin-top:3px;"></div>
+              <div class="fg goods-only" id="gValuationWrap" style="display:none;">
+                <label>Inventory Valuation Method</label>
+                <div class="hint" style="margin-bottom:4px;">How Manager.io calculates inventory cost. Leave default unless your accountant specifies otherwise.</div>
+                <select id="gFldCostMethod">
+                  <option value="">— Use Manager default —</option>
+                  <option value="0">Average Cost (AVCO)</option>
+                  <option value="1">First In First Out (FIFO)</option>
+                  <option value="2">Standard Cost</option>
+                </select>
+              </div>
             </div>
           </div>
           <div class="fg"><label>Remarks / Line Description Autofill</label><textarea id="gFldRemarks" placeholder="Optional notes — also used as default line description on invoices"></textarea></div>
           <div id="gSyncStatus"></div>
+        </div>
+      </div>
+      <!-- Action Buttons — only shown on Step 5 -->
+      <div class="card" id="gActionBtnsCard" style="display:none;">
+        <div class="al ai efris-only" style="margin-bottom:8px;">&#128161; Sync to Manager.io to make the item usable on invoices. Register on EFRIS to add it to the URA goods registry (requires EFRIS credentials in Settings). You can do either or both.</div>
+        <div class="row">
+          <button class="btn bo" style="width:auto;flex:0 0 auto;" onclick="gGoStep(4)">&larr; Back</button>
+          <button class="btn bg" onclick="gSyncToManager()"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Sync to Manager.io</button>
+          <button class="btn bgld efris-only" onclick="gSyncToEfris()"><span class="ico-emoji">&#128230;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Register on EFRIS</button>
+        </div>
+      </div>
+      <!-- Stock Management — goods only, shown on Step 5 -->
+      <div class="card efris-only" id="stockMgmtCard" style="display:none;">
+        <div class="ct">&#128230; Stock Management</div>
+        <p style="font-size:12px;color:var(--gray);margin:0 0 10px;">Record stock arrivals and adjustments in EFRIS. Required for physical goods — services can skip this.</p>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <button class="btn bsm" id="stkTabIn" onclick="stkSwitch('in')" style="font-size:11px;">+ Stock In</button>
+          <button class="btn bo bsm" id="stkTabAdj" onclick="stkSwitch('adj')" style="font-size:11px;">&#8722; Adjust Stock</button>
+        </div>
+        <div id="stkInPane">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div class="fg" style="margin:0;"><label>Supplier Name</label><input id="stkSupplier" placeholder="e.g. Supplier Ltd"/></div>
+            <div class="fg" style="margin:0;"><label>Supplier TIN (optional)</label><input id="stkSupplierTin"/></div>
+            <div class="fg" style="margin:0;"><label>Date</label><input type="date" id="stkDate"/></div>
+            <div class="fg" style="margin:0;"><label>Type</label>
+              <select id="stkInType">
+                <option value="104">Opening Stock (first time setup)</option>
+                <option value="102">Local Purchase</option>
+                <option value="101">Import</option>
+                <option value="103">Manufacture / Assembly</option>
+              </select>
+            </div>
+          </div>
+          <div class="fg"><label>Remarks (optional)</label><input id="stkRemarks" placeholder="e.g. New stock arrival"/></div>
+          <div id="stkItems"></div>
+          <button class="btn bo bsm" onclick="stkAddItem('in')" style="margin:6px 0 10px;">+ Add item</button>
+          <button class="btn bsm" onclick="stkSubmitIn()">&#128230; Submit Stock-in to EFRIS</button>
+          <div id="stkInResult" style="margin-top:8px;"></div>
+        </div>
+        <div id="stkAdjPane" style="display:none;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div class="fg" style="margin:0;"><label>Date</label><input type="date" id="stkAdjDate"/></div>
+            <div class="fg" style="margin:0;"><label>Reason</label>
+              <select id="stkAdjType">
+                <option value="102">Damaged Goods</option>
+                <option value="101">Expired Goods</option>
+                <option value="103">Personal Use</option>
+                <option value="105">Raw Materials</option>
+                <option value="104">Other (requires remarks)</option>
+              </select>
+            </div>
+          </div>
+          <div class="fg"><label>Remarks</label><input id="stkAdjRemarks" placeholder="Reason for adjustment"/></div>
+          <div id="stkAdjItems"></div>
+          <button class="btn bo bsm" onclick="stkAddItem('adj')" style="margin:6px 0 10px;">+ Add item</button>
+          <button class="btn bsm" onclick="stkSubmitAdj()">&#128230; Submit Adjustment to EFRIS</button>
+          <div id="stkAdjResult" style="margin-top:8px;"></div>
         </div>
       </div>
     </div>
@@ -603,63 +656,6 @@
             <tbody id="gItemsTbody"><tr><td colspan="11" style="text-align:center;color:var(--gray);padding:20px;">No items yet. Use Configure tab.</td></tr></tbody>
           </table>
         </div>
-      </div>
-    </div>
-    <!-- Action Buttons -->
-    <div class="card" id="gActionBtnsCard">
-      <div class="al ai efris-only" style="margin-bottom:8px;">&#128161; Sync to Manager.io to make the item usable on invoices. Register on EFRIS to add it to the URA goods registry (requires EFRIS credentials in Settings). You can do either or both.</div>
-      <div class="row">
-        <button class="btn bo" style="width:auto;flex:0 0 auto;" onclick="gGoStep(4)">&larr; Back</button>
-        <button class="btn bg" onclick="gSyncToManager()"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Sync to Manager.io</button>
-        <button class="btn bgld efris-only" onclick="gSyncToEfris()"><span class="ico-emoji">&#128230;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Register on EFRIS</button>
-      </div>
-    </div>
-    <!-- Stock Management (goods only) -->
-    <div class="card efris-only" id="stockMgmtCard" style="display:none;">
-      <div class="ct">&#128230; Stock Management</div>
-      <p style="font-size:12px;color:var(--gray);margin:0 0 10px;">Record stock arrivals and adjustments in EFRIS. Required for physical goods — services can skip this.</p>
-      <div style="display:flex;gap:6px;margin-bottom:10px;">
-        <button class="btn bsm" id="stkTabIn" onclick="stkSwitch('in')" style="font-size:11px;">+ Stock In</button>
-        <button class="btn bo bsm" id="stkTabAdj" onclick="stkSwitch('adj')" style="font-size:11px;">&#8722; Adjust Stock</button>
-      </div>
-      <div id="stkInPane">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-          <div class="fg" style="margin:0;"><label>Supplier Name</label><input id="stkSupplier" placeholder="e.g. Supplier Ltd"/></div>
-          <div class="fg" style="margin:0;"><label>Supplier TIN (optional)</label><input id="stkSupplierTin"/></div>
-          <div class="fg" style="margin:0;"><label>Date</label><input type="date" id="stkDate"/></div>
-          <div class="fg" style="margin:0;"><label>Type</label>
-            <select id="stkInType">
-              <option value="104">Opening Stock (first time setup)</option>
-              <option value="102">Local Purchase</option>
-              <option value="101">Import</option>
-              <option value="103">Manufacture / Assembly</option>
-            </select>
-          </div>
-        </div>
-        <div class="fg"><label>Remarks (optional)</label><input id="stkRemarks" placeholder="e.g. New stock arrival"/></div>
-        <div id="stkItems"></div>
-        <button class="btn bo bsm" onclick="stkAddItem('in')" style="margin:6px 0 10px;">+ Add item</button>
-        <button class="btn bsm" onclick="stkSubmitIn()">&#128230; Submit Stock-in to EFRIS</button>
-        <div id="stkInResult" style="margin-top:8px;"></div>
-      </div>
-      <div id="stkAdjPane" style="display:none;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-          <div class="fg" style="margin:0;"><label>Date</label><input type="date" id="stkAdjDate"/></div>
-          <div class="fg" style="margin:0;"><label>Reason</label>
-            <select id="stkAdjType">
-              <option value="102">Damaged Goods</option>
-              <option value="101">Expired Goods</option>
-              <option value="103">Personal Use</option>
-              <option value="105">Raw Materials</option>
-              <option value="104">Other (requires remarks)</option>
-            </select>
-          </div>
-        </div>
-        <div class="fg"><label>Remarks</label><input id="stkAdjRemarks" placeholder="Reason for adjustment"/></div>
-        <div id="stkAdjItems"></div>
-        <button class="btn bo bsm" onclick="stkAddItem('adj')" style="margin:6px 0 10px;">+ Add item</button>
-        <button class="btn bsm" onclick="stkSubmitAdj()">&#128230; Submit Adjustment to EFRIS</button>
-        <div id="stkAdjResult" style="margin-top:8px;"></div>
       </div>
     </div>
   </div>
@@ -2452,6 +2448,10 @@ function gSwSub(t){
   $('gv-lst').style.display=t==='lst'?'':'none';
   $('gst-cfg').className='g-stab'+(t==='cfg'?' on':'');
   $('gst-lst').className='g-stab'+(t==='lst'?' on':'');
+  if(t==='lst'){
+    const abc=$('gActionBtnsCard'); if(abc) abc.style.display='none';
+    const sm=$('stockMgmtCard'); if(sm) sm.style.display='none';
+  }
   if(t==='cfg'&&CFG.efrisEnabled===false){ gGoStep(5); }
 }
 
@@ -2486,7 +2486,6 @@ async function gLoadUnits(){
 
 function gGoStep(n){
   const efris=CFG.efrisEnabled!==false;
-  // When EFRIS is off, always show step 5 (details only)
   if(!efris) n=5;
   for(let i=1;i<=5;i++){
     const el=$('gstep'+i); if(el) el.style.display=(i===n&&(efris||i===5))?'':'none';
@@ -2497,9 +2496,12 @@ function gGoStep(n){
   if(n===4) gBuildCommoditySelect();
   if(n===5 && efris) gBuildDetailsSummary();
   if(n===5) gLoadAccounts();
-  // Show/hide Back button in step 5
   const step5=document.querySelector('#gstep5 .row button.bo');
   if(step5) step5.style.display=efris?'':'none';
+  // Action buttons + Stock Management only appear on Step 5
+  const abc=$('gActionBtnsCard'); if(abc) abc.style.display=n===5?'':'none';
+  // Stock Management only for goods — gOnTypeChange handles the goods check
+  if(n===5) gOnTypeChange(); else { const sm=$('stockMgmtCard'); if(sm) sm.style.display='none'; }
 }
 
 function gOnSegInput(v){
