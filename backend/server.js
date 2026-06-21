@@ -125,6 +125,11 @@ function managerCall(endpoint, token, method, docPath, body) {
       res.on('data', c => data += c);
       res.on('end', () => {
         if (data) {
+          // Detect HTML responses (e.g. Manager login redirect) before JSON.parse
+          const trimmed = data.trimStart();
+          if (trimmed.startsWith('<')) {
+            return resolve({ status: res.statusCode, data: null, _html: true });
+          }
           try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
           catch(e) { resolve({ status: res.statusCode, data }); }
         } else { resolve({ status: res.statusCode, data: null }); }
@@ -1766,14 +1771,16 @@ app.post('/api/manager/test', async (req, res) => {
   const tk = ((req.body || {}).accessToken || '').trim();
   try {
     const r = await managerCall(ep, tk, 'GET', '/sales-invoices', null);
-    if (r.status === 200) {
+    if (r._html) {
+      res.json({ success: false, error: 'Manager returned an HTML page instead of JSON — the access token may be invalid or expired.', hint: 'Regenerate the token in Manager → Settings → API Access Tokens, paste it in Settings here, click Save Settings, then test again.' });
+    } else if (r.status === 200) {
       const biz = (r.data && r.data.business && r.data.business.name) || '?';
       const n = r.data && r.data.totalRecords;
       res.json({ success: true, message: 'Connected  Business: ' + biz + (n != null ? '  (' + n + ' invoices)' : ''), endpoint: ep });
     } else if (r.status === 401) {
-      res.json({ success: false, error: 'HTTP 401 — access token rejected by Manager.', hint: 'Regenerate token in Manager → Settings → Access Tokens' });
+      res.json({ success: false, error: 'HTTP 401 — access token rejected by Manager.', hint: 'Regenerate token in Manager → Settings → API Access Tokens, paste it in Settings, click Save Settings, then test again.' });
     } else {
-      res.json({ success: false, error: 'Manager returned HTTP ' + r.status, hint: 'Confirm Manager is running at localhost:8090. Endpoint tried: ' + ep });
+      res.json({ success: false, error: 'Manager returned HTTP ' + r.status, hint: 'Confirm Manager is running and reachable. Endpoint tried: ' + ep });
     }
   } catch(e) {
     res.json({ success: false, error: e.message, hint: e.message.includes('ECONNREFUSED') ? 'Manager is not running.' : 'Check your Manager URL' });

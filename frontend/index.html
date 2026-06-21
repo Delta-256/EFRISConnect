@@ -1268,11 +1268,20 @@ async function detectManagerEndpoint(){
 async function testMgr(epId,tkId,resultId){
   const ep=gvi(epId);const tk=gvi(tkId);
   if(!ep||!tk){ht(resultId,'<div class="st se">Enter endpoint and token first</div>');return;}
+  // Warn if the current field values haven't been saved yet
+  const savedEp=(CFG.managerEndpoint||'').replace(/\/+$/,'');
+  const savedTk=CFG.accessToken||'';
+  const epChanged=ep.replace(/\/+$/,'')!==savedEp;
+  const tkChanged=tk!==savedTk;
+  if(epChanged||tkChanged){
+    ht(resultId,'<div class="st sw">⚠ Unsaved changes — click <strong>Save Settings</strong> first, then test again.</div>');
+    return;
+  }
   ht(resultId,'<div class="st si"><span class="sp">⏳</span> Testing…</div>');
   try{
     const r=await fetch(RELAY+'/api/manager/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk})});
     const d=await r.json();
-    ht(resultId,d.success?'<div class="st ss">✅ '+d.message+'</div>':'<div class="st se">❌ '+d.error+'</div>');
+    ht(resultId,d.success?'<div class="st ss">✅ '+d.message+'</div>':'<div class="st se">❌ '+d.error+(d.hint?'<br><small>'+d.hint+'</small>':'')+'</div>');
   }catch(e){ht(resultId,'<div class="st se">❌ '+e.message+'</div>');}
 }
 
