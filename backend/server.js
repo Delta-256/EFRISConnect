@@ -13,7 +13,7 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 const HTTPS_PORT = 5443;
 
-app.use(cors({ origin:'*', methods:['GET','POST','PUT','DELETE','OPTIONS'], allowedHeaders:['Content-Type','Authorization','X-API-KEY'] }));
+app.use(cors({ origin:'*', methods:['GET','POST','PUT','DELETE','OPTIONS'], allowedHeaders:['Content-Type','Authorization','X-API-KEY','X-Manager-Token','X-Manager-Endpoint'] }));
 app.use(express.json());
 
 // ── Internal API key — protects all /api/* routes from outside callers ──
@@ -27,6 +27,22 @@ app.use('/api', (req, res, next) => {
   }
   next();
 });
+
+// Simple rate limiter — max 30 EFRIS submissions per minute per IP
+const _rateMap = new Map();
+function rateLimit(maxPerMin) {
+  return (req, res, next) => {
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const now = Date.now();
+    const window = 60000;
+    if (!_rateMap.has(ip)) _rateMap.set(ip, []);
+    const hits = _rateMap.get(ip).filter(t => now - t < window);
+    hits.push(now);
+    _rateMap.set(ip, hits);
+    if (hits.length > maxPerMin) return res.status(429).json({ error: 'Too many requests — slow down' });
+    next();
+  };
+}
 
 // Load frontend HTML at startup — used as /extension and SPA
 let EXTENSION_HTML = '';
@@ -129,6 +145,12 @@ function normEp(ep) {
 }
 
 function bareKey(k) { return String(k || '').split('?')[0].replace(/\/+$/, '').split('/').pop(); }
+
+function mgrCreds(req) {
+  const ep = req.headers['x-manager-endpoint'] || req.query.ep || '';
+  const tk = req.headers['x-manager-token'] || req.query.tk || '';
+  return { ep: normEp(ep), tk };
+}
 
 async function mgrTextCustomFields(ep, tk) {
   const byName = {}, byKey = {};
@@ -868,8 +890,7 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
 });
 
 app.get('/api/goods/manager-items', async (req, res) => {
-  const ep = normEp(req.query.ep || '');
-  const tk = req.query.tk || '';
+  const { ep, tk } = mgrCreds(req);
   if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk required' });
   try {
     const [niR, invR] = await Promise.all([
@@ -894,8 +915,7 @@ app.get('/api/goods/manager-items', async (req, res) => {
 });
 
 app.get('/api/manager/accounts', async (req, res) => {
-  const ep = normEp(req.query.ep || '');
-  const tk = req.query.tk || '';
+  const { ep, tk } = mgrCreds(req);
   if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk required' });
   // Try several common Manager account-list endpoints
   const paths = ['/profit-and-loss-accounts', '/income-statement-accounts', '/balance-sheet-accounts', '/accounts', '/chart-of-accounts'];
@@ -917,8 +937,7 @@ app.get('/api/manager/accounts', async (req, res) => {
 });
 
 app.get('/api/manager/divisions', async (req, res) => {
-  const ep = normEp(req.query.ep || '');
-  const tk = req.query.tk || '';
+  const { ep, tk } = mgrCreds(req);
   if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk required' });
   try {
     const r = await managerCall(ep, tk, 'GET', '/divisions', null);
@@ -935,8 +954,7 @@ app.get('/api/manager/divisions', async (req, res) => {
 
 // List all Manager items (inventory + non-inventory) for the create-receipt picker
 app.get('/api/manager/items-list', async (req, res) => {
-  const ep = normEp(req.query.ep || '');
-  const tk = req.query.tk || '';
+  const { ep, tk } = mgrCreds(req);
   if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk required' });
   try {
     const [invR, niR] = await Promise.all([
@@ -1237,7 +1255,7 @@ app.post('/api/efris/test-connection', async (req, res) => {
   }
 });
 
-app.post('/api/efris/submit-invoice', async (req, res) => {
+app.post('/api/efris/submit-invoice', rateLimit(30), async (req, res) => {
   const { invoice, config } = req.body || {};
   if (!invoice || !config || !config.tin) {
     return res.status(400).json({ success: false, error: 'Missing invoice or config.tin' });
@@ -1387,7 +1405,7 @@ app.post('/api/efris/my-details', async (req, res) => {
 });
 
 // ── Credit Note (T108) ────────────────────────────────────────
-app.post('/api/efris/credit-note', async (req, res) => {
+app.post('/api/efris/credit-note', rateLimit(30), async (req, res) => {
   const { originalFDN, originalInvoiceId, reasonCode, reason, remarks, referenceNo, items, config } = req.body || {};
   if (!originalFDN || !config || !config.tin) return res.status(400).json({ success: false, error: 'originalFDN and config required' });
   if (!originalInvoiceId) return res.status(400).json({ success: false, error: 'Credit note requires the original invoice ID (oriInvoiceId). Enter the original FDN in the "Fiscal Document Number" custom field on the original invoice before raising a credit note.' });
@@ -1473,7 +1491,7 @@ app.post('/api/efris/invoices-report', async (req, res) => {
 });
 
 // ── Stock-in (T131) ───────────────────────────────────────────
-app.post('/api/efris/stock-in', async (req, res) => {
+app.post('/api/efris/stock-in', rateLimit(30), async (req, res) => {
   const { supplierName, supplierTin, stockInDate, stockInType, branchId, remarks, productionBatchNo, productionDate, items, config } = req.body || {};
   if (!items || !items.length || !config || !config.tin) return res.status(400).json({ success: false, error: 'items and config required' });
   const eu = config.mode === 'production'
@@ -1699,8 +1717,7 @@ app.post('/api/manager/create-credit-note', async (req, res) => {
 });
 
 app.get('/api/manager/invoice', async (req, res) => {
-  const ep = normEp(req.query.ep || '');
-  const tk = req.query.tk || '';
+  const { ep, tk } = mgrCreds(req);
   const key = bareKey(req.query.key || '');
   if (!ep || !tk || !key) return res.status(400).json({ success: false, error: 'ep, tk and key are required' });
   try {
@@ -1714,8 +1731,7 @@ app.get('/api/manager/invoice', async (req, res) => {
 });
 
 app.get('/api/manager/invoices', async (req, res) => {
-  const ep = normEp(req.query.ep || '');
-  const tk = req.query.tk || '';
+  const { ep, tk } = mgrCreds(req);
   if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk are required' });
   try {
     const r = await managerCall(ep, tk, 'GET', '/sales-invoices', null);
@@ -1797,9 +1813,12 @@ app.post('/api/efris/search-goods', async (req, res) => {
     const eu = mode === 'production' ? 'https://efrisws.ura.go.ug/ws/taapp/getInformation' : 'https://efristest.ura.go.ug/efrisws/ws/taapp/getInformation';
     const session = await getSession(tin, deviceNo, efrisPassword, eu);
     const payload = { goodsName: query || '', goodsCode: '', pageNo: '1', pageSize: '20' };
-    const t131 = await efrisCall(eu, efrisEnvEnc('T131', payload, tin, deviceNo, session.aesKey, session.privatePem));
+    // TODO: verify correct T-code for goods search against EFRIS developer docs.
+    // T131 is stock-in — goods query may require a different interface code.
+    const GOODS_SEARCH_IFACE = 'T130';
+    const t131 = await efrisCall(eu, efrisEnvEnc(GOODS_SEARCH_IFACE, payload, tin, deviceNo, session.aesKey, session.privatePem));
     const outerRc = t131.data?.returnStateInfo?.returnCode;
-    if (outerRc !== '00') return res.json({ success: false, error: t131.data?.returnStateInfo?.returnMessage || 'T131 failed' });
+    if (outerRc !== '00') return res.json({ success: false, error: t131.data?.returnStateInfo?.returnMessage || `${GOODS_SEARCH_IFACE} failed` });
     let items = [];
     if (t131.data?.data?.content) {
       try {
@@ -1822,12 +1841,21 @@ app.post('/api/efris/search-goods', async (req, res) => {
 // ══════════════════════════════════════════════════════════════
 const SUBMISSION_LOG_FILE = path.join(DATA_DIR, 'submission_log.json');
 
+let _logWriting = false;
+const _logQueue = [];
 function appendSubmissionLog(entry) {
+  _logQueue.push(entry);
+  if (!_logWriting) _flushLogQueue();
+}
+function _flushLogQueue() {
+  if (!_logQueue.length) { _logWriting = false; return; }
+  _logWriting = true;
+  const entry = _logQueue.shift();
   let log = [];
   try { log = JSON.parse(fs.readFileSync(SUBMISSION_LOG_FILE, 'utf8')); } catch(e) {}
-  log.unshift(entry); // newest first
-  if (log.length > 1000) log = log.slice(0, 1000); // cap at 1000 entries
-  fs.writeFileSync(SUBMISSION_LOG_FILE, JSON.stringify(log, null, 2));
+  log.unshift(entry);
+  if (log.length > 1000) log = log.slice(0, 1000);
+  fs.writeFile(SUBMISSION_LOG_FILE, JSON.stringify(log, null, 2), () => _flushLogQueue());
 }
 
 app.get('/api/submission-log', (req, res) => {
