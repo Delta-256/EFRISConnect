@@ -13,6 +13,7 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 const HTTPS_PORT = 5443;
 
+app.set('trust proxy', true);
 app.use(cors({ origin:'*', methods:['GET','POST','PUT','DELETE','OPTIONS'], allowedHeaders:['Content-Type','Authorization','X-API-KEY','X-Manager-Token','X-Manager-Endpoint'] }));
 app.use(express.json());
 
@@ -53,7 +54,7 @@ try {
   console.warn('Could not load frontend/index.html:', e.message);
 }
 
-const DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = process.env.DATA_DIR_OVERRIDE || path.join(__dirname, 'data');
 let TREE = null;
 let UNITS = null;
 
@@ -678,25 +679,6 @@ app.get('/api/units', (req, res) => {
   catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/commodity/:code', (req, res) => {
-  try {
-    const target = req.params.code.padStart(8, '0');
-    const tree = getTree();
-    for (const [sc, seg] of Object.entries(tree)) {
-      for (const [fc, fam] of Object.entries(seg.f)) {
-        for (const [cc, cls] of Object.entries(fam.c)) {
-          if (cls.d && cls.d[target]) {
-            const com = cls.d[target];
-            return res.json({ commodityCode: target, commodityName: typeof com === 'string' ? com : com.n,
-              classCode: cc, className: cls.n, familyCode: fc, familyName: fam.n, segmentCode: sc, segmentName: seg.n });
-          }
-        }
-      }
-    }
-    res.status(404).json({ error: 'Commodity not found' });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
 app.get('/api/commodity/search', (req, res) => {
   try {
     const q = (req.query.q || '').toLowerCase().trim();
@@ -723,6 +705,25 @@ app.get('/api/commodity/search', (req, res) => {
       if (results.length >= 20) break;
     }
     res.json(results);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/commodity/:code', (req, res) => {
+  try {
+    const target = req.params.code.padStart(8, '0');
+    const tree = getTree();
+    for (const [sc, seg] of Object.entries(tree)) {
+      for (const [fc, fam] of Object.entries(seg.f)) {
+        for (const [cc, cls] of Object.entries(fam.c)) {
+          if (cls.d && cls.d[target]) {
+            const com = cls.d[target];
+            return res.json({ commodityCode: target, commodityName: typeof com === 'string' ? com : com.n,
+              classCode: cc, className: cls.n, familyCode: fc, familyName: fam.n, segmentCode: sc, segmentName: seg.n });
+          }
+        }
+      }
+    }
+    res.status(404).json({ error: 'Commodity not found' });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1759,7 +1760,9 @@ app.get('/api/manager/invoices', async (req, res) => {
 });
 
 app.post('/api/manager/test', async (req, res) => {
-  const ep = normEp((req.body || {}).managerEndpoint || '');
+  let ep;
+  try { ep = normEp((req.body || {}).managerEndpoint || ''); }
+  catch(e) { return res.json({ success: false, error: e.message }); }
   const tk = ((req.body || {}).accessToken || '').trim();
   try {
     const r = await managerCall(ep, tk, 'GET', '/sales-invoices', null);
@@ -2053,13 +2056,17 @@ function tryStartHTTPS() {
   }
 }
 
-// ── Start HTTP server ─────────────────────────────────────────
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('=======================================================');
-  console.log('Uganda EFRIS Connect + Goods Configurator');
-  console.log('Tukei Hope Initiative | EMC/CBO/025');
-  console.log('=======================================================');
-  console.log('HTTP running on port ' + PORT);
-  console.log('Extension URL: http://localhost:' + PORT + '/extension');
-  tryStartHTTPS();
-});
+// ── Start HTTP server (only when run directly, not during tests) ──────────
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log('=======================================================');
+    console.log('Uganda EFRIS Connect + Goods Configurator');
+    console.log('Tukei Hope Initiative | EMC/CBO/025');
+    console.log('=======================================================');
+    console.log('HTTP running on port ' + PORT);
+    console.log('Extension URL: http://localhost:' + PORT + '/extension');
+    tryStartHTTPS();
+  });
+}
+
+module.exports = app;
