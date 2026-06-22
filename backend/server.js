@@ -267,14 +267,20 @@ async function normalizeInvoice(ep, tk, key) {
 }
 
 // ── RSA/AES crypto ────────────────────────────────────────────
-// EFRIS_PRIVATE_KEY env var can be either:
-//   - A file path (e.g. /secrets/efris_private.pem)
-//   - The raw PEM content (begins with -----BEGIN)
-const _pkEnv = process.env.EFRIS_PRIVATE_KEY || '';
+// Key resolution order:
+//   1. EFRIS_PRIVATE_KEY_B64 — base64-encoded PEM (safe for env vars, no newline issues)
+//   2. EFRIS_PRIVATE_KEY     — raw PEM content or file path
+//   3. /app/keys/efris_private.pem — file baked into image (legacy)
 let _pemContentFromEnv = null;
-if (_pkEnv.trim().startsWith('-----BEGIN')) { _pemContentFromEnv = _pkEnv.replace(/\\n/g, '\n'); }
-const EFRIS_PRIVATE_KEY_PATHS = _pkEnv && !_pemContentFromEnv
-  ? [_pkEnv]
+const _pkB64 = process.env.EFRIS_PRIVATE_KEY_B64 || '';
+if (_pkB64) {
+  _pemContentFromEnv = Buffer.from(_pkB64, 'base64').toString('utf8');
+} else {
+  const _pkEnv = process.env.EFRIS_PRIVATE_KEY || '';
+  if (_pkEnv.trim().startsWith('-----BEGIN')) { _pemContentFromEnv = _pkEnv.replace(/\\n/g, '\n'); }
+}
+const EFRIS_PRIVATE_KEY_PATHS = (!_pemContentFromEnv && process.env.EFRIS_PRIVATE_KEY && !process.env.EFRIS_PRIVATE_KEY.trim().startsWith('-----BEGIN'))
+  ? [process.env.EFRIS_PRIVATE_KEY]
   : ['/app/keys/efris_private.pem'];
 
 function loadPem(p) {

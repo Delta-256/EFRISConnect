@@ -44,7 +44,7 @@ jobs:
             --registry-username ${{ secrets.ACR_USERNAME }} \
             --registry-password ${{ secrets.ACR_PASSWORD }} \
             --environment-variables NODE_ENV=production \
-            --secure-environment-variables EFRIS_PRIVATE_KEY="${{ secrets.EFRIS_PRIVATE_KEY }}" \
+            --secure-environment-variables "EFRIS_PRIVATE_KEY_B64=${{ secrets.EFRIS_PRIVATE_KEY_B64 }}" \
             --restart-policy Always \
             --os-type Linux \
             --cpu 1 \
