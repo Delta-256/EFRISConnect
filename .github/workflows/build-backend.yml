@@ -49,4 +49,5 @@ jobs:
             --os-type Linux \
             --cpu 1 \
             --memory 1 \
-            --ports 3000
+            --ports 3000 \
+            --dns-name-label efris-backend
