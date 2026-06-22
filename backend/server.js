@@ -276,12 +276,12 @@ let _derKeyFromEnv = null;
 const _pkB64 = process.env.EFRIS_PRIVATE_KEY_B64 || '';
 if (_pkB64) {
   const decoded = Buffer.from(_pkB64, 'base64');
-  // DER files start with 0x30 (ASN.1 SEQUENCE) and contain non-UTF8 bytes
-  if (decoded[0] === 0x30 && decoded[1] >= 0x80) {
-    // DER format — wrap into a KeyObject directly
-    _derKeyFromEnv = decoded;
+  // If the decoded bytes look like PEM text, use as PEM; otherwise treat as binary DER
+  const asText = decoded.toString('utf8').replace(/\r/g, '');
+  if (asText.trimStart().startsWith('-----BEGIN')) {
+    _pemContentFromEnv = asText;
   } else {
-    _pemContentFromEnv = decoded.toString('utf8').replace(/\r/g, '');
+    _derKeyFromEnv = decoded;
   }
 } else {
   const _pkEnv = process.env.EFRIS_PRIVATE_KEY || '';
