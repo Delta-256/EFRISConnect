@@ -393,14 +393,15 @@ async function getSession(tin, deviceNo, password, efrisBaseUrl) {
   const t104 = await efrisCall(efrisBaseUrl, efrisEnv('T104', '', tin, deviceNo));
   let symKeyEnc = null, aesKey = null, privatePem = null;
   try { const c = JSON.parse(Buffer.from(t104.data.data.content, 'base64').toString()); symKeyEnc = c.passowrdDes || c.passwordDes; } catch(e) {}
-  try { if (symKeyEnc) { const r = resolveAesKey(symKeyEnc); aesKey = r.key; privatePem = r.pem; } } catch(e) { console.log('   AES key error: ' + e.message); }
+  let _aesErr = null;
+  try { if (symKeyEnc) { const r = resolveAesKey(symKeyEnc); aesKey = r.key; privatePem = r.pem; } } catch(e) { _aesErr = e.message; console.log('   AES key error: ' + e.message); }
   const t103 = await efrisCall(efrisBaseUrl, efrisEnv('T103', '', tin, deviceNo));
   const session = { symKeyEnc, aesKey, privatePem, ts: now };
   if (aesKey) sessions[key] = session;
   if (rcOf(t103) && rcOf(t103) !== '00') {
     throw new Error('EFRIS login (T103) failed (' + rcOf(t103) + '): ' + rmOf(t103));
   }
-  if (!aesKey) throw new Error('No AES key — private key not found or could not decrypt the EFRIS session key. Add your EFRIS private key PEM to the EFRIS_PRIVATE_KEY GitHub Secret and redeploy.');
+  if (!aesKey) throw new Error('No AES key — ' + (_aesErr || 'private key not found or could not decrypt the EFRIS session key.'));
   return session;
 }
 
