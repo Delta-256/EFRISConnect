@@ -1572,6 +1572,7 @@ app.post('/api/efris/stock-in', rateLimit(30), async (req, res) => {
     const session = await getSession(config.tin, config.deviceNo, config.efrisPassword, eu);
     if (!session.aesKey) throw new Error('No AES key for T131');
     const t131data = {
+      operationType: '101',
       supplierName: supplierName || '', supplierTin: supplierTin || '',
       remarks: remarks || '', branchId: branchId || '',
       stockInDate: stockInDate || new Date().toISOString().slice(0, 10),
