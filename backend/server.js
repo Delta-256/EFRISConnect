@@ -640,9 +640,15 @@ function buildT109(invoice, cfg) {
 app.get('/api/health', (req, res) => {
   const b64 = process.env.EFRIS_PRIVATE_KEY_B64 || '';
   const raw = process.env.EFRIS_PRIVATE_KEY || '';
-  let pemPreview = 'none';
+  let pemPreview = 'none', keyParseError = null, keyOk = false;
   if (_pemContentFromEnv) {
-    pemPreview = _pemContentFromEnv.slice(0, 40).replace(/\r?\n/g, '\\n');
+    pemPreview = _pemContentFromEnv.slice(0, 60).replace(/\r?\n/g, '\\n');
+    // show first non-header line (the actual base64 key data)
+    const lines = _pemContentFromEnv.split('\n').filter(l => l && !l.startsWith('---'));
+    try {
+      crypto.createPrivateKey({ key: _pemContentFromEnv, format: 'pem' });
+      keyOk = true;
+    } catch(e) { keyParseError = e.message; }
   }
   res.json({
     status: 'ok',
@@ -652,6 +658,10 @@ app.get('/api/health', (req, res) => {
       raw_length: raw.length,
       pem_loaded: !!_pemContentFromEnv,
       pem_preview: pemPreview,
+      key_parse_ok: keyOk,
+      key_parse_error: keyParseError,
+      cr_count: (_pemContentFromEnv||'').split('\r').length - 1,
+      line_count: (_pemContentFromEnv||'').split('\n').length,
     }
   });
 });
