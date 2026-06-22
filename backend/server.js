@@ -268,18 +268,26 @@ async function normalizeInvoice(ep, tk, key) {
 
 // ── RSA/AES crypto ────────────────────────────────────────────
 // Key resolution order:
-//   1. EFRIS_PRIVATE_KEY_B64 — base64-encoded PEM (safe for env vars, no newline issues)
+//   1. EFRIS_PRIVATE_KEY_B64 — base64-encoded key file (PEM or DER — detected automatically)
 //   2. EFRIS_PRIVATE_KEY     — raw PEM content or file path
 //   3. /app/keys/efris_private.pem — file baked into image (legacy)
 let _pemContentFromEnv = null;
+let _derKeyFromEnv = null;
 const _pkB64 = process.env.EFRIS_PRIVATE_KEY_B64 || '';
 if (_pkB64) {
-  _pemContentFromEnv = Buffer.from(_pkB64, 'base64').toString('utf8').replace(/\r/g, '');
+  const decoded = Buffer.from(_pkB64, 'base64');
+  // DER files start with 0x30 (ASN.1 SEQUENCE) and contain non-UTF8 bytes
+  if (decoded[0] === 0x30 && decoded[1] >= 0x80) {
+    // DER format — wrap into a KeyObject directly
+    _derKeyFromEnv = decoded;
+  } else {
+    _pemContentFromEnv = decoded.toString('utf8').replace(/\r/g, '');
+  }
 } else {
   const _pkEnv = process.env.EFRIS_PRIVATE_KEY || '';
   if (_pkEnv.trim().startsWith('-----BEGIN')) { _pemContentFromEnv = _pkEnv.replace(/\\n/g, '\n'); }
 }
-const EFRIS_PRIVATE_KEY_PATHS = (!_pemContentFromEnv && process.env.EFRIS_PRIVATE_KEY && !process.env.EFRIS_PRIVATE_KEY.trim().startsWith('-----BEGIN'))
+const EFRIS_PRIVATE_KEY_PATHS = (!_pemContentFromEnv && !_derKeyFromEnv && process.env.EFRIS_PRIVATE_KEY && !process.env.EFRIS_PRIVATE_KEY.trim().startsWith('-----BEGIN'))
   ? [process.env.EFRIS_PRIVATE_KEY]
   : ['/app/keys/efris_private.pem'];
 
@@ -302,17 +310,32 @@ function resolveAesKey(passwordDes) {
     { name: 'OAEP-SHA256', opt: { padding: C.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' } },
   ];
   const tried = [];
+
+  // Build list of key objects to try
+  const keyEntries = [];
+  if (_derKeyFromEnv) {
+    try {
+      // Try PKCS8 DER first, then PKCS1 DER
+      for (const type of ['pkcs8', 'pkcs1']) {
+        try { keyEntries.push({ keyObj: crypto.createPrivateKey({ key: _derKeyFromEnv, format: 'der', type }), label: 'der-env-' + type }); break; } catch(e) {}
+      }
+    } catch(e) {}
+  }
   for (const p of EFRIS_PRIVATE_KEY_PATHS) {
     const pem = loadPem(p);
     if (!pem) { tried.push(path.basename(p) + ': file not found'); continue; }
+    try { keyEntries.push({ keyObj: crypto.createPrivateKey({ key: pem, format: 'pem' }), label: path.basename(p) }); } catch(e) { tried.push(path.basename(p) + ': parse failed: ' + (e.message||'').slice(0,40)); }
+  }
+
+  for (const { keyObj, label } of keyEntries) {
     for (const pad of paddings) {
       try {
-        const dec = crypto.privateDecrypt({ key: pem, ...pad.opt }, enc);
+        const dec = crypto.privateDecrypt({ key: keyObj, ...pad.opt }, enc);
         const b64 = Buffer.from(dec.toString('utf8').trim(), 'base64');
-        if ([16,24,32].includes(b64.length)) return { key: b64, pem, path: p, variant: pad.name + '+base64' };
-        if ([16,24,32].includes(dec.length)) return { key: dec, pem, path: p, variant: pad.name + '+raw' };
-        tried.push(path.basename(p) + '/' + pad.name + ': raw ' + dec.length + 'b b64 ' + b64.length + 'b');
-      } catch(e) { tried.push(path.basename(p) + '/' + pad.name + ': ' + (e.message||'').slice(0,30)); }
+        if ([16,24,32].includes(b64.length)) return { key: b64, keyObj, pem: keyObj, path: label, variant: pad.name + '+base64' };
+        if ([16,24,32].includes(dec.length)) return { key: dec, keyObj, pem: keyObj, path: label, variant: pad.name + '+raw' };
+        tried.push(label + '/' + pad.name + ': raw ' + dec.length + 'b b64 ' + b64.length + 'b');
+      } catch(e) { tried.push(label + '/' + pad.name + ': ' + (e.message||'').slice(0,40)); }
     }
   }
   throw new Error('Could not derive a valid AES key from T104. Tried — ' + tried.join('  |  '));
@@ -640,15 +663,15 @@ function buildT109(invoice, cfg) {
 app.get('/api/health', (req, res) => {
   const b64 = process.env.EFRIS_PRIVATE_KEY_B64 || '';
   const raw = process.env.EFRIS_PRIVATE_KEY || '';
-  let pemPreview = 'none', keyParseError = null, keyOk = false;
-  if (_pemContentFromEnv) {
-    pemPreview = _pemContentFromEnv.slice(0, 60).replace(/\r?\n/g, '\\n');
-    // show first non-header line (the actual base64 key data)
-    const lines = _pemContentFromEnv.split('\n').filter(l => l && !l.startsWith('---'));
-    try {
-      crypto.createPrivateKey({ key: _pemContentFromEnv, format: 'pem' });
-      keyOk = true;
-    } catch(e) { keyParseError = e.message; }
+  let keyParseError = null, keyOk = false, keyFormat = 'none';
+  if (_derKeyFromEnv) {
+    keyFormat = 'der';
+    for (const type of ['pkcs8', 'pkcs1']) {
+      try { crypto.createPrivateKey({ key: _derKeyFromEnv, format: 'der', type }); keyOk = true; keyFormat = 'der-' + type; break; } catch(e) { keyParseError = e.message; }
+    }
+  } else if (_pemContentFromEnv) {
+    keyFormat = 'pem';
+    try { crypto.createPrivateKey({ key: _pemContentFromEnv, format: 'pem' }); keyOk = true; } catch(e) { keyParseError = e.message; }
   }
   res.json({
     status: 'ok',
@@ -656,12 +679,9 @@ app.get('/api/health', (req, res) => {
     key: {
       b64_length: b64.length,
       raw_length: raw.length,
-      pem_loaded: !!_pemContentFromEnv,
-      pem_preview: pemPreview,
+      key_format: keyFormat,
       key_parse_ok: keyOk,
       key_parse_error: keyParseError,
-      cr_count: (_pemContentFromEnv||'').split('\r').length - 1,
-      line_count: (_pemContentFromEnv||'').split('\n').length,
     }
   });
 });
