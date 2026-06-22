@@ -34,8 +34,12 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Update container with private key as runtime env var
+      - name: Recreate container with updated image and private key
         run: |
+          az container delete \
+            --resource-group manager-rg \
+            --name efris-backend \
+            --yes || true
           az container create \
             --resource-group manager-rg \
             --name efris-backend \
