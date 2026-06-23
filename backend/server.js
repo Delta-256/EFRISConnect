@@ -301,25 +301,32 @@ function loadPem(p) {
   } catch(e) { return null; }
 }
 
+// Node.js 20 + OpenSSL 3 removed RSA_PKCS1_PADDING. EFRIS uses PKCS1 v1.5, so
+// we use RSA_NO_PADDING and strip the padding manually.
+function pkcs1v15Decrypt(keyObj, encBuf) {
+  const raw = crypto.privateDecrypt({ key: keyObj, padding: crypto.constants.RSA_NO_PADDING }, encBuf);
+  if (raw[0] !== 0x00 || raw[1] !== 0x02) throw new Error('not PKCS1v15: bad header');
+  let i = 2;
+  while (i < raw.length && raw[i] !== 0x00) i++;
+  if (i >= raw.length) throw new Error('not PKCS1v15: no zero separator');
+  return raw.slice(i + 1);
+}
+
 function resolveAesKey(passwordDes) {
   const enc = Buffer.from(passwordDes, 'base64');
   const C = crypto.constants;
-  const paddings = [
-    { name: 'PKCS1',       opt: { padding: C.RSA_PKCS1_PADDING } },
-    { name: 'OAEP-SHA1',   opt: { padding: C.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha1' } },
-    { name: 'OAEP-SHA256', opt: { padding: C.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' } },
-  ];
   const tried = [];
 
-  // Build list of key objects to try
   const keyEntries = [];
   if (_derKeyFromEnv) {
     try {
-      // Try PKCS8 DER first, then PKCS1 DER
       for (const type of ['pkcs8', 'pkcs1']) {
         try { keyEntries.push({ keyObj: crypto.createPrivateKey({ key: _derKeyFromEnv, format: 'der', type }), label: 'der-env-' + type }); break; } catch(e) {}
       }
     } catch(e) {}
+  }
+  if (_pemContentFromEnv) {
+    try { keyEntries.push({ keyObj: crypto.createPrivateKey({ key: _pemContentFromEnv, format: 'pem' }), label: 'pem-env' }); } catch(e) { tried.push('pem-env: parse failed: ' + (e.message||'').slice(0,40)); }
   }
   for (const p of EFRIS_PRIVATE_KEY_PATHS) {
     const pem = loadPem(p);
@@ -328,14 +335,20 @@ function resolveAesKey(passwordDes) {
   }
 
   for (const { keyObj, label } of keyEntries) {
-    for (const pad of paddings) {
+    // Try PKCS1 v1.5 first (EFRIS standard), then OAEP variants as fallback
+    const attempts = [
+      { name: 'PKCS1v15-manual', fn: () => pkcs1v15Decrypt(keyObj, enc) },
+      { name: 'OAEP-SHA1',       fn: () => crypto.privateDecrypt({ key: keyObj, padding: C.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha1' }, enc) },
+      { name: 'OAEP-SHA256',     fn: () => crypto.privateDecrypt({ key: keyObj, padding: C.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' }, enc) },
+    ];
+    for (const { name, fn } of attempts) {
       try {
-        const dec = crypto.privateDecrypt({ key: keyObj, ...pad.opt }, enc);
+        const dec = fn();
         const b64 = Buffer.from(dec.toString('utf8').trim(), 'base64');
-        if ([16,24,32].includes(b64.length)) return { key: b64, keyObj, pem: keyObj, path: label, variant: pad.name + '+base64' };
-        if ([16,24,32].includes(dec.length)) return { key: dec, keyObj, pem: keyObj, path: label, variant: pad.name + '+raw' };
-        tried.push(label + '/' + pad.name + ': raw ' + dec.length + 'b b64 ' + b64.length + 'b');
-      } catch(e) { tried.push(label + '/' + pad.name + ': ' + (e.message||'').slice(0,40)); }
+        if ([16,24,32].includes(b64.length)) return { key: b64, keyObj, pem: keyObj, path: label, variant: name + '+base64' };
+        if ([16,24,32].includes(dec.length)) return { key: dec, keyObj, pem: keyObj, path: label, variant: name + '+raw' };
+        tried.push(label + '/' + name + ': raw ' + dec.length + 'b b64 ' + b64.length + 'b');
+      } catch(e) { tried.push(label + '/' + name + ': ' + (e.message||'').slice(0,40)); }
     }
   }
   throw new Error('Could not derive a valid AES key from T104. Tried — ' + tried.join('  |  '));
@@ -1559,6 +1572,7 @@ app.post('/api/efris/stock-in', rateLimit(30), async (req, res) => {
     const session = await getSession(config.tin, config.deviceNo, config.efrisPassword, eu);
     if (!session.aesKey) throw new Error('No AES key for T131');
     const t131data = {
+      operationType: '101',
       supplierName: supplierName || '', supplierTin: supplierTin || '',
       remarks: remarks || '', branchId: branchId || '',
       stockInDate: stockInDate || new Date().toISOString().slice(0, 10),

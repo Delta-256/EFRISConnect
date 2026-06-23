@@ -1697,7 +1697,7 @@ function wkRenderPays(){
     allocatedSoFar+=pw.amount?parseFloat(pw.amount)||0:0;
     h+='<div style="display:flex;gap:5px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">'
       +'<select style="flex:1;min-width:120px;font-size:11px;" onchange="_wkPays['+i+'].mode=this.value;wkRecalc()">'+opts+'</select>'
-      +'<input type="number" style="width:110px;font-size:12px;padding:4px 6px;" placeholder="'+(i===0?fn(total):'Remaining: '+fn(remaining))+'" value="'+(pw.amount||'')+'" oninput="wkPayAmtInput('+i+',this.value)"/><span id="wkPayHint_'+i+'">'+hint+'</span>'
+      +'<input type="number" style="width:110px;font-size:12px;padding:4px 6px;" placeholder="'+(i===0?fn(total):'Remaining: '+fn(remaining))+'" value="'+(pw.amount||(i===0&&_wkPays.length===1&&total>0?total:''))+'" oninput="wkPayAmtInput('+i+',this.value)"/><span id="wkPayHint_'+i+'">'+hint+'</span>'
       +(_wkPays.length>1?'<button onclick="_wkPays.splice('+i+',1);wkRenderPays();wkRecalc()" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:15px;">✕</button>':'<span style="width:20px;display:inline-block;"></span>')
       +'</div>';
   });
