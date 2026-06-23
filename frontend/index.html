@@ -3709,20 +3709,21 @@ function stkSwitch(mode){
   if(ta){ta.className=mode==='adj'?'btn bsm':'btn bo bsm';ta.style.fontSize='11px';}
 }
 function stkAddItem(type){
-  if(type==='in'){_stkInItems.push({itemCode:'',quantity:1,unitPrice:0});stkRenderItems('in');}
-  else{_stkAdjItems.push({itemCode:'',quantity:1,unitPrice:0});stkRenderItems('adj');}
+  if(type==='in'){_stkInItems.push({itemCode:'',quantity:1,unitPrice:0,measureUnit:'PP'});stkRenderItems('in');}
+  else{_stkAdjItems.push({itemCode:'',quantity:1,unitPrice:0,measureUnit:'PP'});stkRenderItems('adj');}
 }
 function stkRenderItems(type){
   const arr=type==='in'?_stkInItems:_stkAdjItems;
   const el=$(type==='in'?'stkItems':'stkAdjItems'); if(!el) return;
   if(!arr.length){el.innerHTML='';return;}
-  let h='<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:4px;"><thead><tr style="background:var(--bg2);"><th style="padding:4px;text-align:left;">Item Code</th><th style="padding:4px;width:70px;">Qty</th><th style="padding:4px;width:100px;">Unit Cost</th><th></th></tr></thead><tbody>';
+  let h='<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:4px;"><thead><tr style="background:var(--bg2);"><th style="padding:4px;text-align:left;">Item Code</th><th style="padding:4px;width:70px;">Qty</th><th style="padding:4px;width:90px;">Unit Cost</th><th style="padding:4px;width:70px;">Unit</th><th></th></tr></thead><tbody>';
   const ar=type==='in'?'_stkInItems':'_stkAdjItems';
   arr.forEach((it,i)=>{
     h+='<tr style="border-bottom:1px solid var(--bdr);">'
       +'<td style="padding:3px;"><input value="'+esc(it.itemCode)+'" style="width:100%;font-size:12px;" oninput="'+ar+'['+i+'].itemCode=this.value" placeholder="Registered EFRIS item code"/></td>'
       +'<td style="padding:3px;"><input type="number" value="'+it.quantity+'" style="width:100%;font-size:12px;" oninput="'+ar+'['+i+'].quantity=+this.value"/></td>'
       +'<td style="padding:3px;"><input type="number" value="'+it.unitPrice+'" style="width:100%;font-size:12px;" oninput="'+ar+'['+i+'].unitPrice=+this.value"/></td>'
+      +'<td style="padding:3px;"><input value="'+(it.measureUnit||'PP')+'" style="width:100%;font-size:12px;" oninput="'+ar+'['+i+'].measureUnit=this.value" placeholder="PP"/></td>'
       +(arr.length>1?'<td><button onclick="'+ar+'.splice('+i+',1);stkRenderItems(\''+type+'\')" style="background:none;border:none;color:#c62828;cursor:pointer;">&#10005;</button></td>':'<td></td>')
       +'</tr>';
   });
@@ -3733,8 +3734,8 @@ function stkInit(){
   const today=new Date().toISOString().slice(0,10);
   const sd=$('stkDate'); if(sd&&!sd.value) sd.value=today;
   const ad=$('stkAdjDate'); if(ad&&!ad.value) ad.value=today;
-  if(!_stkInItems.length){_stkInItems=[{itemCode:'',quantity:1,unitPrice:0}];stkRenderItems('in');}
-  if(!_stkAdjItems.length){_stkAdjItems=[{itemCode:'',quantity:1,unitPrice:0}];stkRenderItems('adj');}
+  if(!_stkInItems.length){_stkInItems=[{itemCode:'',quantity:1,unitPrice:0,measureUnit:'PP'}];stkRenderItems('in');}
+  if(!_stkAdjItems.length){_stkAdjItems=[{itemCode:'',quantity:1,unitPrice:0,measureUnit:'PP'}];stkRenderItems('adj');}
 }
 async function stkSubmitIn(){
   const items=_stkInItems.filter(i=>i.itemCode.trim());
