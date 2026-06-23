@@ -1588,15 +1588,21 @@ app.post('/api/efris/stock-in', rateLimit(30), async (req, res) => {
       })),
     };
     console.log('\n📦 T131 stock-in payload:', JSON.stringify(t131data, null, 2));
-    const t131 = await efrisCall(eu, efrisEnvEnc('T131', t131data, config.tin, config.deviceNo, session.aesKey, session.privatePem));
+    const envelope = efrisEnvEnc('T131', t131data, config.tin, config.deviceNo, session.aesKey, session.privatePem);
+    console.log(`   Encrypted content (first 100 chars): ${envelope.data.content.slice(0, 100)}`);
+    const t131 = await efrisCall(eu, envelope);
     const rc = t131.data && t131.data.returnStateInfo ? t131.data.returnStateInfo.returnCode : null;
     const rm = t131.data && t131.data.returnStateInfo ? t131.data.returnStateInfo.returnMessage : '';
     let errors = [], rawContent = null;
     if (t131.data && t131.data.data && t131.data.data.content) {
-      try { const s = aesDecryptStr(t131.data.data.content, session.aesKey); rawContent = s; const d = JSON.parse(s); errors = d.errors || []; } catch(e) {}
+      try { const s = aesDecryptStr(t131.data.data.content, session.aesKey); rawContent = s; const d = JSON.parse(s); errors = d.errors || []; } catch(e) { console.log(`   T131 decrypt error: ${e.message}`); }
     }
     console.log(`   T131 rc: ${rc} — ${rm}`);
-    if (rawContent) console.log(`   T131 raw response: ${rawContent.slice(0, 500)}`);
+    if (rawContent) {
+      try { const parsed = JSON.parse(rawContent); console.log(`   T131 raw response (parsed):`, JSON.stringify(parsed, null, 2).slice(0, 600)); } catch(e) { console.log(`   T131 raw response (raw): ${rawContent.slice(0, 500)}`); }
+    } else if (t131.data && t131.data.data) {
+      console.log(`   T131 response content (encrypted): ${JSON.stringify(t131.data.data).slice(0, 200)}`);
+    }
     const ok = rc === '00' || rc === '45';
     res.json(ok
       ? { success: rc === '00', partialErrors: errors, returnCode: rc, returnMessage: rm }
