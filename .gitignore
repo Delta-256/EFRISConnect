@@ -7,8 +7,8 @@ backend/node_modules/
 .claude/
 
 # Old/archive folders — kept locally, never pushed
-backend/Old Servers/
-frontend/Old/
+backend/Old*
+frontend/Old*
 
 # Sensitive files
 *.pem
@@ -17,3 +17,7 @@ frontend/Old/
 *.pfx
 *.der
 backend/keys/
+
+# Local working files
+tash*
+frontend/manager-theme.html
