@@ -1903,15 +1903,17 @@ app.post('/api/efris/search-goods', async (req, res) => {
     const outerRc = t131.data?.returnStateInfo?.returnCode;
     const outerRm = t131.data?.returnStateInfo?.returnMessage || '';
     console.log(`\n🔍 ${GOODS_SEARCH_IFACE} search rc: ${outerRc} — ${outerRm}`);
-    if (outerRc !== '00') return res.json({ success: false, error: outerRm || `${GOODS_SEARCH_IFACE} failed` });
+    if (outerRc !== '00' && outerRc !== '45') return res.json({ success: false, error: outerRm || `${GOODS_SEARCH_IFACE} failed` });
     let items = [];
     if (t131.data?.data?.content) {
       try {
         const raw = aesDecryptStr(t131.data.data.content, session.aesKey);
+        console.log(`   T130 search raw: ${raw.slice(0,300)}`);
         const parsed = JSON.parse(raw);
         items = Array.isArray(parsed) ? parsed : (parsed.goodsList || parsed.list || []);
-      } catch(e) { /* no items */ }
+      } catch(e) { console.log(`   T130 search decrypt error: ${e.message}`); }
     }
+    console.log(`   T130 search found ${items.length} items`);
     res.json({ success: true, items });
   } catch (e) {
     const safe = e.message.replace(efrisPassword || '', '***');
