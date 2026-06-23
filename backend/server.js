@@ -1901,7 +1901,9 @@ app.post('/api/efris/search-goods', async (req, res) => {
     const GOODS_SEARCH_IFACE = 'T130';
     const t131 = await efrisCall(eu, efrisEnvEnc(GOODS_SEARCH_IFACE, payload, tin, deviceNo, session.aesKey, session.privatePem));
     const outerRc = t131.data?.returnStateInfo?.returnCode;
-    if (outerRc !== '00') return res.json({ success: false, error: t131.data?.returnStateInfo?.returnMessage || `${GOODS_SEARCH_IFACE} failed` });
+    const outerRm = t131.data?.returnStateInfo?.returnMessage || '';
+    console.log(`\n🔍 ${GOODS_SEARCH_IFACE} search rc: ${outerRc} — ${outerRm}`);
+    if (outerRc !== '00') return res.json({ success: false, error: outerRm || `${GOODS_SEARCH_IFACE} failed` });
     let items = [];
     if (t131.data?.data?.content) {
       try {
