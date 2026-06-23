@@ -1894,7 +1894,7 @@ app.post('/api/efris/search-goods', async (req, res) => {
   try {
     const eu = mode === 'production' ? 'https://efrisws.ura.go.ug/ws/taapp/getInformation' : 'https://efristest.ura.go.ug/efrisws/ws/taapp/getInformation';
     const session = await getSession(tin, deviceNo, efrisPassword, eu);
-    const payload = { goodsName: query || '', goodsCode: '', pageNo: '1', pageSize: '20' };
+    const payload = [{ goodsName: query || '', goodsCode: '', pageNo: '1', pageSize: '20' }];
     // TODO: verify correct T-code for goods search against EFRIS developer docs.
     // T131 is stock-in — goods query may require a different interface code.
     const GOODS_SEARCH_IFACE = 'T130';
