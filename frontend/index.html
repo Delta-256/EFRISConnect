@@ -199,8 +199,9 @@
 
 <div class="scr" id="sMain">
   <div class="tabs">
-    <button class="tab on" id="tabWalk" onclick="showT('tWalk',this);wkInit()"><span class="ico-emoji">&#128424;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Issue Receipt</button>
-    <button class="tab efris-only" id="tabSub" onclick="showT('tSub',this)"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Submit</button>
+    <button class="tab on" id="tabHome" onclick="showT('tHome',this)"><span class="ico-emoji">&#127968;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Home</button>
+    <button class="tab" id="tabWalk" onclick="showT('tWalk',this);wkInit()"><span class="ico-emoji">&#128424;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Issue Receipt</button>
+    <button class="tab efris-only" id="tabSub" onclick="showT('tSub',this);if(!INV)showSubPicker();"><span class="ico-emoji">&#128228;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Submit</button>
     <button class="tab efris-only" id="tabStat" onclick="showT('tStat',this)"><span class="ico-emoji">&#128203;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Status</button>
     <button class="tab" id="tabGds" onclick="showT('tGds',this);stkInit()"><span class="ico-emoji">&#128230;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Goods</button>
     <button class="tab efris-only" id="tabBulk" onclick="showT('tBulk',this)"><span class="ico-emoji">&#9654;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Bulk</button>
@@ -210,9 +211,81 @@
     <button class="tab" onclick="showT('tSet',this)"><span class="ico-emoji">&#9881;&#65039;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Settings</button>
   </div>
 
+  <!-- ── Home Dashboard ─────────────────────────── -->
+  <div id="tHome">
+    <!-- Status bar -->
+    <div id="homeStatus" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f0faf0;border:1px solid #b7ebc0;border-radius:7px;margin:10px 0 6px;font-size:12px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;flex-shrink:0;"></span>
+      <span>Server online &mdash; <code id="homeHostDisplay" style="font-size:11px;"></code></span>
+      <span style="margin-left:auto;font-size:11px;color:#555;">Manager: <span id="homeMgrStatus">checking…</span></span>
+    </div>
+
+    <!-- Quick actions grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;" id="homeGrid">
+
+      <button class="efris-only" onclick="showT('tWalk',$('tabWalk'));wkInit()" style="background:#fff;border:1.5px solid var(--bdr);border-radius:8px;padding:14px 10px;cursor:pointer;text-align:left;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--gd)'" onmouseout="this.style.borderColor='var(--bdr)'">
+        <div style="font-size:20px;margin-bottom:4px;">🧾</div>
+        <div style="font-weight:700;font-size:12px;color:var(--tx);">Issue Receipt</div>
+        <div style="font-size:10px;color:var(--gray);margin-top:2px;">Walk-in sale, no Manager needed</div>
+      </button>
+
+      <button class="efris-only" onclick="showT('tSub',$('tabSub'))" style="background:#fff;border:1.5px solid var(--bdr);border-radius:8px;padding:14px 10px;cursor:pointer;text-align:left;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--gd)'" onmouseout="this.style.borderColor='var(--bdr)'">
+        <div style="font-size:20px;margin-bottom:4px;">📤</div>
+        <div style="font-weight:700;font-size:12px;color:var(--tx);">Submit Invoice</div>
+        <div style="font-size:10px;color:var(--gray);margin-top:2px;">Pick from Manager &amp; send to EFRIS</div>
+      </button>
+
+      <button onclick="showT('tGds',$('tabGds'));stkInit()" style="background:#fff;border:1.5px solid var(--bdr);border-radius:8px;padding:14px 10px;cursor:pointer;text-align:left;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--gd)'" onmouseout="this.style.borderColor='var(--bdr)'">
+        <div style="font-size:20px;margin-bottom:4px;">📦</div>
+        <div style="font-weight:700;font-size:12px;color:var(--tx);">Goods &amp; Stock</div>
+        <div style="font-size:10px;color:var(--gray);margin-top:2px;">Register, search, stock-in / adjust</div>
+      </button>
+
+      <button class="efris-only" onclick="showT('tBulk',$('tabBulk'))" style="background:#fff;border:1.5px solid var(--bdr);border-radius:8px;padding:14px 10px;cursor:pointer;text-align:left;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--gd)'" onmouseout="this.style.borderColor='var(--bdr)'">
+        <div style="font-size:20px;margin-bottom:4px;">▶</div>
+        <div style="font-weight:700;font-size:12px;color:var(--tx);">Bulk Submit</div>
+        <div style="font-size:10px;color:var(--gray);margin-top:2px;">Batch-process multiple invoices</div>
+      </button>
+
+      <button class="efris-only" onclick="showT('tHist',$('tabHist'));histLoad(1)" style="background:#fff;border:1.5px solid var(--bdr);border-radius:8px;padding:14px 10px;cursor:pointer;text-align:left;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--gd)'" onmouseout="this.style.borderColor='var(--bdr)'">
+        <div style="font-size:20px;margin-bottom:4px;">🕐</div>
+        <div style="font-weight:700;font-size:12px;color:var(--tx);">History</div>
+        <div style="font-size:10px;color:var(--gray);margin-top:2px;">Submission audit log</div>
+      </button>
+
+      <button onclick="showT('tSet',null)" style="background:#fff;border:1.5px solid var(--bdr);border-radius:8px;padding:14px 10px;cursor:pointer;text-align:left;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--gd)'" onmouseout="this.style.borderColor='var(--bdr)'">
+        <div style="font-size:20px;margin-bottom:4px;">⚙️</div>
+        <div style="font-weight:700;font-size:12px;color:var(--tx);">Settings</div>
+        <div style="font-size:10px;color:var(--gray);margin-top:2px;">EFRIS credentials &amp; system config</div>
+      </button>
+
+    </div>
+
+    <!-- Extension URL info (compact) -->
+    <div style="background:#f8f9ff;border:1px solid #d0d8ff;border-radius:7px;padding:10px 12px;font-size:11px;color:#444;">
+      <strong style="font-size:11px;">Manager custom button URL:</strong><br>
+      <code id="homeExtUrl" style="word-break:break-all;font-size:11px;color:#1a56db;"></code>
+      <div style="margin-top:4px;color:#888;">If you see a sad-face icon in Manager → Settings → Custom Buttons → verify this URL is set exactly as above.</div>
+    </div>
+  </div>
+  <!-- ── End Home Dashboard ──────────────────────── -->
+
   <div id="tSub">
+    <!-- Inline invoice picker (shown when no invoice is loaded) -->
+    <div id="subPicker" class="card hidden">
+      <div class="ct">&#128203; Select an Invoice to Submit</div>
+      <p style="font-size:12px;color:var(--gray);margin-bottom:8px;">Tap an invoice below to load it, or create a new receipt directly.</p>
+      <button onclick="showCreate()" class="btn bp" style="width:100%;margin-bottom:8px;">+ New Receipt</button>
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <button onclick="loadList()" style="flex:1;padding:8px;border:1px solid var(--bdr);background:white;border-radius:6px;cursor:pointer;font-weight:600;color:var(--gd);">&#128260; Refresh list</button>
+        <input id="pickSearch2" placeholder="Search reference / customer…" style="flex:2;padding:8px;border:1px solid var(--bdr);border-radius:6px;font-size:12px;" oninput="filterPickList2(this.value)"/>
+      </div>
+      <div id="pickList2"></div>
+    </div>
+    <!-- Invoice details (shown when invoice is loaded) -->
+    <div id="subDetail">
     <div class="card">
-      <div class="ct" style="display:flex;align-items:center;justify-content:space-between;"><span><span class="ico-emoji">&#129534;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Invoice Details</span><button class="btn bo bsm" onclick="DKEY=null;_lastInvKey=null;showScr('sNone');loadList();" style="font-size:10px;padding:3px 8px;">&#8592; All Invoices</button></div>
+      <div class="ct" style="display:flex;align-items:center;justify-content:space-between;"><span><span class="ico-emoji">&#129534;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Invoice Details</span><button class="btn bo bsm" onclick="DKEY=null;_lastInvKey=null;showSubPicker();" style="font-size:10px;padding:3px 8px;">&#8592; All Invoices</button></div>
       <div class="ig">
         <div class="if"><div class="lb">Invoice No.</div><div class="vl" id="dNo">&mdash;</div></div>
         <div class="if"><div class="lb">Date</div><div class="vl" id="dDt">&mdash;</div></div>
@@ -334,6 +407,7 @@
       <button class="btn bo bsm mt" onclick="retry()"><span class="ico-emoji">&#128260;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Try Again</button>
     </div>
   </div>
+  </div><!-- end #subDetail -->
 
   <!-- ══ WALK-IN TAB ══ -->
   <div id="tWalk" class="hidden">
@@ -1120,7 +1194,7 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 
 function showScr(id){ document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on')); const e=$(id);if(e)e.classList.add('on'); }
 function showT(id,btn){
-  ['tWalk','tSub','tStat','tGds','tGd','tNum','tHist','tBulk','tSet'].forEach(t=>{const e=$(t);if(e)e.classList.add('hidden');});
+  ['tHome','tWalk','tSub','tStat','tGds','tGd','tNum','tHist','tBulk','tSet'].forEach(t=>{const e=$(t);if(e)e.classList.add('hidden');});
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
   const e=$(id);if(e)e.classList.remove('hidden');
   if(btn)btn.classList.add('on');
@@ -1158,9 +1232,8 @@ function finOB(){
   if(!gvi('o4a')||!gvi('o4b')){alert('Manager endpoint and access token are required');return;}
   CFG={ legalName:gvi('o1a'), tradeName:gvi('o1b')||gvi('o1a'), address:gvi('o1c'), phone:gvi('o1d'), email:gvi('o1e'), tin:gvi('o2a'), deviceNo:gvi('o2b'), efrisPassword:gvi('o2c'), brn:gvi('o2d'), managerEndpoint:gvi('o4a').replace(/\/+$/,''), accessToken:gvi('o4b'), vatReg:TG.vatReg, sandbox:TG.sandbox, efrisEnabled:TG.efrisEnabled };
   sv2(CFG); apCFG(); gApplyEfrisMode();
-  if(CFG.efrisEnabled===false){ showScr('sMain'); showT('tGds',$('tabGds')); }
-  else if(INV){renderInv(INV);showScr('sMain');}
-  else { showScr('sMain'); showT('tWalk',$('tabWalk')); wkInit(); }
+  if(INV){renderInv(INV);showScr('sMain');}
+  else { showScr('sMain'); showT('tHome',$('tabHome')); homeInit(); }
 }
 function apCFG(){
   const b=$('mBadge');
@@ -1326,8 +1399,8 @@ function routeByContext(){
   const p=new URLSearchParams(window.location.search);
   const mode=p.get('mode');
   if(mode==='goods'){ showScr('sMain'); showT('tGds',$('tabGds')); }
-  else if(mode==='submit'){ showScr('sNone'); loadList(); }
-  else { showScr('sMain'); showT('tWalk',$('tabWalk')); wkInit(); }
+  else if(mode==='submit'){ showScr('sMain'); showT('tSub',$('tabSub')); loadList(); }
+  else { showScr('sMain'); showT('tHome',$('tabHome')); homeInit(); }
 }
 
 function readParams(){
@@ -1340,9 +1413,9 @@ function readParams(){
 }
 
 async function loadInv(key){
-  if(!key){showScr('sNone');return;}
+  if(!key){showScr('sMain');showT('tHome',$('tabHome'));homeInit();return;}
   const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
-  if(!ep||!tk){showScr('sNone');return;}
+  if(!ep||!tk){showScr('sMain');showT('tHome',$('tabHome'));homeInit();return;}
   showScr('sLoad');
   try{
     const url=RELAY+'/api/manager/invoice?ep='+encodeURIComponent(ep)+'&tk='+encodeURIComponent(tk)+'&key='+encodeURIComponent(key);
@@ -1351,7 +1424,7 @@ async function loadInv(key){
     const d=await r.json();
     if(!d.success)throw new Error(d.error||'Failed to load invoice');
     INV=d.data; renderInv(INV); showScr('sMain');
-  }catch(e){console.warn('Invoice load failed:',e.message);showScr('sNone');}
+  }catch(e){console.warn('Invoice load failed:',e.message);showScr('sMain');showT('tHome',$('tabHome'));homeInit();}
 }
 
 function renderInv(inv){
@@ -1433,9 +1506,11 @@ async function loadList(){
     var h='<div style="font-size:11px;color:var(--gray);margin:4px 0 8px;">'+(d.business||'')+' — tap an invoice or receipt:</div>';
     window.__invList.forEach(function(i,idx){ var badge=i.docType==='receipt'?'<span class="pill pill-svc" style="margin-left:5px;">Receipt</span>':'<span class="pill pill-gds" style="margin-left:5px;">Invoice</span>'; var custLabel=i.customer||'<span style="color:var(--gray);font-style:italic;">Walk-in</span>'; h+='<div class="pick-row" onclick="pick('+idx+')" style="cursor:pointer;border:1px solid var(--bdr);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:white;"><strong>'+(i.reference||'(no ref)')+'</strong> — '+custLabel+badge+'<br><span style="color:var(--gray);font-size:11px;">'+(i.currency||'')+' '+fn(i.amount)+' · '+fd(i.date)+'</span></div>'; });
     el.innerHTML=h;
+    // Mirror into inline sub-tab picker if open
+    const el2=$('pickList2'); if(el2) el2.innerHTML=h;
   }catch(e){ el.innerHTML='<div class="al aw">Network error: '+e.message+'</div>'; }
 }
-function pick(idx){ var i=window.__invList[idx]; if(i){ DKEY=i.key; _lastInvKey=i.key; loadInv(i.key); } }
+function pick(idx){ var i=window.__invList[idx]; if(i){ hidSubPicker(); DKEY=i.key; _lastInvKey=i.key; loadInv(i.key); } }
 
 let _custType='b2c';
 function setCustType(t){
@@ -3278,14 +3353,7 @@ function init(){
     } else {
       setTimeout(()=>{
         if(!INV && !_lastInvKey && !_invDebounce){
-          showScr('sNone'); loadList();
-          try{
-            var dbg=$('ctxDbg');
-            if(dbg&&!dbg.textContent){
-              var inIframe=(window.parent&&window.parent!==window)?'yes':'no';
-              dbg.textContent='Auto-context: none (in iframe: '+inIframe+'). Using the invoice list above.';
-            }
-          }catch(e){}
+          showScr('sMain'); showT('tHome',$('tabHome')); homeInit();
         }
       },1500);
     }
@@ -3302,6 +3370,54 @@ function filterPickList(q){
   document.querySelectorAll('#pickList .pick-row').forEach(el=>{
     el.style.display=(q&&!el.textContent.toLowerCase().includes(q))?'none':'';
   });
+}
+
+function filterPickList2(q){
+  q=(q||'').toLowerCase();
+  document.querySelectorAll('#pickList2 .pick-row').forEach(el=>{
+    el.style.display=(q&&!el.textContent.toLowerCase().includes(q))?'none':'';
+  });
+}
+
+// ── Home dashboard ─────────────────────────────
+function homeInit(){
+  // Populate URL fields
+  const extUrl=(window.location.protocol==='https:'?'https:':'https:')+'//'+ window.location.host+'/extension';
+  const heu=$('homeExtUrl'); if(heu) heu.textContent=extUrl;
+  const hhd=$('homeHostDisplay'); if(hhd) hhd.textContent=window.location.host;
+  // Check Manager connection status
+  const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
+  const ms=$('homeMgrStatus');
+  if(!ep||!tk){ if(ms) ms.innerHTML='<span style="color:#f59e0b;">not configured</span>'; return; }
+  if(ms) ms.innerHTML='<span style="color:#888;">checking…</span>';
+  fetch(RELAY+'/api/goods/manager-items?ep='+encodeURIComponent(ep)+'&tk='+encodeURIComponent(tk)+'&limit=1')
+    .then(r=>r.json())
+    .then(d=>{ if(ms) ms.innerHTML=d.success?'<span style="color:#22c55e;">connected ✓</span>':'<span style="color:#ef4444;">error</span>'; })
+    .catch(()=>{ if(ms) ms.innerHTML='<span style="color:#ef4444;">unreachable</span>'; });
+  // Hide efris-only cards if EFRIS disabled
+  if(CFG.efrisEnabled===false){
+    document.querySelectorAll('#homeGrid .efris-only').forEach(el=>el.style.display='none');
+  }
+}
+
+// ── Show Submit tab invoice picker ────────────────
+function showSubPicker(){
+  const picker=$('subPicker'), detail=$('subDetail');
+  if(picker) picker.classList.remove('hidden');
+  if(detail) detail.style.display='none';
+  // Mirror pickList into pickList2
+  const src=$('pickList'), dst=$('pickList2');
+  if(src&&dst) dst.innerHTML=src.innerHTML;
+  // Re-wire pick-row clicks to also hide picker and show detail
+  document.querySelectorAll('#pickList2 .pick-row').forEach(el=>{
+    el.style.cursor='pointer';
+    el.onclick=function(){ const idx=el.dataset.idx; if(idx!==undefined){ hidSubPicker(); pick(parseInt(idx)); } };
+  });
+}
+function hidSubPicker(){
+  const picker=$('subPicker'), detail=$('subDetail');
+  if(picker) picker.classList.add('hidden');
+  if(detail) detail.style.display='';
 }
 
 // ── Create Receipt ─────────────────────────────
@@ -3482,7 +3598,7 @@ async function doCreateReceipt(managerOnly){
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
       <div class="ct" style="font-size:15px;">New Receipt</div>
-      <button class="btn bo bsm" onclick="showScr('sNone')">&#8592; Back</button>
+      <button class="btn bo bsm" onclick="showScr('sMain');showT('tHome',$('tabHome'));homeInit()">&#8592; Back</button>
     </div>
     <div style="display:flex;gap:8px;">
       <div class="fg" style="flex:1;"><label>Date *</label><input type="date" id="crDate"/></div>
