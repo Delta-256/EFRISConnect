@@ -1586,17 +1586,20 @@ app.post('/api/efris/stock-in', rateLimit(30), async (req, res) => {
         remainInventory: String(item.quantity || 1),
       })),
     };
+    console.log('\n📦 T131 stock-in payload:', JSON.stringify(t131data, null, 2));
     const t131 = await efrisCall(eu, efrisEnvEnc('T131', t131data, config.tin, config.deviceNo, session.aesKey, session.privatePem));
     const rc = t131.data && t131.data.returnStateInfo ? t131.data.returnStateInfo.returnCode : null;
     const rm = t131.data && t131.data.returnStateInfo ? t131.data.returnStateInfo.returnMessage : '';
-    let errors = [];
+    let errors = [], rawContent = null;
     if (t131.data && t131.data.data && t131.data.data.content) {
-      try { const s = aesDecryptStr(t131.data.data.content, session.aesKey); const d = JSON.parse(s); errors = d.errors || []; } catch(e) {}
+      try { const s = aesDecryptStr(t131.data.data.content, session.aesKey); rawContent = s; const d = JSON.parse(s); errors = d.errors || []; } catch(e) {}
     }
+    console.log(`   T131 rc: ${rc} — ${rm}`);
+    if (rawContent) console.log(`   T131 raw response: ${rawContent.slice(0, 500)}`);
     const ok = rc === '00' || rc === '45';
     res.json(ok
       ? { success: rc === '00', partialErrors: errors, returnCode: rc, returnMessage: rm }
-      : { success: false, error: 'URA ' + rc + ': ' + rm, returnCode: rc });
+      : { success: false, error: 'URA ' + rc + ': ' + rm, returnCode: rc, debug: rawContent });
   } catch(e) {
     res.status(500).json({ success: false, error: e.message });
   }
