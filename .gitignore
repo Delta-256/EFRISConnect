@@ -1,6 +1,19 @@
 node_modules/
 backend/node_modules/
 .env
+*.env.*
 *.log
 .DS_Store
 .claude/
+
+# Old/archive folders — kept locally, never pushed
+backend/Old Servers/
+frontend/Old/
+
+# Sensitive files
+*.pem
+*.key
+*.p12
+*.pfx
+*.der
+backend/keys/
