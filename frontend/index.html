@@ -3204,21 +3204,23 @@ async function t131Search(){
     const d=await r.json();
     if(!d.success){el.innerHTML='<div class="al aw">'+esc(d.error||'Search failed')+'</div>';return;}
     if(!d.items||!d.items.length){el.innerHTML='<div class="al ai">No results found for "'+esc(q)+'".</div>';return;}
+    window.__gsResults=d.items;  // store so the Stock-in button can reference by index (avoids JSON-in-attribute quote bug)
     el.innerHTML='<table style="width:100%;font-size:11px;border-collapse:collapse;">'
       +'<thead><tr><th style="text-align:left;padding:4px;border-bottom:1px solid var(--bdr);">Code</th><th style="text-align:left;padding:4px;border-bottom:1px solid var(--bdr);">Name</th><th style="text-align:left;padding:4px;border-bottom:1px solid var(--bdr);">Type</th><th style="text-align:left;padding:4px;border-bottom:1px solid var(--bdr);">Unit</th><th style="text-align:left;padding:4px;border-bottom:1px solid var(--bdr);">Price</th><th style="padding:4px;border-bottom:1px solid var(--bdr);"></th></tr></thead>'
-      +'<tbody>'+d.items.map(it=>'<tr style="border-bottom:1px solid #f5f5f5;">'
+      +'<tbody>'+d.items.map((it,idx)=>'<tr style="border-bottom:1px solid #f5f5f5;">'
         +'<td style="padding:4px;font-family:monospace;">'+esc(it.goodsCode||'')+'</td>'
         +'<td style="padding:4px;">'+esc(it.goodsName||it.name||'')+'</td>'
         +'<td style="padding:4px;">'+esc(it.goodsTypeCode==='101'?'Goods':'Service')+'</td>'
         +'<td style="padding:4px;">'+esc(it.measureUnit||'')+'</td>'
         +'<td style="padding:4px;">'+esc(it.unitPrice||'')+'</td>'
-        +'<td style="padding:4px;"><button class="btn bsm" style="font-size:10px;padding:2px 6px;" onclick="stkPreFill('+JSON.stringify(it)+')">→ Stock-in</button></td>'
+        +'<td style="padding:4px;"><button class="btn bsm" style="font-size:10px;padding:2px 6px;" onclick="stkPreFill('+idx+')">→ Stock-in</button></td>'
         +'</tr>').join('')+'</tbody></table>';
   }catch(e){el.innerHTML='<div class="al aw">Network error: '+esc(e.message)+'</div>';}
 }
 
-function stkPreFill(it){
+function stkPreFill(idx){
   // Switch to stock-in pane and pre-fill first item row with this EFRIS item
+  const it=(window.__gsResults||[])[idx]; if(!it){return;}
   stkSwitch('in');
   if(!_stkInItems.length) _stkInItems=[{itemCode:'',quantity:1,unitPrice:0,measureUnit:'PP'}];
   _stkInItems[0].itemCode = it.goodsCode || it.goodsName || '';
