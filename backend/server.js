@@ -685,6 +685,16 @@ app.get('/api/health', (req, res) => {
   } else if (_pemContentFromEnv) {
     keyFormat = 'pem';
     try { crypto.createPrivateKey({ key: _pemContentFromEnv, format: 'pem' }); keyOk = true; } catch(e) { keyParseError = e.message; }
+  } else {
+    // Key supplied as a file path (e.g. local dev: EFRIS_PRIVATE_KEY=C:\...\key.pem).
+    // Actually load and parse it so the health report reflects file-based keys too.
+    for (const p of EFRIS_PRIVATE_KEY_PATHS) {
+      const pem = loadPem(p);
+      if (!pem) { keyParseError = path.basename(p) + ': file not found'; continue; }
+      keyFormat = 'pem-file';
+      try { crypto.createPrivateKey({ key: pem, format: 'pem' }); keyOk = true; keyParseError = null; break; }
+      catch(e) { keyParseError = path.basename(p) + ': ' + e.message; }
+    }
   }
   res.json({
     status: 'ok',
