@@ -1903,10 +1903,11 @@ app.post('/api/efris/search-goods', async (req, res) => {
   try {
     const eu = mode === 'production' ? 'https://efrisws.ura.go.ug/ws/taapp/getInformation' : 'https://efristest.ura.go.ug/efrisws/ws/taapp/getInformation';
     const session = await getSession(tin, deviceNo, efrisPassword, eu);
-    const payload = [{ goodsName: query || '', goodsCode: '', pageNo: '1', pageSize: '20' }];
-    // TODO: verify correct T-code for goods search against EFRIS developer docs.
-    // T131 is stock-in — goods query may require a different interface code.
-    const GOODS_SEARCH_IFACE = 'T130';
+    // T127 = Goods/Services Inquiry (query goods registered under this TIN).
+    // NOTE: T130 is goods *registration* (upload) and only echoes the request back —
+    // it must NOT be used for search. T127 takes a single object (not a batch array).
+    const GOODS_SEARCH_IFACE = 'T127';
+    const payload = { goodsCode: '', goodsName: query || '', commodityCategoryCode: '', pageNo: '1', pageSize: '20' };
     const t131 = await efrisCall(eu, efrisEnvEnc(GOODS_SEARCH_IFACE, payload, tin, deviceNo, session.aesKey, session.privatePem));
     const outerRc = t131.data?.returnStateInfo?.returnCode;
     const outerRm = t131.data?.returnStateInfo?.returnMessage || '';
@@ -1916,12 +1917,12 @@ app.post('/api/efris/search-goods', async (req, res) => {
     if (t131.data?.data?.content) {
       try {
         const raw = aesDecryptStr(t131.data.data.content, session.aesKey);
-        console.log(`   T130 search raw: ${raw.slice(0,300)}`);
+        console.log(`   T127 search raw: ${raw.slice(0,300)}`);
         const parsed = JSON.parse(raw);
-        items = Array.isArray(parsed) ? parsed : (parsed.goodsList || parsed.list || []);
-      } catch(e) { console.log(`   T130 search decrypt error: ${e.message}`); }
+        items = parsed.records || parsed.goodsList || parsed.list || (Array.isArray(parsed) ? parsed : []);
+      } catch(e) { console.log(`   T127 search decrypt error: ${e.message}`); }
     }
-    console.log(`   T130 search found ${items.length} items`);
+    console.log(`   T127 search found ${items.length} items`);
     res.json({ success: true, items });
   } catch (e) {
     const safe = e.message.replace(efrisPassword || '', '***');
