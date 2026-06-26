@@ -3221,14 +3221,19 @@ async function t131Search(){
 function stkPreFill(idx){
   // Switch to stock-in pane and pre-fill first item row with this EFRIS item
   const it=(window.__gsResults||[])[idx]; if(!it){return;}
+  // The Stock Management card is hidden by default (only shown while editing a Goods
+  // item). Reveal it so the pre-filled form is visible when launched from search.
+  const card=$('stockMgmtCard'); if(card) card.style.display='';
   stkSwitch('in');
   if(!_stkInItems.length) _stkInItems=[{itemCode:'',quantity:1,unitPrice:0,measureUnit:'PP'}];
   _stkInItems[0].itemCode = it.goodsCode || it.goodsName || '';
   _stkInItems[0].measureUnit = it.measureUnit || 'PP';
   _stkInItems[0].unitPrice = parseFloat(it.unitPrice) || 0;
   stkRenderItems('in');
-  // Scroll down to stock management section
-  const el = $('stkInPane'); if(el) el.scrollIntoView({behavior:'smooth'});
+  // Default the stock-in date to today if empty
+  if($('stkDate') && !$('stkDate').value) $('stkDate').value=new Date().toISOString().slice(0,10);
+  // Scroll to the now-visible stock management card
+  const el = card || $('stkInPane'); if(el) el.scrollIntoView({behavior:'smooth'});
 }
 
 let _mgrItems=[];
