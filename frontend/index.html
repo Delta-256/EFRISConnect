@@ -3881,6 +3881,11 @@ async function stkSubmitIn(){
       remarks:gvi('stkRemarks'),items,
       config:{tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production'}
     })});
+    const ct=r.headers.get('content-type')||'';
+    if(!ct.includes('application/json')){
+      ht('stkInResult','<div class="st se">&#10005; Server returned a non-JSON response (HTTP '+r.status+'). The server may be restarting — wait a moment and try again.</div>');
+      if(btn){btn.disabled=false;btn.textContent='&#128230; Submit Stock-in to EFRIS';} return;
+    }
     const d=await r.json();
     if(d.success) ht('stkInResult','<div class="st ss">&#10003; Stock recorded in EFRIS'+(d.partialErrors&&d.partialErrors.length?' ('+d.partialErrors.length+' item error(s))':'')+'</div>');
     else ht('stkInResult','<div class="st se">&#10005; '+esc(d.error||'Failed')+(d.partialErrors&&d.partialErrors.length?'<br>'+d.partialErrors.map(e=>esc(e.itemCode+': '+e.returnMessage)).join('<br>'):'')+'</div>');

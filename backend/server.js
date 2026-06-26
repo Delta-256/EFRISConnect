@@ -988,22 +988,27 @@ app.get('/api/goods/manager-items', async (req, res) => {
 app.get('/api/manager/accounts', async (req, res) => {
   const { ep, tk } = mgrCreds(req);
   if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk required' });
-  // Try several common Manager account-list endpoints
-  const paths = ['/profit-and-loss-accounts', '/income-statement-accounts', '/balance-sheet-accounts', '/accounts', '/chart-of-accounts'];
+  // Try several common Manager account-list endpoints. Manager API2 uses kebab-case
+  // plural paths (cf. /inventory-items). Different editions expose different names.
+  const paths = ['/profit-and-loss-statement-accounts', '/profit-and-loss-accounts', '/income-statement-accounts', '/balance-sheet-accounts', '/accounts', '/chart-of-accounts'];
   for (const path of paths) {
     try {
       const r = await managerCall(ep, tk, 'GET', path, null);
+      console.log(`   accounts probe ${path} → HTTP ${r.status}`);
       if (r.status === 200 && r.data) {
-        // Find the array inside the response object
-        const arr = Array.isArray(r.data) ? r.data : Object.values(r.data).find(v => Array.isArray(v) && v.length && v[0].key);
+        // Find the array inside the response object (Manager wraps lists under a key)
+        const arr = Array.isArray(r.data)
+          ? r.data
+          : Object.values(r.data).find(v => Array.isArray(v) && v.length && (v[0].key || v[0].Key));
         if (arr && arr.length) {
-          const accounts = arr.map(a => ({ key: a.key || a.Key, name: a.name || a.Name || a.accountName || '' })).filter(a => a.key);
+          const accounts = arr.map(a => ({ key: a.key || a.Key, name: a.name || a.Name || a.accountName || a.AccountName || '' })).filter(a => a.key);
           console.log(`   Manager accounts from ${path}: ${accounts.length} items`);
-          return res.json({ success: true, accounts });
+          if (accounts.length) return res.json({ success: true, accounts });
         }
       }
-    } catch(e) {}
+    } catch(e) { console.log(`   accounts probe ${path} error: ${e.message}`); }
   }
+  console.log('   Manager accounts: none of the candidate paths returned a list');
   res.json({ success: true, accounts: [] });
 });
 
