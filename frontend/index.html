@@ -3682,7 +3682,7 @@ let _crCustType='b2c', _crItems=[], _crLines=[{itemKey:'',description:'',qty:1,u
 function showCreate(){
   if(!CFG.tin){alert('Complete Settings first (TIN, Device No, EFRIS Password)');return;}
   if(!(CFG.managerEndpoint||MGR_EP)){alert('Manager endpoint not connected — finish Settings first');return;}
-  _crCustType='b2c'; _crLines=[{itemKey:'',description:'',qty:1,unitPrice:''}];
+  _crCustType='b2c'; _crLines=[{itemKey:'',description:'',qty:1,unitPrice:''}]; _crPays=[{mode:'102',amount:''}];
   document.querySelectorAll('[data-crtype]').forEach(b=>b.classList.toggle('on',b.dataset.crtype==='b2c'));
   document.querySelectorAll('#sCreate .cust-fields').forEach(d=>d.style.display='none');
   const today=new Date().toISOString().slice(0,10);
@@ -3692,6 +3692,7 @@ function showCreate(){
   const curEl=$('crCurrency'); if(curEl) curEl.value='UGX';
   ht('crProg',''); ht('crResult','');
   renderCrLines();
+  renderCrPays();
   showScr('sCreate');
   crCurrencyChange();
   loadCrItems();
@@ -3791,11 +3792,49 @@ function crHideSug(i){ const s=$('crSug'+i); if(s)s.style.display='none'; }
 
 function addCrLine(){ _crLines.push({itemKey:'',description:'',qty:1,unitPrice:''}); renderCrLines(); }
 
+// ── New Receipt split payments (mirrors Issue Receipt) ──
+let _crPays=[{mode:'102',amount:''}];
+function crTotalUGX(){ const fx=parseFloat(gvi('crFxRate')||'1')||1; return Math.round(_crLines.reduce((s,l)=>s+(parseFloat(l.qty)||0)*(parseFloat(l.unitPrice)||0)*fx,0)*100)/100; }
+function renderCrPays(){
+  const el=$('crPayWaysList'); if(!el)return;
+  const rows=el.querySelectorAll('.crpw-row');
+  if(rows.length!==_crPays.length){
+    let h='';
+    _crPays.forEach((pw,i)=>{
+      const opts=PAY_MODES.map(([v,n])=>'<option value="'+v+'"'+(pw.mode===v?' selected':'')+'>'+n+'</option>').join('');
+      h+='<div class="crpw-row" style="display:flex;gap:5px;align-items:center;margin-bottom:4px;">'
+        +'<select style="flex:1;font-size:11px;" onchange="_crPays['+i+'].mode=this.value">'+opts+'</select>'
+        +'<input type="number" style="width:120px;font-size:12px;padding:4px 6px;" placeholder="Amount (blank=full)" value="'+pw.amount+'" onchange="_crPays['+i+'].amount=this.value;crPayBalance()"/>'
+        +(_crPays.length>1?'<button type="button" onclick="_crPays.splice('+i+',1);renderCrPays()" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:15px;line-height:1;">&#10005;</button>':'<span style="width:20px;display:inline-block;"></span>')
+        +'</div>';
+    });
+    el.innerHTML=h+'<div id="crPwBalance"></div>';
+  }
+  crPayBalance();
+}
+function crPayBalance(){
+  const b=$('crPwBalance'); if(!b)return;
+  const total=crTotalUGX();
+  const paid=_crPays.reduce((s,pw)=>s+(parseFloat(pw.amount)||0),0);
+  const rem=Math.round((total-paid)*100)/100;
+  if(rem>0.01&&_crPays.some(pw=>pw.amount))
+    b.innerHTML='<div style="font-size:11px;color:#e65100;margin-top:3px;padding:4px 6px;background:#fff3e0;border-radius:4px;">Balance remaining: <strong>'+rem.toLocaleString('en-UG',{maximumFractionDigits:2})+'</strong> (unpaid — recorded as Credit)</div>';
+  else b.innerHTML='';
+}
+function addCrPay(){
+  const total=crTotalUGX();
+  const paid=_crPays.reduce((s,pw)=>s+(parseFloat(pw.amount)||0),0);
+  const rem=Math.max(0,Math.round((total-paid)*100)/100);
+  _crPays.push({mode:'102',amount:rem>0?String(rem):''});
+  renderCrPays();
+}
+
 function renderCrTotal(){
   const fx=parseFloat(gvi('crFxRate')||'1')||1;
   const total=_crLines.reduce((s,l)=>s+(parseFloat(l.qty)||0)*(parseFloat(l.unitPrice)||0)*fx,0);
   const el=$('crTotalRow');
   if(el) el.textContent=total?'Total: UGX '+Math.round(total).toLocaleString('en-UG',{maximumFractionDigits:0}):'';
+  crPayBalance();
 }
 
 async function doCreateReceipt(managerOnly){
@@ -3843,8 +3882,9 @@ async function doCreateReceipt(managerOnly){
     if(managerOnly){ renderInv(INV); showScr('sMain'); ht('crResult','<div class="al as">&#10003; Receipt created in Manager. You can now submit to EFRIS.</div>'); return; }
     // Step 3: Submit to EFRIS
     steps[2].st='act'; prog();
-    // Apply customer type so buildInv sees it
+    // Apply customer type + chosen payment split so buildInv/getPayWays see them
     _custType=_crCustType;
+    _payWays=_crPays.map(pw=>({mode:pw.mode||'102',amount:pw.amount}));
     if(_crCustType==='b2b'){ sv('cTIN',custTIN); if(custName) INV.CustomerName=custName; }
     else if(_crCustType==='b2g'){ sv('cGovTIN',custTIN); sv('cGovDept',custDept); }
     else if(_crCustType==='foreign'){ sv('cPassport',passport); sv('cNationality',nationality); sv('cForeignName',custName); }
@@ -3929,15 +3969,9 @@ async function doCreateReceipt(managerOnly){
       <button onclick="addCrLine()" class="btn bo bsm" style="margin-top:5px;">+ Add Line</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:8px;">
-      <div class="fg" style="flex:1;"><label>Payment Mode</label>
-        <select id="crPayMode">
-          <option value="101">Cash</option>
-          <option value="102">Credit</option>
-          <option value="103">Debit Card</option>
-          <option value="104">Mobile Money</option>
-          <option value="105">Cheque</option>
-          <option value="106">Bank Transfer</option>
-        </select>
+      <div class="fg" style="flex:1;"><label>Payment</label>
+        <div id="crPayWaysList"></div>
+        <button type="button" onclick="addCrPay()" class="btn bo bsm" style="margin-top:4px;font-size:11px;">+ Add payment mode</button>
       </div>
       <div class="fg" style="flex:1;" id="crFxRow"><label>FX Rate to UGX <button type="button" class="btn bo bsm" onclick="crFetchFx()" style="font-size:10px;padding:1px 5px;margin-left:4px;">↻ fetch</button></label>
         <input id="crFxRate" type="number" placeholder="1" value="1" min="0.001"/>
