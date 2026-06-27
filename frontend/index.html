@@ -1216,7 +1216,11 @@ function fn(n){ return parseFloat(n||0).toLocaleString('en-UG',{maximumFractionD
 function fd(d){ if(!d)return'—'; try{return new Date(d).toLocaleDateString('en-UG',{year:'numeric',month:'short',day:'numeric'});}catch(e){return d;} }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-function showScr(id){ document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on')); const e=$(id);if(e)e.classList.add('on'); }
+function showScr(id){ document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on')); const e=$(id);if(e)e.classList.add('on');
+  // sCreate sits after the footer in the DOM, so the footer would render above it.
+  // Hide the footer on that screen (it shows on all others).
+  try{ const f=document.querySelector('.ftr'); if(f) f.style.display = (id==='sCreate')?'none':''; }catch(_){}
+}
 function showT(id,btn){
   ['tHome','tWalk','tSub','tStat','tGds','tGd','tNum','tHist','tBulk','tSet'].forEach(t=>{const e=$(t);if(e)e.classList.add('hidden');});
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
@@ -3655,10 +3659,28 @@ function showCreate(){
   sv('crDate',today);
   sv('crRef','REC-'+today.replace(/-/g,'').slice(2)+'-'+(Math.floor(Math.random()*900)+100));
   sv('crNotes',''); sv('crFxRate','1');
+  const curEl=$('crCurrency'); if(curEl) curEl.value='UGX';
   ht('crProg',''); ht('crResult','');
   renderCrLines();
   showScr('sCreate');
+  crCurrencyChange();
   loadCrItems();
+}
+// Show the FX row only for non-UGX currencies; auto-fetch the rate when switched.
+function crCurrencyChange(){
+  const cur=(($('crCurrency')||{}).value)||'UGX';
+  const row=$('crFxRow'); if(row) row.style.display = cur==='UGX' ? 'none' : '';
+  if(cur==='UGX'){ sv('crFxRate','1'); const s=$('crFxStatus'); if(s) s.textContent=''; }
+  else crFetchFx();
+}
+async function crFetchFx(){
+  const cur=(($('crCurrency')||{}).value)||'UGX'; if(cur==='UGX') return;
+  const s=$('crFxStatus'); if(s) s.textContent='fetching…';
+  try{
+    const r=await fetch(RELAY+'/api/fx-rates'); const d=await r.json();
+    if(d.success&&d.rates&&d.rates[cur]){ sv('crFxRate',String(d.rates[cur])); if(s) s.textContent='Bank of Uganda: 1 '+cur+' = '+d.rates[cur].toLocaleString()+' UGX'; }
+    else if(s) s.textContent='Rate not found — enter manually.';
+  }catch(e){ if(s) s.textContent='Could not fetch — enter manually.'; }
 }
 
 function setCrCust(t){
@@ -3825,6 +3847,12 @@ async function doCreateReceipt(managerOnly){
     <div style="display:flex;gap:8px;">
       <div class="fg" style="flex:1;"><label>Date *</label><input type="date" id="crDate"/></div>
       <div class="fg" style="flex:1;"><label>Reference</label><input id="crRef" placeholder="e.g. REC-001"/></div>
+      <div class="fg" style="flex:1;"><label>Currency</label>
+        <select id="crCurrency" onchange="crCurrencyChange()">
+          <option value="UGX">UGX</option><option value="USD">USD</option><option value="EUR">EUR</option>
+          <option value="GBP">GBP</option><option value="KES">KES</option><option value="TZS">TZS</option><option value="RWF">RWF</option>
+        </select>
+      </div>
     </div>
     <div class="fg mt">
       <label>Customer Type</label>
@@ -3874,8 +3902,9 @@ async function doCreateReceipt(managerOnly){
           <option value="106">Bank Transfer</option>
         </select>
       </div>
-      <div class="fg" style="flex:1;"><label>FX Rate (if USD)</label>
+      <div class="fg" style="flex:1;" id="crFxRow"><label>FX Rate to UGX <button type="button" class="btn bo bsm" onclick="crFetchFx()" style="font-size:10px;padding:1px 5px;margin-left:4px;">↻ fetch</button></label>
         <input id="crFxRate" type="number" placeholder="1" value="1" min="0.001"/>
+        <span id="crFxStatus" style="font-size:10px;color:var(--gray);"></span>
       </div>
     </div>
     <div class="fg"><label>Notes (optional)</label><input id="crNotes" placeholder="Remarks for the receipt"/></div>
