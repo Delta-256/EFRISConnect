@@ -980,21 +980,27 @@ app.get('/api/goods/manager-items', async (req, res) => {
   const { ep, tk } = mgrCreds(req);
   if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk required' });
   try {
+    const cols = '?fields=ItemCode&fields=ItemName&fields=SalePrice&fields=UnitName';
     const [niR, invR] = await Promise.all([
-      managerCall(ep, tk, 'GET', '/non-inventory-items', null),
-      managerCall(ep, tk, 'GET', '/inventory-items', null)
+      managerCall(ep, tk, 'GET', '/non-inventory-items' + cols, null),
+      managerCall(ep, tk, 'GET', '/inventory-items' + cols, null)
     ]);
-    const services = (niR.status === 200 && niR.data && niR.data.nonInventoryItems) || [];
-    const goods    = (invR.status === 200 && invR.data && invR.data.inventoryItems) || [];
-    const normalize = (arr, type) => arr.map(i => ({
-      key:            i.key || i.Key,
-      code:           i.code || i.Code || '',
-      name:           i.itemName || i.name || i.Name || '',
-      unitName:       i.unitName || i.UnitName || '',
-      salesUnitPrice: i.salesUnitPrice || i.SalesUnitPrice || 0,
-      description:    i.description || i.Description || '',
-      type
-    }));
+    const services = (niR.status === 200 && niR.data && (niR.data.nonInventoryItems || niR.data.NonInventoryItems)) || [];
+    const goods    = (invR.status === 200 && invR.data && (invR.data.inventoryItems || invR.data.InventoryItems)) || [];
+    const num = v => { if (v == null) return 0; if (typeof v === 'object') v = v.value != null ? v.value : (v.amount != null ? v.amount : 0); return parseFloat(v) || 0; };
+    const normalize = (arr, type) => arr.map(i => {
+      const price = num(i.SalePrice || i.salePrice || i.salesUnitPrice || i.SalesUnitPrice || i.salesPrice || i.price || i.Price);
+      return {
+        key:            i.key || i.Key,
+        code:           i.ItemCode || i.itemCode || i.code || i.Code || '',
+        name:           i.ItemName || i.itemName || i.name || i.Name || '',
+        unitName:       i.UnitName || i.unitName || '',
+        price:          price,           // frontend (walk-in autofill) reads .price
+        salesUnitPrice: price,
+        description:    i.description || i.Description || '',
+        type
+      };
+    });
     res.json({ success: true, items: [...normalize(services,'Service'), ...normalize(goods,'Goods')] });
   } catch(e) {
     res.json({ success: false, error: e.message });
