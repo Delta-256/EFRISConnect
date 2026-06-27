@@ -1067,16 +1067,16 @@ function efrisFieldSpecs(P) {
   const DOC  = [P.salesInvoice, P.receipt];
   const ITEM = [P.inventoryItem, P.nonInventoryItem];
   return [
-    { create: 'EFRIS FDN',            match: ['fiscal document number', 'efris fdn', 'fdn'],                 placement: DOC },
-    { create: 'Verification Code',    match: ['verification code', 'efris antifake code', 'antifake code'], placement: DOC },
-    { create: 'QR Code',              match: ['qr code', 'efris qr code url', 'efris qr code'],              placement: DOC },
-    { create: 'EFRIS Device Number',  match: ['efris device number', 'device number'],                      placement: DOC },
-    { create: 'EFRIS Issued Time',    match: ['efris issued time', 'issued time'],                          placement: DOC },
-    { create: 'EFRIS Invoice ID',     match: ['efris invoice id', 'invoice id'],                            placement: DOC },
-    { create: 'EFRIS Status',         match: ['status', 'efris status'],                                    placement: DOC },
-    { create: 'EFRIS Submission Date',match: ['submission date', 'efris submission date'],                  placement: DOC },
-    { create: 'EFRIS Commodity Code', match: ['efris commodity code', 'commodity code', 'efris commodity'], placement: ITEM },
-    { create: 'EFRIS Category Path',  match: ['efris category path', 'category path', 'efris segment / class grouping', 'segment / class grouping'], placement: ITEM },
+    { create: 'FDN',              match: ['fdn', 'fiscal document number', 'efris fdn'],                 placement: DOC },
+    { create: 'Verification Code',match: ['verification code', 'efris antifake code', 'antifake code'], placement: DOC },
+    { create: 'QR Code',          match: ['qr code', 'efris qr code url', 'efris qr code'],              placement: DOC },
+    { create: 'Device Number',    match: ['device number', 'efris device number'],                      placement: DOC },
+    { create: 'Issued Time',      match: ['issued time', 'efris issued time'],                          placement: DOC },
+    { create: 'Invoice ID',       match: ['invoice id', 'efris invoice id'],                            placement: DOC },
+    { create: 'Status',           match: ['status', 'efris status'],                                    placement: DOC },
+    { create: 'Submission Date',  match: ['submission date', 'efris submission date'],                  placement: DOC },
+    { create: 'Commodity Code',   match: ['commodity code', 'efris commodity code', 'efris commodity'], placement: ITEM },
+    { create: 'Category Path',    match: ['category path', 'efris category path', 'efris segment / class grouping', 'segment / class grouping'], placement: ITEM },
   ];
 }
 
@@ -1259,15 +1259,19 @@ app.get('/api/goods/manager-item-detail', async (req, res) => {
     const cf2 = d.customFields2 || d.CustomFields2 || {};
     const cfStrings = cf2.strings || cf2.Strings || {};
     console.log(`   Detail for ${key}:`, JSON.stringify(d).slice(0, 300));
+    // Field names differ between inventory items (ItemName, DefaultSalesUnitPrice,
+    // HasDefaultSalesUnitPrice, no Code) and non-inventory items (Name, SalesUnitPrice,
+    // HasSalesUnitPrice). Read every variant so both populate the form correctly.
+    const pick = (...keys) => { for (const k of keys) { if (d[k] !== undefined && d[k] !== null && d[k] !== '') return d[k]; } return undefined; };
     res.json({ success: true, item: {
       key,
-      code:                   d.code || d.Code || '',
-      name:                   d.name || d.Name || d.itemName || '',
-      unitName:               d.unitName || d.UnitName || '',
-      salesUnitPrice:         d.salesUnitPrice || d.SalesUnitPrice || 0,
-      hasSalesUnitPrice:      !!(d.hasSalesUnitPrice || d.HasSalesUnitPrice),
-      description:            d.description || d.Description || '',
-      defaultLineDescription: d.defaultLineDescription || d.DefaultLineDescription || '',
+      code:                   pick('ItemCode','itemCode','Code','code') || '',
+      name:                   pick('ItemName','itemName','Name','name') || '',
+      unitName:               pick('UnitName','unitName') || '',
+      salesUnitPrice:         pick('DefaultSalesUnitPrice','SalesUnitPrice','salesUnitPrice','DefaultSalesPrice') || 0,
+      hasSalesUnitPrice:      !!(d.HasDefaultSalesUnitPrice || d.hasDefaultSalesUnitPrice || d.HasSalesUnitPrice || d.hasSalesUnitPrice),
+      description:            pick('Description','description') || '',
+      defaultLineDescription: pick('DefaultLineDescription','defaultLineDescription') || '',
       customFieldStrings:     cfStrings,
       division:               d.division || d.Division || '',
       salesDivision:          d.salesDivision || d.SalesDivision || '',
@@ -1820,7 +1824,7 @@ app.post('/api/efris/save-to-manager', async (req, res) => {
     form.CustomFields2 = form.CustomFields2 || {};
     form.CustomFields2.Strings = form.CustomFields2.Strings || {};
     const setCFAny = (names, val) => { for (const n of names) { const k = cf.byName[n]; if (k && val != null && val !== '') { form.CustomFields2.Strings[k] = String(val); break; } } };
-    setCFAny(['Fiscal Document Number', 'EFRIS FDN'], efrisData.fdn);
+    setCFAny(['FDN', 'Fiscal Document Number', 'EFRIS FDN'], efrisData.fdn);
     setCFAny(['Verification Code', 'EFRIS Antifake Code'], efrisData.antifakeCode);
     // QR Code field: store the EFRIS validation URL — Manager's "QR Code" custom field type
     // encodes this as a scannable QR on printed documents, linking to URA's invoice validator
