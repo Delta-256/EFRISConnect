@@ -1624,12 +1624,28 @@ app.post('/api/efris/stock-in', rateLimit(30), async (req, res) => {
     const envelope = efrisEnvEnc('T131', t131data, config.tin, config.deviceNo, session.aesKey, session.privatePem);
     const selfCheck = aesDecryptStr(envelope.data.content, session.aesKey);
     console.log(`   Self-decrypt check: ${selfCheck.slice(0, 200)}`);
-    const t131 = await efrisCall(eu, envelope);
-    const rc = t131.data && t131.data.returnStateInfo ? t131.data.returnStateInfo.returnCode : null;
-    const rm = t131.data && t131.data.returnStateInfo ? t131.data.returnStateInfo.returnMessage : '';
+    // rc 15 = EFRIS "Data decryption error". Our ciphertext is verified correct
+    // (self-decrypt passes), so an rc 15 is a transient URA-side fault — retry it.
+    let t131, rc, rm;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const env = attempt === 1 ? envelope
+        : efrisEnvEnc('T131', t131data, config.tin, config.deviceNo, session.aesKey, session.privatePem);
+      t131 = await efrisCall(eu, env);
+      rc = t131.data && t131.data.returnStateInfo ? t131.data.returnStateInfo.returnCode : null;
+      rm = t131.data && t131.data.returnStateInfo ? t131.data.returnStateInfo.returnMessage : '';
+      if (rc !== '15') break;
+      console.log(`   T131 rc 15 (transient decrypt error) — retry ${attempt}/3`);
+    }
     let errors = [], rawContent = null;
     if (t131.data && t131.data.data && t131.data.data.content) {
-      try { const s = aesDecryptStr(t131.data.data.content, session.aesKey); rawContent = s; const d = JSON.parse(s); errors = d.errors || []; } catch(e) { console.log(`   T131 decrypt error: ${e.message}`); }
+      try {
+        const s = aesDecryptStr(t131.data.data.content, session.aesKey); rawContent = s;
+        const d = JSON.parse(s);
+        // T131 returns an ARRAY of per-item results; collect any with a non-00 code.
+        if (Array.isArray(d)) errors = d.filter(r => r.returnCode && r.returnCode !== '00')
+          .map(r => ({ itemCode: r.goodsCode, returnCode: r.returnCode, returnMessage: r.returnMessage }));
+        else errors = d.errors || [];
+      } catch(e) { console.log(`   T131 decrypt error: ${e.message}`); }
     }
     console.log(`   T131 rc: ${rc} — ${rm}`);
     if (rawContent) {
@@ -1637,10 +1653,11 @@ app.post('/api/efris/stock-in', rateLimit(30), async (req, res) => {
     } else if (t131.data && t131.data.data) {
       console.log(`   T131 response content (encrypted): ${JSON.stringify(t131.data.data).slice(0, 200)}`);
     }
-    const ok = rc === '00' || rc === '45';
+    // rc 45 with item errors is NOT a success — surface the item-level reason.
+    const ok = rc === '00' || (rc === '45' && errors.length === 0);
     res.json(ok
       ? { success: rc === '00', partialErrors: errors, returnCode: rc, returnMessage: rm }
-      : { success: false, error: 'URA ' + rc + ': ' + rm, returnCode: rc, debug: rawContent });
+      : { success: false, error: errors.length ? errors.map(e => e.itemCode + ': ' + e.returnMessage).join('; ') : ('URA ' + rc + ': ' + rm), returnCode: rc, partialErrors: errors, debug: rawContent });
   } catch(e) {
     res.status(500).json({ success: false, error: e.message });
   }
