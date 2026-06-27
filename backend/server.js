@@ -2112,6 +2112,28 @@ app.post('/api/efris/dictionary-dump', async (req, res) => {
   } catch (e) { res.json({ success: false, error: e.message }); }
 });
 
+// Diagnostic: find which inventory-adjustment form endpoints exist in this
+// Manager build (GET-probe — non-destructive). 404 = absent, 200/405 = present.
+app.get('/api/manager/probe-inventory-forms', async (req, res) => {
+  const { ep, tk } = mgrCreds(req);
+  if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk required' });
+  const paths = [
+    '/inventory-write-off-form', '/inventory-write-offs',
+    '/inventory-write-up-form', '/inventory-write-ups-form', '/inventory-write-ups',
+    '/inventory-quantity-adjustment-form', '/inventory-quantity-adjustments',
+    '/inventory-item-starting-balance-form', '/inventory-item-starting-balances',
+    '/production-order-form', '/production-orders',
+    '/inventory-transfer-form', '/inventory-transfers',
+    '/purchase-invoice-form'
+  ];
+  const out = {};
+  for (const p of paths) {
+    try { const r = await managerCall(ep, tk, 'GET', p, null); out[p] = r.status; }
+    catch (e) { out[p] = 'err:' + (e.message || '').slice(0, 40); }
+  }
+  res.json({ success: true, results: out });
+});
+
 app.get('/api/manager/invoice', async (req, res) => {
   const { ep, tk } = mgrCreds(req);
   const key = bareKey(req.query.key || '');
