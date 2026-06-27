@@ -3227,6 +3227,9 @@ function gEditItem(i){
   }
   const step5=document.querySelector('#gstep5 .row button.bo');
   if(step5) step5.style.display=efris&&gCOM?'':'none';
+  // Reveal the action buttons (Sync to Manager / Register on EFRIS) — Edit bypasses
+  // gGoStep(5), which is what normally un-hides this card.
+  const abc=$('gActionBtnsCard'); if(abc) abc.style.display='';
   // Pre-fill summary if commodity known
   if(gCOM&&efris){
     const el=$('gComSummary');
