@@ -1648,13 +1648,16 @@ function setCustType(t){
   document.querySelectorAll('.cust-fields').forEach(d=>d.style.display='none');
   const el=$('cust-'+t); if(el) el.style.display='';
 }
-async function _verifyTinInto(tin, resultId){
+async function _verifyTinInto(tin, resultId, nameFieldId){
   if(!CFG.tin){ht(resultId,'<span style="color:#c62828;">Setup EFRIS in Settings first</span>');return;}
   ht(resultId,'<span style="color:var(--gray);">Verifying…</span>');
   try{
     const r=await fetch(RELAY+'/api/efris/verify-tin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({buyerTin:tin,config:{tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production'}})});
     const d=await r.json();
-    if(d.success){const nm=d.taxpayerName||(()=>{const tp=d.taxpayer||{};return tp.taxpayerName||tp.taxpayerLegalName||tp.legalName||tp.entityName||tp.taxPayerName||tp.businessName||tp.name||'';})();ht(resultId,'<span style="color:var(--g);">&#10003; '+(nm||'Valid TIN')+'</span>');}
+    if(d.success){const nm=d.taxpayerName||(()=>{const tp=d.taxpayer||{};return tp.taxpayerName||tp.taxpayerLegalName||tp.legalName||tp.entityName||tp.taxPayerName||tp.businessName||tp.name||'';})();ht(resultId,'<span style="color:var(--g);">&#10003; '+(nm||'Valid TIN')+'</span>');
+      // Auto-fill the customer/business name field if one was given and is empty.
+      if(nameFieldId&&nm){ const el=$(nameFieldId); if(el&&!el.value.trim()) el.value=nm; }
+    }
     else ht(resultId,'<span style="color:#c62828;">❌ '+esc(d.error)+'</span>');
   }catch(e){ht(resultId,'<span style="color:#c62828;">Network error</span>');}
 }
@@ -3866,7 +3869,7 @@ async function doCreateReceipt(managerOnly){
         <div class="fg"><label>Business Name</label><input id="crCustName" placeholder="Company name"/></div>
         <div class="fg"><label>TIN</label>
           <div style="display:flex;gap:6px;"><input id="crCustTIN" placeholder="Customer TIN" style="flex:1;"/>
-          <button onclick="_verifyTinInto(gvi('crCustTIN'),'crTINRes')" class="btn bo bsm">Verify</button></div>
+          <button onclick="_verifyTinInto(gvi('crCustTIN'),'crTINRes','crCustName')" class="btn bo bsm">Verify</button></div>
           <div id="crTINRes" style="font-size:11px;margin-top:2px;"></div>
         </div>
       </div>
@@ -3874,7 +3877,7 @@ async function doCreateReceipt(managerOnly){
         <div class="fg"><label>Ministry / Department *</label><input id="crGovDept" placeholder="e.g. Ministry of Tourism"/></div>
         <div class="fg"><label>Government TIN</label>
           <div style="display:flex;gap:6px;"><input id="crGovTIN" placeholder="TIN (optional)" style="flex:1;"/>
-          <button onclick="_verifyTinInto(gvi('crGovTIN'),'crGovTINRes')" class="btn bo bsm">Verify</button></div>
+          <button onclick="_verifyTinInto(gvi('crGovTIN'),'crGovTINRes','crGovDept')" class="btn bo bsm">Verify</button></div>
           <div id="crGovTINRes" style="font-size:11px;margin-top:2px;"></div>
         </div>
       </div>
