@@ -1051,6 +1051,73 @@ app.get('/api/manager/custom-field-sample', async (req, res) => {
   } catch (e) { res.json({ success: false, error: e.message }); }
 });
 
+// ── EFRIS custom-field provisioning ───────────────────────────
+// Manager placement GUIDs identify built-in document types. These are the
+// values observed on a Manager file; they are overridable per request because
+// different company files MUST be verified (run /custom-field-sample probes).
+const MGR_PLACEMENTS = {
+  salesInvoice:   'ad12b60b-23bf-4421-94df-8be79cef533e',
+  receipt:        '7662b887-c8d8-486e-98fd-f9dbcd41c6dc',
+  inventoryItem:  '0dbdbf8a-d80c-48e6-b453-bb7862445b7c',
+  nonInventoryItem:'7affe9ee-731f-4936-8acf-15cae7bcacee',
+};
+// Each EFRIS field: the name to create, every name that counts as "already
+// present" (so we never duplicate), and which placement group it belongs to.
+function efrisFieldSpecs(P) {
+  const DOC  = [P.salesInvoice, P.receipt];
+  const ITEM = [P.inventoryItem, P.nonInventoryItem];
+  return [
+    { create: 'EFRIS FDN',            match: ['fiscal document number', 'efris fdn', 'fdn'],                 placement: DOC },
+    { create: 'Verification Code',    match: ['verification code', 'efris antifake code', 'antifake code'], placement: DOC },
+    { create: 'QR Code',              match: ['qr code', 'efris qr code url', 'efris qr code'],              placement: DOC },
+    { create: 'EFRIS Device Number',  match: ['efris device number', 'device number'],                      placement: DOC },
+    { create: 'EFRIS Issued Time',    match: ['efris issued time', 'issued time'],                          placement: DOC },
+    { create: 'EFRIS Invoice ID',     match: ['efris invoice id', 'invoice id'],                            placement: DOC },
+    { create: 'EFRIS Status',         match: ['status', 'efris status'],                                    placement: DOC },
+    { create: 'EFRIS Submission Date',match: ['submission date', 'efris submission date'],                  placement: DOC },
+    { create: 'EFRIS Commodity Code', match: ['efris commodity code', 'commodity code', 'efris commodity'], placement: ITEM },
+    { create: 'EFRIS Category Path',  match: ['efris category path', 'category path', 'efris segment / class grouping', 'segment / class grouping'], placement: ITEM },
+  ];
+}
+
+// Report which EFRIS fields exist vs are missing (no writes).
+app.get('/api/manager/efris-fields-status', async (req, res) => {
+  const { ep, tk } = mgrCreds(req);
+  if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk required' });
+  try {
+    const list = await managerCall(ep, tk, 'GET', '/text-custom-fields', null);
+    const have = new Set(((list.data && list.data.textCustomFields) || []).map(f => (f.name || '').trim().toLowerCase()));
+    const specs = efrisFieldSpecs(MGR_PLACEMENTS);
+    const existing = [], missing = [];
+    for (const s of specs) (s.match.some(n => have.has(n)) ? existing : missing).push(s.create);
+    res.json({ success: true, existing, missing });
+  } catch (e) { res.json({ success: false, error: e.message }); }
+});
+
+// Create any missing EFRIS custom fields. Placement GUIDs may be overridden in
+// the body (placements:{salesInvoice,receipt,inventoryItem,nonInventoryItem}).
+app.post('/api/manager/ensure-efris-fields', async (req, res) => {
+  const { managerEndpoint, accessToken, placements } = req.body || {};
+  const ep = normEp(managerEndpoint || ''), tk = accessToken;
+  if (!ep || !tk) return res.status(400).json({ success: false, error: 'managerEndpoint and accessToken required' });
+  const P = Object.assign({}, MGR_PLACEMENTS, placements || {});
+  try {
+    const list = await managerCall(ep, tk, 'GET', '/text-custom-fields', null);
+    const have = new Set(((list.data && list.data.textCustomFields) || []).map(f => (f.name || '').trim().toLowerCase()));
+    const specs = efrisFieldSpecs(P);
+    const created = [], skipped = [], failed = [];
+    for (const s of specs) {
+      if (s.match.some(n => have.has(n))) { skipped.push(s.create); continue; }
+      try {
+        const r = await managerCall(ep, tk, 'POST', '/text-custom-field-form', { Name: s.create, Placement: s.placement });
+        if (r.status === 200 || r.status === 201) { created.push(s.create); console.log(`   ✓ created custom field: ${s.create}`); }
+        else { failed.push({ field: s.create, status: r.status, error: (r.data && (r.data.error || JSON.stringify(r.data))) || ('HTTP ' + r.status) }); }
+      } catch (e) { failed.push({ field: s.create, error: e.message }); }
+    }
+    res.json({ success: failed.length === 0, created, skipped, failed });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 app.get('/api/manager/divisions', async (req, res) => {
   const { ep, tk } = mgrCreds(req);
   if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk required' });

@@ -1105,6 +1105,9 @@
     <button class="btn bg" onclick="saveSt()"><span class="ico-emoji">&#128190;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Settings</button>
     <button class="btn bo" onclick="testMgr('sMgr','sTok','sMgrR')"><span class="ico-emoji">&#128279;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Test Manager Connection</button>
     <div id="sMgrR"></div>
+    <div class="al ai mt" style="font-size:11px;">EFRIS needs custom fields in Manager to store the FDN, QR code, verification code, commodity codes, etc. This checks which exist and creates any that are missing — on Sales Invoices, Receipts and Items.</div>
+    <button class="btn bo" onclick="efrisFieldsCheck()">&#128203; Check / Create EFRIS Custom Fields</button>
+    <div id="efrisFieldsR" class="mt"></div>
     <button class="btn br mt" onclick="resetAll()"><span class="ico-emoji">&#128465;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Reset All Settings</button>
     <div id="saveR" class="mt"></div>
   </div>
@@ -1369,6 +1372,36 @@ async function detectManagerEndpointSettings(){
   } else if(res){
     res.innerHTML='<span style="color:var(--red)">No endpoint set. Paste it manually, e.g. <code>http://127.0.0.1:PORT/api2</code>.</span>';
   }
+}
+
+async function efrisFieldsCheck(){
+  const ep=(gvi('sMgr')||CFG.managerEndpoint||MGR_EP), tk=(gvi('sTok')||CFG.accessToken||MGR_TK);
+  const out=$('efrisFieldsR'); if(!out) return;
+  if(!ep||!tk){ ht('efrisFieldsR','<div class="st se">Connect Manager first (endpoint + token).</div>'); return; }
+  ht('efrisFieldsR','<div class="st si"><span class="sp">⏳</span> Checking custom fields…</div>');
+  try{
+    const r=await fetch(RELAY+'/api/manager/efris-fields-status?ep='+encodeURIComponent(ep)+'&tk='+encodeURIComponent(tk));
+    const d=await r.json();
+    if(!d.success){ ht('efrisFieldsR','<div class="st se">'+esc(d.error||'Failed')+'</div>'); return; }
+    if(!d.missing.length){ ht('efrisFieldsR','<div class="st ss">&#10003; All '+d.existing.length+' EFRIS custom fields already present.</div>'); return; }
+    ht('efrisFieldsR','<div class="al aw">Missing '+d.missing.length+' field(s): <strong>'+d.missing.map(esc).join(', ')+'</strong>'
+      +(d.existing.length?'<br><span style="color:var(--gray);font-size:11px;">Already present: '+d.existing.map(esc).join(', ')+'</span>':'')
+      +'</div><button class="btn bg" onclick="efrisFieldsCreate()">&#10133; Create '+d.missing.length+' missing field(s) now</button>');
+  }catch(e){ ht('efrisFieldsR','<div class="st se">Network error: '+esc(e.message)+'</div>'); }
+}
+async function efrisFieldsCreate(){
+  const ep=(gvi('sMgr')||CFG.managerEndpoint||MGR_EP), tk=(gvi('sTok')||CFG.accessToken||MGR_TK);
+  ht('efrisFieldsR','<div class="st si"><span class="sp">⏳</span> Creating custom fields…</div>');
+  try{
+    const r=await fetch(RELAY+'/api/manager/ensure-efris-fields',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk})});
+    const d=await r.json();
+    let h='';
+    if(d.created&&d.created.length) h+='<div class="st ss">&#10003; Created: '+d.created.map(esc).join(', ')+'</div>';
+    if(d.skipped&&d.skipped.length) h+='<div class="al ai" style="font-size:11px;">Already existed: '+d.skipped.map(esc).join(', ')+'</div>';
+    if(d.failed&&d.failed.length) h+='<div class="st se">Failed: '+d.failed.map(f=>esc(f.field+' ('+(f.error||f.status)+')')).join('; ')+'</div>';
+    if(!h) h='<div class="al ai">Nothing to do.</div>';
+    ht('efrisFieldsR',h);
+  }catch(e){ ht('efrisFieldsR','<div class="st se">Network error: '+esc(e.message)+'</div>'); }
 }
 
 async function testMgr(epId,tkId,resultId){
