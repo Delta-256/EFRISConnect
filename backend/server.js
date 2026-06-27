@@ -2068,6 +2068,28 @@ app.post('/api/manager/create-credit-note', async (req, res) => {
   }
 });
 
+// Diagnostic: dump the live T115 dictionary's structure so we can identify which
+// section holds the goods measure-unit codes EFRIS actually validates against.
+app.post('/api/efris/dictionary-dump', async (req, res) => {
+  const { tin, deviceNo, efrisPassword, mode } = req.body || {};
+  if (!tin || !deviceNo) return res.status(400).json({ success: false, error: 'tin and deviceNo required' });
+  const eu = mode === 'production'
+    ? 'https://efrisws.ura.go.ug/ws/taapp/getInformation'
+    : 'https://efristest.ura.go.ug/efrisws/ws/taapp/getInformation';
+  try {
+    const session = await getSession(tin, deviceNo, efrisPassword, eu);
+    const dict = await getEfrisDictionary(tin, deviceNo, session, eu);
+    if (!dict) return res.json({ success: false, error: 'No T115 dictionary returned' });
+    const summary = {};
+    for (const k of Object.keys(dict)) {
+      const v = dict[k];
+      if (Array.isArray(v)) summary[k] = { count: v.length, sample: v.slice(0, 8) };
+      else summary[k] = typeof v;
+    }
+    res.json({ success: true, keys: Object.keys(dict), summary });
+  } catch (e) { res.json({ success: false, error: e.message }); }
+});
+
 app.get('/api/manager/invoice', async (req, res) => {
   const { ep, tk } = mgrCreds(req);
   const key = bareKey(req.query.key || '');
