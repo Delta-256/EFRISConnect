@@ -1174,19 +1174,22 @@ app.post('/api/manager/create-receipt', async (req, res) => {
   if (!managerEndpoint || !accessToken) return res.status(400).json({ success: false, error: 'Missing Manager credentials' });
   const ep = normEp(managerEndpoint);
   try {
-    // GET blank form template so we have the correct shape (including hidden fields)
-    const tmplR = await managerCall(ep, accessToken, 'GET', '/receipt-form', null);
-    if (tmplR.status !== 200) {
-      return res.status(502).json({ success: false, error: `Manager receipt-form GET failed: HTTP ${tmplR.status}` });
+    // Manager has NO "blank form" GET (GET /receipt-form/{key} needs a key), so we
+    // build the payload and POST it directly. A receipt requires a "Received in"
+    // bank/cash account — use the one supplied, else default to the first account.
+    let receivedIn = receipt.receivedIn || '';
+    if (!receivedIn) {
+      try {
+        const bankR = await managerCall(ep, accessToken, 'GET', '/bank-and-cash-accounts', null);
+        const arr = (bankR.data && (bankR.data.bankAndCashAccounts || bankR.data.BankAndCashAccounts)) || [];
+        if (arr.length) receivedIn = arr[0].key || arr[0].Key || '';
+      } catch(_) {}
     }
-    const form = Object.assign({}, tmplR.data || {});
-    // Remove identity fields so Manager creates a new record
-    delete form.Key; delete form.key; delete form.id; delete form.UniqueName; delete form.NameWithCode;
-    // Populate
+    const form = {};
     form.Date = receipt.date || new Date().toISOString().slice(0, 10);
     if (receipt.reference) form.Reference = receipt.reference;
-    if (receipt.customer)   form.Customer   = receipt.customer;
-    if (receipt.receivedIn) form.ReceivedIn  = receipt.receivedIn;
+    if (receipt.customer)   form.Contact    = receipt.customer;
+    if (receivedIn)         form.ReceivedIn  = receivedIn;
     if (receipt.description) form.Description = receipt.description;
     form.QuantityColumn = true;
     form.UnitPriceColumn = true;
@@ -1477,9 +1480,16 @@ app.post('/api/efris/submit-invoice', rateLimit(30), async (req, res) => {
     t109data.goodsDetails.forEach(g => console.log(`   T109 line: item="${g.item}" itemCode="${g.itemCode}" taxRule="${g.taxRule}"`));
     const session = await getSession(config.tin, config.deviceNo, config.efrisPassword, eu);
     if (!session.aesKey) throw new Error('No AES key available to encrypt T109');
-    const t109 = await efrisCall(eu, efrisEnvEnc('T109', t109data, config.tin, config.deviceNo, session.aesKey, session.privatePem));
-    const rc = t109.data && t109.data.returnStateInfo ? t109.data.returnStateInfo.returnCode : null;
-    const rm = t109.data && t109.data.returnStateInfo ? t109.data.returnStateInfo.returnMessage : '';
+    // rc 15 ("Data decryption error") is a transient URA-side fault — our ciphertext
+    // is verified-correct — so retry it (same as stock-in/adjust).
+    let t109, rc, rm;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      t109 = await efrisCall(eu, efrisEnvEnc('T109', t109data, config.tin, config.deviceNo, session.aesKey, session.privatePem));
+      rc = t109.data && t109.data.returnStateInfo ? t109.data.returnStateInfo.returnCode : null;
+      rm = t109.data && t109.data.returnStateInfo ? t109.data.returnStateInfo.returnMessage : '';
+      if (rc !== '15') break;
+      console.log(`   T109 rc 15 (transient decrypt error) — retry ${attempt}/3`);
+    }
     let contentStr = null;
     if (t109.data && t109.data.data && t109.data.data.content) {
       try { contentStr = aesDecryptStr(t109.data.data.content, session.aesKey); }
