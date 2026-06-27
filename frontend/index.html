@@ -3870,6 +3870,7 @@ async function doCreateReceipt(managerOnly){
         <div class="fg"><label>Customer Name <span style="font-weight:400;color:var(--gray);">(optional)</span></label><input id="crB2cName" placeholder="Walk-in customer name (if known)"/></div>
       </div>
       <div id="crCustB2b" class="cust-fields" style="display:none;">
+        <div class="hint" style="margin-bottom:4px;">Enter the customer's TIN and click <strong>Verify</strong> — the registered business name fills in automatically.</div>
         <div class="fg"><label>Business Name</label><input id="crCustName" placeholder="Company name"/></div>
         <div class="fg"><label>TIN</label>
           <div style="display:flex;gap:6px;"><input id="crCustTIN" placeholder="Customer TIN" style="flex:1;"/>
@@ -3878,6 +3879,7 @@ async function doCreateReceipt(managerOnly){
         </div>
       </div>
       <div id="crCustB2g" class="cust-fields" style="display:none;">
+        <div class="hint" style="margin-bottom:4px;">Enter the government TIN and click <strong>Verify</strong> — the ministry/department name fills in automatically.</div>
         <div class="fg"><label>Ministry / Department *</label><input id="crGovDept" placeholder="e.g. Ministry of Tourism"/></div>
         <div class="fg"><label>Government TIN</label>
           <div style="display:flex;gap:6px;"><input id="crGovTIN" placeholder="TIN (optional)" style="flex:1;"/>
