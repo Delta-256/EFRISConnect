@@ -292,7 +292,9 @@ const DATA = {
   bizTin:    qp('bizTin',   ''),
   bizPhone:  qp('bizPhone', ''),
   bizEmail:  qp('bizEmail', ''),
-  logoUrl:   qp('logoUrl',  ''),
+  // A data-URI logo is too big for the URL (causes ERR_CONNECTION_CLOSED), so the
+  // app stashes it in localStorage and passes the marker "__local__" instead.
+  logoUrl:   (function(){ var v=qp('logoUrl',''); if(v==='__local__'){ try{ return localStorage.getItem('efris_print_logo')||''; }catch(e){ return ''; } } return v; })(),
   logoInit:  qp('logoInit', ''),
 
   // Document

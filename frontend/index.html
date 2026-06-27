@@ -2027,6 +2027,14 @@ async function wkSubmit(){
   if(btn){ btn.disabled=false; btn.textContent='📤 Submit to EFRIS & Print'; }
 }
 
+// A data-URI logo embedded in the receipt URL makes it tens of KB long, which the
+// server/Cloudflare rejects (ERR_CONNECTION_CLOSED). Stash big logos in localStorage
+// and return a marker the receipt page resolves; pass short http URLs through as-is.
+function logoForPrint(logo){
+  logo = logo || '';
+  if(logo.startsWith('data:')){ try{ localStorage.setItem('efris_print_logo', logo); return '__local__'; }catch(e){ return ''; } }
+  return logo;
+}
 function wkPrint(){
   const inv=wkBuildInvoice();
   _openReceiptWith(inv, null);
@@ -2073,7 +2081,7 @@ function _openReceiptWith(inv, efris){
   p.set('bizPhone', CFG.phone||'');
   p.set('bizEmail', CFG.email||'');
   p.set('bizTin',   CFG.tin||'');
-  p.set('logoUrl',  CFG.logoUrl||'');
+  p.set('logoUrl',  logoForPrint(CFG.logoUrl));
   p.set('issuedBy', CFG.issuedBy||'');
   const docType=(efris&&efris.fdn)?(CFG.vatReg?'Tax Invoice':'e-Receipt'):'Receipt';
   p.set('docType',  docType);
@@ -2370,7 +2378,7 @@ function openReceipt() {
   p.set('bizTin',   CFG.tin || '');
   p.set('bizPhone', CFG.phone || '');
   p.set('bizEmail', CFG.email || '');
-  p.set('logoUrl',  CFG.logoUrl || '');
+  p.set('logoUrl',  logoForPrint(CFG.logoUrl));
 
   // Document — if no EFRIS result yet, it's a plain receipt
   const hasFDN = !!(r && r.fdn);
