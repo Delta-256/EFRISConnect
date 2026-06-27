@@ -278,9 +278,10 @@
       <p style="font-size:12px;color:var(--gray);margin-bottom:8px;">Tap an invoice below to load it, or create a new receipt directly.</p>
       <button onclick="showCreate()" class="btn bp" style="width:100%;margin-bottom:8px;">+ New Receipt</button>
       <div style="display:flex;gap:6px;margin-bottom:6px;">
-        <button onclick="loadList()" style="flex:1;padding:8px;border:1px solid var(--bdr);background:white;border-radius:6px;cursor:pointer;font-weight:600;color:var(--gd);">&#128260; Refresh list</button>
-        <input id="pickSearch2" placeholder="Search reference / customer…" style="flex:2;padding:8px;border:1px solid var(--bdr);border-radius:6px;font-size:12px;" oninput="filterPickList2(this.value)"/>
+        <button onclick="loadList($('pickSearch2')?$('pickSearch2').value:'')" style="flex:1;padding:8px;border:1px solid var(--bdr);background:white;border-radius:6px;cursor:pointer;font-weight:600;color:var(--gd);">&#128260; Refresh</button>
+        <input id="pickSearch2" placeholder="Search reference / customer…" style="flex:2;padding:8px;border:1px solid var(--bdr);border-radius:6px;font-size:12px;" oninput="invSearch(this.value)" onkeydown="if(event.key==='Enter')loadList(this.value)"/>
       </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--gray);margin-bottom:8px;cursor:pointer;"><input type="checkbox" id="chkUnsubmitted" onchange="toggleUnsubmitted(this)"/> Show only documents not yet submitted to EFRIS</label>
       <div id="pickList2"></div>
     </div>
     <!-- Invoice details (shown when invoice is loaded) -->
@@ -1621,25 +1622,51 @@ function renderInv(inv){
 }
 
 window.__invList=[];
-async function loadList(){
+let _invSearchT=null, _onlyUnsubmitted=false;
+// Debounced server-side search — called as the user types in the picker search box.
+function invSearch(v){ clearTimeout(_invSearchT); _invSearchT=setTimeout(()=>loadList(v),350); }
+function toggleUnsubmitted(cb){ _onlyUnsubmitted=!!cb.checked; loadList(($('pickSearch2')&&$('pickSearch2').value)||($('pickSearch')&&$('pickSearch').value)||''); }
+async function loadList(term){
+  term=(term||'').trim();
   const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
-  var el=$('pickList'); if(!el)return;
-  if(!ep||!tk){ el.innerHTML='<div class="al aw">Finish setup in Settings first.</div>'; return; }
-  el.innerHTML='<div class="al ai">Loading your invoices…</div>';
+  var el=$('pickList'), el2=$('pickList2');
+  const sp=$('subPicker');
+  const target=el2&&sp&&!sp.classList.contains('hidden')?el2:el;
+  if(!target)return;
+  if(!ep||!tk){ target.innerHTML='<div class="al aw">Finish setup in Settings first.</div>'; return; }
+  target.innerHTML='<div class="al ai">Loading…</div>';
   try{
-    const r=await fetch(RELAY+'/api/manager/invoices?ep='+encodeURIComponent(ep)+'&tk='+encodeURIComponent(tk));
+    const r=await fetch(RELAY+'/api/manager/invoices?ep='+encodeURIComponent(ep)+'&tk='+encodeURIComponent(tk)+(term?'&term='+encodeURIComponent(term):''));
     const d=await r.json();
-    if(!d.success){ el.innerHTML='<div class="al aw">'+(d.error||'Failed to load')+'</div>'; return; }
-    window.__invList=d.invoices||[];
-    if(!window.__invList.length){ el.innerHTML='<div class="al ai">No sales invoices found.</div>'; return; }
+    if(!d.success){ target.innerHTML='<div class="al aw">'+(d.error||'Failed to load')+'</div>'; return; }
+    let items=d.invoices||[];
+    if(_onlyUnsubmitted){
+      if(!window.__submittedRefs) await loadSubmittedRefs();
+      const subs=window.__submittedRefs||{};
+      items=items.filter(i=>!subs[(i.reference||'').toLowerCase().trim()]);
+    }
+    window.__invList=items;
+    el=target; // render into whichever picker is active
+    if(!window.__invList.length){ target.innerHTML='<div class="al ai">'+(term?'No matches for "'+esc(term)+'".':(_onlyUnsubmitted?'No unsubmitted documents.':'No sales invoices found.'))+'</div>'; return; }
     var h='<div style="font-size:11px;color:var(--gray);margin:4px 0 8px;">'+(d.business||'')+' — tap an invoice or receipt:</div>';
     window.__invList.forEach(function(i,idx){ var badge=i.docType==='receipt'?'<span class="pill pill-svc" style="margin-left:5px;">Receipt</span>':'<span class="pill pill-gds" style="margin-left:5px;">Invoice</span>'; var custLabel=i.customer||'<span style="color:var(--gray);font-style:italic;">Walk-in</span>'; h+='<div class="pick-row" onclick="pick('+idx+')" style="cursor:pointer;border:1px solid var(--bdr);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:white;"><strong>'+(i.reference||'(no ref)')+'</strong> — '+custLabel+badge+'<br><span style="color:var(--gray);font-size:11px;">'+(i.currency||'')+' '+fn(i.amount)+' · '+fd(i.date)+'</span></div>'; });
-    el.innerHTML=h;
-    // Mirror into inline sub-tab picker if open
-    const el2=$('pickList2'); if(el2) el2.innerHTML=h;
-  }catch(e){ el.innerHTML='<div class="al aw">Network error: '+e.message+'</div>'; }
+    // Render into both pickers so whichever is visible shows results.
+    if($('pickList')) $('pickList').innerHTML=h;
+    if($('pickList2')) $('pickList2').innerHTML=h;
+  }catch(e){ target.innerHTML='<div class="al aw">Network error: '+e.message+'</div>'; }
 }
 function pick(idx){ var i=window.__invList[idx]; if(i){ hidSubPicker(); DKEY=i.key; _lastInvKey=i.key; loadInv(i.key); } }
+// Build a set of references already submitted to EFRIS (from this tool's log) so the
+// "unsubmitted only" filter can hide them.
+async function loadSubmittedRefs(){
+  window.__submittedRefs={};
+  try{
+    const r=await fetch(RELAY+'/api/submission-log?page=1&limit=1000');
+    const d=await r.json();
+    const rows=(d&&(d.entries||d.log||d.items||d.rows))||[];
+    rows.forEach(e=>{ const ref=(e.reference||e.ref||e.invoiceNo||e.invoiceNumber||'').toString().toLowerCase().trim(); if(ref) window.__submittedRefs[ref]=true; });
+  }catch(e){}
+}
 
 let _custType='b2c';
 function setCustType(t){

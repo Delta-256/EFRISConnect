@@ -1532,6 +1532,7 @@ app.post('/api/efris/submit-invoice', rateLimit(30), async (req, res) => {
           validationUrl,
           deviceNo: config.deviceNo,
           invoiceId,
+          reference: invoice.Reference || invoice.reference || '',
           returnCode: rc,
           customerName: t109data.buyerDetails ? (t109data.buyerDetails.buyerLegalName || t109data.buyerDetails.buyerTin || '') : '',
           totalAmount: t109data.summary ? parseFloat(t109data.summary.grossAmount) || 0 : 0,
@@ -2008,13 +2009,17 @@ app.get('/api/manager/invoice', async (req, res) => {
 app.get('/api/manager/invoices', async (req, res) => {
   const { ep, tk } = mgrCreds(req);
   if (!ep || !tk) return res.status(400).json({ success: false, error: 'ep and tk are required' });
+  // Optional server-side search term (matches reference / customer in Manager) and
+  // a page size cap so large books don't pull everything.
+  const term = (req.query.term || '').trim();
+  const qs = (term ? ('?term=' + encodeURIComponent(term) + '&pageSize=100') : '?pageSize=100');
   try {
-    const r = await managerCall(ep, tk, 'GET', '/sales-invoices', null);
+    const r = await managerCall(ep, tk, 'GET', '/sales-invoices' + qs, null);
     if (r.status !== 200) return res.json({ success: false, error: 'Manager returned HTTP ' + r.status, hint: r.status === 401 ? 'Token rejected' : 'Check endpoint URL' });
     const list = ((r.data && r.data.salesInvoices) || []).map(i => ({ key: i.key, reference: i.reference, customer: i.customer, amount: (i.invoiceAmount && i.invoiceAmount.value) || 0, currency: (i.invoiceAmount && i.invoiceAmount.currency) || '', date: i.issueDate, status: i.status, docType: 'invoice' }));
     // Also include receipts (non-VAT cash sales). Tolerate absence / different shape.
     try {
-      const rr = await managerCall(ep, tk, 'GET', '/receipts', null);
+      const rr = await managerCall(ep, tk, 'GET', '/receipts' + qs, null);
       const rcpts = (rr.status === 200 && rr.data && (rr.data.receipts || rr.data.receiptsAndPayments)) || [];
       const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       const rcptItems = rcpts.map(i => ({ key: i.key, reference: i.reference || i.payee || '(receipt)', _ck: i.payer || i.customer || i.contact || '', amount: (i.amount && i.amount.value) || i.amount || 0, currency: (i.amount && i.amount.currency) || '', date: i.date || i.issueDate, status: i.status, docType: 'receipt' }));
@@ -2147,7 +2152,7 @@ app.get('/api/submission-log', (req, res) => {
     let log = [];
     try { log = JSON.parse(fs.readFileSync(SUBMISSION_LOG_FILE, 'utf8')); } catch(e) {}
     const page = parseInt(req.query.page) || 1;
-    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const limit = Math.min(parseInt(req.query.limit) || 50, 1000);
     const q = (req.query.q || '').toLowerCase();
     const filtered = q ? log.filter(e =>
       (e.fdn || '').toLowerCase().includes(q) ||
