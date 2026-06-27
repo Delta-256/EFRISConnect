@@ -3689,7 +3689,7 @@ async function crFetchFx(){
 function setCrCust(t){
   _crCustType=t;
   document.querySelectorAll('[data-crtype]').forEach(b=>b.classList.toggle('on',b.dataset.crtype===t));
-  const map={b2b:'crCustB2b',b2g:'crCustB2g',foreign:'crCustForeign'};
+  const map={b2c:'crCustB2c',b2b:'crCustB2b',b2g:'crCustB2g',foreign:'crCustForeign'};
   document.querySelectorAll('#sCreate .cust-fields').forEach(d=>d.style.display='none');
   const show=map[t]; if(show){const el=$(show);if(el)el.style.display='';}
 }
@@ -3780,7 +3780,8 @@ async function doCreateReceipt(managerOnly){
   const date=gvi('crDate'); if(!date) return alert('Date is required');
   const fx=parseFloat(gvi('crFxRate')||'1')||1;
   let custName='',custTIN='',custDept='',passport='',nationality='';
-  if(_crCustType==='b2b'){custTIN=gvi('crCustTIN');custName=gvi('crCustName');}
+  if(_crCustType==='b2c'){custName=gvi('crB2cName');}
+  else if(_crCustType==='b2b'){custTIN=gvi('crCustTIN');custName=gvi('crCustName');}
   else if(_crCustType==='b2g'){custTIN=gvi('crGovTIN');custDept=gvi('crGovDept');custName=custDept;}
   else if(_crCustType==='foreign'){custName=gvi('crForeignName');passport=gvi('crPassport');nationality=gvi('crNationality');}
   const receipt={
@@ -3864,6 +3865,9 @@ async function doCreateReceipt(managerOnly){
         <button class="ctype-btn" data-crtype="b2b" onclick="setCrCust('b2b')">Business (B2B)</button>
         <button class="ctype-btn" data-crtype="b2g" onclick="setCrCust('b2g')">Government (B2G)</button>
         <button class="ctype-btn" data-crtype="foreign" onclick="setCrCust('foreign')">Foreign</button>
+      </div>
+      <div id="crCustB2c" class="cust-fields">
+        <div class="fg"><label>Customer Name <span style="font-weight:400;color:var(--gray);">(optional)</span></label><input id="crB2cName" placeholder="Walk-in customer name (if known)"/></div>
       </div>
       <div id="crCustB2b" class="cust-fields" style="display:none;">
         <div class="fg"><label>Business Name</label><input id="crCustName" placeholder="Company name"/></div>
