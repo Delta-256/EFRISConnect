@@ -30,6 +30,7 @@
   .si{background:#e3f2fd;color:#0d47a1;border-color:#90caf9;}
   .ss{background:#e8f5e9;color:var(--gd);border-color:#a5d6a7;}
   .se{background:#ffebee;color:#b71c1c;border-color:#ef9a9a;}
+  .sw{background:#fff8e1;color:#5d4037;border-color:#ffe082;}
   .sw{background:#fff8e1;color:#e65100;border-color:#ffcc02;}
   @keyframes spin{to{transform:rotate(360deg)}}
   .sp{animation:spin 1s linear infinite;display:inline-block;}
@@ -4296,10 +4297,30 @@ async function stkSubmitIn(){
       if(btn){btn.disabled=false;btn.textContent='&#128230; Submit Stock-in to EFRIS';} return;
     }
     const d=await r.json();
-    if(d.success) ht('stkInResult','<div class="st ss">&#10003; Stock recorded in EFRIS'+(d.partialErrors&&d.partialErrors.length?' ('+d.partialErrors.length+' item error(s))':'')+'</div>');
+    if(d.success){
+      ht('stkInResult','<div class="st ss">&#10003; Stock recorded in EFRIS'+(d.partialErrors&&d.partialErrors.length?' ('+d.partialErrors.length+' item error(s))':'')+'</div>');
+      mirrorStockToManager('in',items,gvi('stkDate'),'stkInResult');
+    }
     else ht('stkInResult','<div class="st se">&#10005; '+esc(d.error||'Failed')+(d.partialErrors&&d.partialErrors.length?'<br>'+d.partialErrors.map(e=>esc(e.itemCode+': '+e.returnMessage)).join('<br>'):'')+'</div>');
   }catch(e){ht('stkInResult','<div class="st se">'+esc(e.message)+'</div>');}
   if(btn){btn.disabled=false;btn.textContent='&#128230; Submit Stock-in to EFRIS';}
+}
+// After EFRIS records the movement, mirror the quantity into Manager's inventory
+// ledger (Write-on for in, Write-off for adjust). Best-effort: appends status.
+async function mirrorStockToManager(direction,items,date,resultId){
+  const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
+  if(!ep||!tk) return;
+  const payloadItems=items.map(i=>({itemCode:i.itemCode,quantity:i.quantity}));
+  const append=h=>{ const el=$(resultId); if(el) el.innerHTML+=h; };
+  append('<div class="st si" id="'+resultId+'_mgr"><span class="sp">⏳</span> Updating Manager inventory…</div>');
+  try{
+    const r=await fetch(RELAY+'/api/manager/inventory-adjust',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,direction,date,items:payloadItems})});
+    const d=await r.json();
+    const mg=$(resultId+'_mgr');
+    if(d.success&&d.mirrored===d.total) mg.outerHTML='<div class="st ss">&#10003; Manager inventory updated ('+d.mirrored+' item'+(d.mirrored>1?'s':'')+')</div>';
+    else if(d.success) mg.outerHTML='<div class="st sw">&#9888; Manager: '+d.mirrored+'/'+d.total+' updated. '+esc((d.results||[]).filter(x=>!x.ok).map(x=>x.item+': '+x.error).join('; '))+'</div>';
+    else mg.outerHTML='<div class="st se">&#10005; Manager not updated: '+esc(d.error||(d.results||[]).map(x=>x.item+': '+x.error).join('; ')||'failed')+'</div>';
+  }catch(e){ const mg=$(resultId+'_mgr'); if(mg) mg.outerHTML='<div class="st se">&#10005; Manager update error: '+esc(e.message)+'</div>'; }
 }
 async function stkSubmitAdj(){
   const items=_stkAdjItems.filter(i=>i.itemCode.trim());
@@ -4314,7 +4335,10 @@ async function stkSubmitAdj(){
       config:{tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production'}
     })});
     const d=await r.json();
-    if(d.success) ht('stkAdjResult','<div class="st ss">&#10003; Stock adjustment recorded in EFRIS</div>');
+    if(d.success){
+      ht('stkAdjResult','<div class="st ss">&#10003; Stock adjustment recorded in EFRIS</div>');
+      mirrorStockToManager('out',items,gvi('stkAdjDate'),'stkAdjResult');
+    }
     else ht('stkAdjResult','<div class="st se">&#10005; '+esc(d.error||'Failed')+'</div>');
   }catch(e){ht('stkAdjResult','<div class="st se">'+esc(e.message)+'</div>');}
   if(btn){btn.disabled=false;btn.textContent='&#128230; Submit Adjustment to EFRIS';}

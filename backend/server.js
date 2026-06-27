@@ -1263,32 +1263,70 @@ app.post('/api/manager/create-receipt', async (req, res) => {
   }
 });
 
+// Resolve a Manager inventory-item key from its ItemCode (the code we keep in
+// sync with the EFRIS goodsCode). Returns null if not found.
+async function resolveManagerItemKey(ep, tk, code) {
+  if (!code) return null;
+  try {
+    const r = await managerCall(ep, tk, 'GET', '/inventory-items?fields=ItemCode&pageSize=1000', null);
+    const arr = (r.data && (r.data.inventoryItems || r.data.InventoryItems || [])) || [];
+    const want = String(code).trim().toLowerCase();
+    const hit = arr.find(i => String(i.ItemCode || i.code || i.Code || '').trim().toLowerCase() === want);
+    return hit ? (hit.key || hit.Key || null) : null;
+  } catch (_) { return null; }
+}
+
+// Mirror EFRIS stock movements into Manager's inventory ledger.
+//  direction 'in'  → Inventory Write-on  (increase qty)
+//  direction 'out' → Inventory Write-off (decrease qty)
+// Accepts items:[{itemCode, quantity}] (codes resolved to keys) or a single
+// {itemKey, qty}. Reports Manager's exact error per item so the payload shape
+// can be tuned if a build rejects it.
 app.post('/api/manager/inventory-adjust', async (req, res) => {
-  const { managerEndpoint, accessToken, itemKey, qty, date, description } = req.body || {};
-  if (!managerEndpoint || !accessToken || !itemKey) {
-    return res.status(400).json({ success: false, error: 'managerEndpoint, accessToken and itemKey are required' });
+  const b = req.body || {};
+  const { managerEndpoint, accessToken } = b;
+  if (!managerEndpoint || !accessToken) {
+    return res.status(400).json({ success: false, error: 'managerEndpoint and accessToken are required' });
   }
   const ep = normEp(managerEndpoint);
-  const payload = {
-    Date: date || new Date().toISOString().slice(0, 10),
-    Description: description || 'Initial stock entry',
-    Lines: [{ InventoryItem: itemKey, Qty: parseFloat(qty) || 0, UnitCost: 0 }]
-  };
-  // Manager's inventory adjustment document type varies — try paths in order
-  const adjPaths = ['/inventory-write-up-form', '/inventory-quantity-adjustment-form', '/inventory-adjustment-form', '/inventory-write-ups-form'];
-  try {
-    let lastErr = '';
-    for (const adjPath of adjPaths) {
-      const r = await managerCall(ep, accessToken, 'POST', adjPath, payload);
-      console.log(`   Inventory adjust ${adjPath}: HTTP ${r.status} for item ${itemKey} qty=${qty}`);
-      if (r.status >= 200 && r.status < 400) return res.json({ success: true, path: adjPath });
-      if (r.status !== 404) { lastErr = `HTTP ${r.status}: ${JSON.stringify(r.data||'').slice(0,200)}`; break; }
-      lastErr = `HTTP 404 on ${adjPath}`;
+  const direction = (b.direction === 'out') ? 'out' : 'in';
+  const date = b.date || new Date().toISOString().slice(0, 10);
+  const description = b.description || (direction === 'in' ? 'Stock-in via EFRISConnect' : 'Stock adjustment via EFRISConnect');
+  // Normalise to a list of {itemKey?, itemCode?, qty}
+  let items = Array.isArray(b.items) ? b.items.slice()
+            : (b.itemKey || b.itemCode) ? [{ itemKey: b.itemKey, itemCode: b.itemCode, qty: b.qty }] : [];
+  items = items.map(i => ({ itemKey: i.itemKey || '', itemCode: i.itemCode || i.code || '', qty: parseFloat(i.qty != null ? i.qty : i.quantity) || 0 }))
+               .filter(i => i.qty > 0 && (i.itemKey || i.itemCode));
+  if (!items.length) return res.json({ success: false, error: 'No items with a positive quantity to mirror.' });
+
+  const formPaths = direction === 'in'
+    ? ['/inventory-write-ups-form', '/inventory-write-up-form']
+    : ['/inventory-write-off-form', '/inventory-write-offs-form'];
+  // Manager line shape isn't documented (OpenAPI returns a bare object); try the
+  // most likely field name for the item, then a fallback.
+  const lineShapes = [k => ({ Item: k }), k => ({ InventoryItem: k })];
+
+  const results = [];
+  for (const it of items) {
+    let key = it.itemKey;
+    if (!key && it.itemCode) key = await resolveManagerItemKey(ep, accessToken, it.itemCode);
+    if (!key) { results.push({ item: it.itemCode || it.itemKey, ok: false, error: 'Item not found in Manager (by ItemCode)' }); continue; }
+    let done = false, lastErr = '';
+    for (const path of formPaths) {
+      for (const mkLine of lineShapes) {
+        const payload = { Date: date, Description: description, Lines: [Object.assign(mkLine(key), { Qty: it.qty })] };
+        const r = await managerCall(ep, accessToken, 'POST', path, payload);
+        console.log(`   inventory-adjust(${direction}) ${path}: HTTP ${r.status} item=${key} qty=${it.qty}`);
+        if (r.status >= 200 && r.status < 400) { results.push({ item: it.itemCode || key, ok: true, path }); done = true; break; }
+        lastErr = `HTTP ${r.status}: ${JSON.stringify(r.data || '').slice(0, 180)}`;
+        if (r.status !== 404 && r.status !== 400) break; // don't keep retrying on auth/other hard errors
+      }
+      if (done) break;
     }
-    res.json({ success: false, error: `Could not create inventory adjustment — ${lastErr}. Please set opening stock in Manager directly (Inventory → Write-ups).` });
-  } catch(e) {
-    res.status(500).json({ success: false, error: e.message });
+    if (!done) results.push({ item: it.itemCode || key, ok: false, error: lastErr || 'Manager rejected the adjustment' });
   }
+  const okCount = results.filter(r => r.ok).length;
+  res.json({ success: okCount > 0, mirrored: okCount, total: results.length, results });
 });
 
 // Full details for a single Manager.io item (for import prefill)
