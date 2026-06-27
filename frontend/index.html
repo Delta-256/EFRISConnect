@@ -266,6 +266,7 @@
       <strong style="font-size:11px;">Manager custom button URL:</strong><br>
       <code id="homeExtUrl" style="word-break:break-all;font-size:11px;color:#1a56db;"></code>
       <div style="margin-top:4px;color:#888;">If you see a sad-face icon in Manager → Settings → Custom Buttons → verify this URL is set exactly as above.</div>
+      <div id="homeCtxDbg" style="margin-top:8px;padding-top:8px;border-top:1px dashed #d0d8ff;font-size:10px;color:#666;word-break:break-all;font-family:monospace;"></div>
     </div>
   </div>
   <!-- ── End Home Dashboard ──────────────────────── -->
@@ -1484,7 +1485,7 @@ async function testMgr(epId,tkId,resultId){
 
 window.addEventListener('message', evt=>{
   var raw=evt.data;
-  try{ var dbg=document.getElementById('ctxDbg'); if(dbg){ var s; try{s=(typeof raw==='string')?raw:JSON.stringify(raw);}catch(e){s=String(raw);} dbg.textContent='message from '+evt.origin+': '+String(s).slice(0,280); } }catch(e){}
+  try{ var s; try{s=(typeof raw==='string')?raw:JSON.stringify(raw);}catch(e){s=String(raw);} window._lastCtxMsg='from '+evt.origin+': '+String(s); var dbg=document.getElementById('ctxDbg'); if(dbg){ dbg.textContent='message '+window._lastCtxMsg.slice(0,280); } var hd=document.getElementById('homeCtxDbg'); if(hd){ try{ homeInit(); }catch(e){} } }catch(e){}
   var d=raw;
   if(typeof d==='string'){ try{ d=JSON.parse(d); }catch(e){ return; } }
   if(!d||typeof d!=='object') return;
@@ -3606,6 +3607,16 @@ function homeInit(){
   if(CFG.efrisEnabled===false){
     document.querySelectorAll('#homeGrid .efris-only').forEach(el=>el.style.display='none');
   }
+  // Launch-context diagnostic — shows what Manager passed when the extension was
+  // opened (URL params + any postMessage), so we can wire "open from this record".
+  try{
+    const dbg=$('homeCtxDbg'); if(dbg){
+      const qs=(window.location.search||'').replace(/(apiAccessToken|tk)=[^&]*/g,'$1=***');
+      const inIframe=(window.parent&&window.parent!==window)?'yes':'no';
+      const msg=window._lastCtxMsg?(' | postMessage: '+window._lastCtxMsg.slice(0,200)):' | postMessage: none';
+      dbg.textContent='Launch context — in iframe: '+inIframe+' | URL: '+(qs||'(no params)')+msg;
+    }
+  }catch(e){}
 }
 
 // ── Show Submit tab invoice picker ────────────────
