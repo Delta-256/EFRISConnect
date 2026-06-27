@@ -3200,16 +3200,8 @@ async function gSyncToEfris(){
   const statusEl=$('gSyncStatus');
   if(!gCOM && !item.comCode){ alert('Pick a commodity category first (steps 1–4) so EFRIS knows the goods category.'); return; }
   if(!CFG.tin||!CFG.deviceNo){ statusEl.innerHTML='<div class="al aw">ℹ️ EFRIS skipped — add TIN and Device No. in Settings first.</div>'; return; }
-  // Guard: never send a unit code that isn't in the live EFRIS dictionary —
-  // open the picker instead of getting a rejection from EFRIS.
-  const live=await gLoadValidUnits();
-  const uomCode=(item.uom||'').toUpperCase().trim();
-  if(live.length && uomCode && !live.some(u=>String(u.code).toUpperCase()===uomCode)){
-    statusEl.innerHTML='';
-    const box=$('gUnitPickerBox')||statusEl;
-    gRenderUnitHelp(box, {validUnits:live, sentUnit:uomCode, picker:false});
-    return;
-  }
+  // The backend resolves the unit name → EFRIS code (e.g. "Piece" → PCE) and
+  // returns unitProblem only when it truly can't, so we don't pre-block here.
   statusEl.innerHTML='<div class="st si"><span class="sp">⏳</span> Registering in EFRIS goods registry…</div>';
   try{
     const r2=await fetch(RELAY+'/api/efris/register-goods',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',item})});
