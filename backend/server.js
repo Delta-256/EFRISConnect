@@ -1036,10 +1036,18 @@ app.get('/api/manager/custom-field-sample', async (req, res) => {
   try {
     const list = await managerCall(ep, tk, 'GET', '/text-custom-fields', null);
     const arr = (list.data && list.data.textCustomFields) || [];
-    if (!arr.length) return res.json({ success: true, count: 0, sample: null, note: 'No existing text custom fields to clone.' });
-    const key = arr[0].key || arr[0].Key;
-    const form = await managerCall(ep, tk, 'GET', `/text-custom-field-form/${key}`, null);
-    res.json({ success: true, count: arr.length, key, sample: form.data, all: arr.map(f => ({ key: f.key, name: f.name })) });
+    // Fetch each field's full form so we see its Placement GUIDs (to map name→GUID).
+    const fields = [];
+    for (const f of arr) {
+      const k = f.key || f.Key;
+      try { const form = await managerCall(ep, tk, 'GET', `/text-custom-field-form/${k}`, null); fields.push({ key: k, name: f.name, form: form.data }); }
+      catch(_) { fields.push({ key: k, name: f.name, form: null }); }
+    }
+    // Try the "new form" endpoint — some Manager builds return the selectable
+    // placement options (name + GUID) here, which would let us map without probes.
+    let newForm = null;
+    try { const nf = await managerCall(ep, tk, 'GET', '/text-custom-field-form', null); newForm = nf.data; } catch(_) {}
+    res.json({ success: true, count: arr.length, fields, newForm });
   } catch (e) { res.json({ success: false, error: e.message }); }
 });
 
