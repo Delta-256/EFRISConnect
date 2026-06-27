@@ -1766,27 +1766,51 @@ app.post('/api/efris/stock-adjust', async (req, res) => {
     : 'https://efristest.ura.go.ug/efrisws/ws/taapp/getInformation';
   try {
     const session = await getSession(config.tin, config.deviceNo, config.efrisPassword, eu);
-    if (!session.aesKey) throw new Error('No AES key for T132');
+    if (!session.aesKey) throw new Error('No AES key for stock adjust');
+    // Stock adjustment is the SAME T131 interface with operationType 102 (decrease)
+    // plus an adjustType. Same goodsStockIn/goodsStockInItem wrapper as stock-in —
+    // the old flat payload to "T132" caused rc 2066 "Illegal json format".
     const t132data = {
-      remarks: remarks || '', branchId: branchId || '',
-      adjustDate: adjustDate || new Date().toISOString().slice(0, 10),
-      adjustType: adjustType || '102',
-      stockInItem: items.map(item => ({
-        itemCode: String(item.itemCode || ''), quantity: String(item.quantity || 1),
-        unitPrice: String(item.unitPrice || 0), measureUnit: item.measureUnit || '',
+      goodsStockIn: {
+        operationType:    '102',
+        supplierTin:      '',
+        supplierName:     '',
+        adjustType:       adjustType || '102',
+        remarks:          remarks || '',
+        stockInDate:      (adjustDate || new Date().toISOString().slice(0,10)).slice(0,10),
+        branchId:         branchId || '',
+        invoiceNo:        '',
+        rollBackIfError:  '1',
+        goodsTypeCode:    '',
+      },
+      goodsStockInItem: items.map(item => ({
+        goodsCode:   String(item.itemCode || item.goodsCode || ''),
+        measureUnit: (item.measureUnit || 'PP').toUpperCase(),
+        quantity:    String(item.quantity || 1),
+        unitPrice:   String(item.unitPrice || 0),
+        remarks:     '',
       })),
     };
-    const t132 = await efrisCall(eu, efrisEnvEnc('T132', t132data, config.tin, config.deviceNo, session.aesKey, session.privatePem));
-    const rc = t132.data && t132.data.returnStateInfo ? t132.data.returnStateInfo.returnCode : null;
-    const rm = t132.data && t132.data.returnStateInfo ? t132.data.returnStateInfo.returnMessage : '';
+    let t132, rc, rm;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      t132 = await efrisCall(eu, efrisEnvEnc('T131', t132data, config.tin, config.deviceNo, session.aesKey, session.privatePem));
+      rc = t132.data && t132.data.returnStateInfo ? t132.data.returnStateInfo.returnCode : null;
+      rm = t132.data && t132.data.returnStateInfo ? t132.data.returnStateInfo.returnMessage : '';
+      if (rc !== '15') break;
+    }
     let errors = [];
     if (t132.data && t132.data.data && t132.data.data.content) {
-      try { const s = aesDecryptStr(t132.data.data.content, session.aesKey); const d = JSON.parse(s); errors = d.errors || []; } catch(e) {}
+      try {
+        const s = aesDecryptStr(t132.data.data.content, session.aesKey); const d = JSON.parse(s);
+        if (Array.isArray(d)) errors = d.filter(r => r.returnCode && r.returnCode !== '00').map(r => ({ itemCode: r.goodsCode, returnCode: r.returnCode, returnMessage: r.returnMessage }));
+        else errors = d.errors || [];
+      } catch(e) {}
     }
-    const ok = rc === '00' || rc === '45';
+    console.log(`   T131(adjust) rc: ${rc} — ${rm}`);
+    const ok = rc === '00' || (rc === '45' && errors.length === 0);
     res.json(ok
       ? { success: rc === '00', partialErrors: errors, returnCode: rc, returnMessage: rm }
-      : { success: false, error: 'URA ' + rc + ': ' + rm, returnCode: rc });
+      : { success: false, error: errors.length ? errors.map(e => e.itemCode + ': ' + e.returnMessage).join('; ') : ('URA ' + rc + ': ' + rm), returnCode: rc, partialErrors: errors });
   } catch(e) {
     res.status(500).json({ success: false, error: e.message });
   }
