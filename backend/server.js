@@ -881,9 +881,9 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
       } else {
         // Inventory items — confirmed field names from GET form response
         form.ItemName                 = item.name;
+        form.ItemCode                 = item.code;   // inventory uses ItemCode, not Code
         form.DefaultSalesUnitPrice    = price;
         form.HasDefaultSalesUnitPrice = price > 0;
-        // Note: inventory items have no Code field in the form API
       }
       // Tax code — look up Manager tax code GUID matching the VAT designation
       if (item.vat) {
@@ -933,6 +933,7 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
         payload.DefaultSalesUnitPrice = price;
       } else {
         payload.ItemName                 = item.name;
+        payload.ItemCode                 = item.code;   // inventory uses ItemCode, not Code
         payload.DefaultSalesUnitPrice    = price;
         payload.HasDefaultSalesUnitPrice = price > 0;
       }
@@ -1266,14 +1267,25 @@ app.post('/api/manager/create-receipt', async (req, res) => {
 // Resolve a Manager inventory-item key from its ItemCode (the code we keep in
 // sync with the EFRIS goodsCode). Returns null if not found.
 async function resolveManagerItemKey(ep, tk, code) {
-  if (!code) return null;
+  if (!code) return { key: null, reason: 'no code' };
+  const want = String(code).trim().toLowerCase();
+  const codeOf = i => String(i.code || i.Code || i.ItemCode || i.itemCode || '').trim().toLowerCase();
   try {
-    const r = await managerCall(ep, tk, 'GET', '/inventory-items?fields=ItemCode&pageSize=1000', null);
+    // Fetch WITHOUT a ?fields filter — that filter omits the code field Manager
+    // actually returns (the list exposes it as "code"/"Code", not "ItemCode").
+    const r = await managerCall(ep, tk, 'GET', '/inventory-items', null);
     const arr = (r.data && (r.data.inventoryItems || r.data.InventoryItems || [])) || [];
-    const want = String(code).trim().toLowerCase();
-    const hit = arr.find(i => String(i.ItemCode || i.code || i.Code || '').trim().toLowerCase() === want);
-    return hit ? (hit.key || hit.Key || null) : null;
-  } catch (_) { return null; }
+    const hit = arr.find(i => codeOf(i) === want);
+    if (hit) return { key: hit.key || hit.Key || null };
+    // Not an inventory item — is it a non-inventory (service) item? Those can't
+    // hold stock in Manager, so tell the user precisely.
+    try {
+      const nr = await managerCall(ep, tk, 'GET', '/non-inventory-items', null);
+      const narr = (nr.data && (nr.data.nonInventoryItems || nr.data.NonInventoryItems || [])) || [];
+      if (narr.find(i => codeOf(i) === want)) return { key: null, reason: 'non-inventory' };
+    } catch (_) {}
+    return { key: null, reason: 'not found' };
+  } catch (_) { return { key: null, reason: 'lookup failed' }; }
 }
 
 // Mirror EFRIS stock movements into Manager's inventory ledger.
@@ -1309,8 +1321,18 @@ app.post('/api/manager/inventory-adjust', async (req, res) => {
   const results = [];
   for (const it of items) {
     let key = it.itemKey;
-    if (!key && it.itemCode) key = await resolveManagerItemKey(ep, accessToken, it.itemCode);
-    if (!key) { results.push({ item: it.itemCode || it.itemKey, ok: false, error: 'Item not found in Manager (by ItemCode)' }); continue; }
+    if (!key && it.itemCode) {
+      const resolved = await resolveManagerItemKey(ep, accessToken, it.itemCode);
+      key = resolved.key;
+      if (!key) {
+        const msg = resolved.reason === 'non-inventory'
+          ? 'This item is a Non-inventory (Service) item in Manager — Manager only tracks stock for Inventory items. Re-create it as a Goods (Inventory item).'
+          : 'Item not found among Manager inventory items (by ItemCode). Re-Sync it to Manager first.';
+        results.push({ item: it.itemCode || it.itemKey, ok: false, error: msg });
+        continue;
+      }
+    }
+    if (!key) { results.push({ item: it.itemCode || it.itemKey, ok: false, error: 'No item key' }); continue; }
     let done = false, lastErr = '';
     for (const path of formPaths) {
       for (const mkLine of lineShapes) {
@@ -2066,6 +2088,28 @@ app.post('/api/manager/create-credit-note', async (req, res) => {
   } catch(e) {
     return res.status(500).json({ success: false, error: e.message });
   }
+});
+
+// Diagnostic: dump the live T115 dictionary's structure so we can identify which
+// section holds the goods measure-unit codes EFRIS actually validates against.
+app.post('/api/efris/dictionary-dump', async (req, res) => {
+  const { tin, deviceNo, efrisPassword, mode } = req.body || {};
+  if (!tin || !deviceNo) return res.status(400).json({ success: false, error: 'tin and deviceNo required' });
+  const eu = mode === 'production'
+    ? 'https://efrisws.ura.go.ug/ws/taapp/getInformation'
+    : 'https://efristest.ura.go.ug/efrisws/ws/taapp/getInformation';
+  try {
+    const session = await getSession(tin, deviceNo, efrisPassword, eu);
+    const dict = await getEfrisDictionary(tin, deviceNo, session, eu);
+    if (!dict) return res.json({ success: false, error: 'No T115 dictionary returned' });
+    const summary = {};
+    for (const k of Object.keys(dict)) {
+      const v = dict[k];
+      if (Array.isArray(v)) summary[k] = { count: v.length, sample: v.slice(0, 8) };
+      else summary[k] = typeof v;
+    }
+    res.json({ success: true, keys: Object.keys(dict), summary });
+  } catch (e) { res.json({ success: false, error: e.message }); }
 });
 
 app.get('/api/manager/invoice', async (req, res) => {

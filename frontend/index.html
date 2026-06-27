@@ -685,6 +685,7 @@
           <div id="stkItems"></div>
           <button class="btn bo bsm" onclick="stkAddItem('in')" style="margin:6px 0 10px;">+ Add item</button>
           <button class="btn bsm" onclick="stkSubmitIn()">&#128230; Submit Stock-in to EFRIS</button>
+          <button class="btn bo bsm" onclick="stkSubmitInManager()" title="Push these quantities into Manager's inventory (no EFRIS call)">&#128230; Submit Stock-in to Manager</button>
           <div id="stkInResult" style="margin-top:8px;"></div>
         </div>
         <div id="stkAdjPane" style="display:none;">
@@ -3200,16 +3201,8 @@ async function gSyncToEfris(){
   const statusEl=$('gSyncStatus');
   if(!gCOM && !item.comCode){ alert('Pick a commodity category first (steps 1–4) so EFRIS knows the goods category.'); return; }
   if(!CFG.tin||!CFG.deviceNo){ statusEl.innerHTML='<div class="al aw">ℹ️ EFRIS skipped — add TIN and Device No. in Settings first.</div>'; return; }
-  // Guard: never send a unit code that isn't in the live EFRIS dictionary —
-  // open the picker instead of getting a rejection from EFRIS.
-  const live=await gLoadValidUnits();
-  const uomCode=(item.uom||'').toUpperCase().trim();
-  if(live.length && uomCode && !live.some(u=>String(u.code).toUpperCase()===uomCode)){
-    statusEl.innerHTML='';
-    const box=$('gUnitPickerBox')||statusEl;
-    gRenderUnitHelp(box, {validUnits:live, sentUnit:uomCode, picker:false});
-    return;
-  }
+  // The backend resolves the unit name → EFRIS code (e.g. "Piece" → PCE) and
+  // returns unitProblem only when it truly can't, so we don't pre-block here.
   statusEl.innerHTML='<div class="st si"><span class="sp">⏳</span> Registering in EFRIS goods registry…</div>';
   try{
     const r2=await fetch(RELAY+'/api/efris/register-goods',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production',item})});
@@ -4340,20 +4333,46 @@ async function stkSubmitIn(){
 }
 // After EFRIS records the movement, mirror the quantity into Manager's inventory
 // ledger (Write-on for in, Write-off for adjust). Best-effort: appends status.
+// Push the current Stock-in rows into Manager only (no EFRIS). Lets the user
+// update Manager on demand — e.g. after re-syncing an item, or when EFRIS was
+// already recorded separately.
+function stkSubmitInManager(){
+  const items=_stkInItems.filter(i=>i.itemCode.trim());
+  if(!items.length){ alert('Add at least one item with a code'); return; }
+  mirrorStockToManager('in',items,gvi('stkDate'),'stkInResult');
+}
+let _lastStockMirror=null;
 async function mirrorStockToManager(direction,items,date,resultId){
   const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
-  if(!ep||!tk) return;
-  const payloadItems=items.map(i=>({itemCode:i.itemCode,quantity:i.quantity}));
+  if(!ep||!tk){ const el=$(resultId); if(el) el.innerHTML+='<div class="st se">Manager not configured.</div>'; return; }
+  // Prefer the Manager item key we already captured at sync time (avoids any
+  // code-lookup ambiguity); fall back to code resolution on the server.
+  const _gi=(typeof gItems!=='undefined'&&gItems)?gItems:[];
+  const payloadItems=items.map(i=>{
+    const g=_gi.find(x=>(x.code||'').toLowerCase()===(i.itemCode||'').toLowerCase());
+    return {itemCode:i.itemCode,quantity:i.quantity,itemKey:(g&&g.managerId)||''};
+  });
+  _lastStockMirror={direction,items,date,resultId};
   const append=h=>{ const el=$(resultId); if(el) el.innerHTML+=h; };
+  // Clear any previous mirror line for this result area before re-running
+  const prev=$(resultId+'_mgr'); if(prev) prev.outerHTML='';
   append('<div class="st si" id="'+resultId+'_mgr"><span class="sp">⏳</span> Updating Manager inventory…</div>');
+  const retryBtn='<button class="btn bo bsm" style="margin-top:4px;" onclick="retryStockMirror()">&#128230; Submit stock-in to Manager</button>';
   try{
     const r=await fetch(RELAY+'/api/manager/inventory-adjust',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,direction,date,items:payloadItems})});
     const d=await r.json();
     const mg=$(resultId+'_mgr');
     if(d.success&&d.mirrored===d.total) mg.outerHTML='<div class="st ss">&#10003; Manager inventory updated ('+d.mirrored+' item'+(d.mirrored>1?'s':'')+')</div>';
-    else if(d.success) mg.outerHTML='<div class="st sw">&#9888; Manager: '+d.mirrored+'/'+d.total+' updated. '+esc((d.results||[]).filter(x=>!x.ok).map(x=>x.item+': '+x.error).join('; '))+'</div>';
-    else mg.outerHTML='<div class="st se">&#10005; Manager not updated: '+esc(d.error||(d.results||[]).map(x=>x.item+': '+x.error).join('; ')||'failed')+'</div>';
-  }catch(e){ const mg=$(resultId+'_mgr'); if(mg) mg.outerHTML='<div class="st se">&#10005; Manager update error: '+esc(e.message)+'</div>'; }
+    else if(d.success) mg.outerHTML='<div class="st sw">&#9888; Manager: '+d.mirrored+'/'+d.total+' updated. '+esc((d.results||[]).filter(x=>!x.ok).map(x=>x.item+': '+x.error).join('; '))+'<br>'+retryBtn+'</div>';
+    else mg.outerHTML='<div class="st se">&#10005; Manager not updated: '+esc(d.error||(d.results||[]).map(x=>x.item+': '+x.error).join('; ')||'failed')+'<br><span style="font-size:11px;">If the item was just created, re-Sync it to Manager first (sets its code), then:</span><br>'+retryBtn+'</div>';
+  }catch(e){ const mg=$(resultId+'_mgr'); if(mg) mg.outerHTML='<div class="st se">&#10005; Manager update error: '+esc(e.message)+'<br>'+retryBtn+'</div>'; }
+}
+// Manual retry of the last stock movement's Manager mirror (the button the user
+// can press after re-syncing an item whose code was missing).
+function retryStockMirror(){
+  if(!_lastStockMirror){ alert('Nothing to submit — record a stock-in/adjustment first.'); return; }
+  const m=_lastStockMirror;
+  mirrorStockToManager(m.direction,m.items,m.date,m.resultId);
 }
 async function stkSubmitAdj(){
   const items=_stkAdjItems.filter(i=>i.itemCode.trim());
