@@ -21,3 +21,11 @@ backend/keys/
 # Local working files
 tash*
 frontend/manager-theme.html
+
+# Non-shipping files: internal docs, tests, scratch — keep local, don't push
+TEST_PLAN.md
+/index.html
+backend/__tests__/
+**/*.test.js
+scratch*
+*.scratch
