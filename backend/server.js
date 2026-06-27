@@ -881,9 +881,9 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
       } else {
         // Inventory items — confirmed field names from GET form response
         form.ItemName                 = item.name;
+        form.ItemCode                 = item.code;   // inventory uses ItemCode, not Code
         form.DefaultSalesUnitPrice    = price;
         form.HasDefaultSalesUnitPrice = price > 0;
-        // Note: inventory items have no Code field in the form API
       }
       // Tax code — look up Manager tax code GUID matching the VAT designation
       if (item.vat) {
@@ -933,6 +933,7 @@ app.post('/api/goods/sync-to-manager', async (req, res) => {
         payload.DefaultSalesUnitPrice = price;
       } else {
         payload.ItemName                 = item.name;
+        payload.ItemCode                 = item.code;   // inventory uses ItemCode, not Code
         payload.DefaultSalesUnitPrice    = price;
         payload.HasDefaultSalesUnitPrice = price > 0;
       }

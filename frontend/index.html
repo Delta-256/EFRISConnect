@@ -4332,20 +4332,32 @@ async function stkSubmitIn(){
 }
 // After EFRIS records the movement, mirror the quantity into Manager's inventory
 // ledger (Write-on for in, Write-off for adjust). Best-effort: appends status.
+let _lastStockMirror=null;
 async function mirrorStockToManager(direction,items,date,resultId){
   const ep=CFG.managerEndpoint||MGR_EP, tk=CFG.accessToken||MGR_TK;
   if(!ep||!tk) return;
   const payloadItems=items.map(i=>({itemCode:i.itemCode,quantity:i.quantity}));
+  _lastStockMirror={direction,items,date,resultId};
   const append=h=>{ const el=$(resultId); if(el) el.innerHTML+=h; };
+  // Clear any previous mirror line for this result area before re-running
+  const prev=$(resultId+'_mgr'); if(prev) prev.outerHTML='';
   append('<div class="st si" id="'+resultId+'_mgr"><span class="sp">⏳</span> Updating Manager inventory…</div>');
+  const retryBtn='<button class="btn bo bsm" style="margin-top:4px;" onclick="retryStockMirror()">&#128230; Submit stock-in to Manager</button>';
   try{
     const r=await fetch(RELAY+'/api/manager/inventory-adjust',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerEndpoint:ep,accessToken:tk,direction,date,items:payloadItems})});
     const d=await r.json();
     const mg=$(resultId+'_mgr');
     if(d.success&&d.mirrored===d.total) mg.outerHTML='<div class="st ss">&#10003; Manager inventory updated ('+d.mirrored+' item'+(d.mirrored>1?'s':'')+')</div>';
-    else if(d.success) mg.outerHTML='<div class="st sw">&#9888; Manager: '+d.mirrored+'/'+d.total+' updated. '+esc((d.results||[]).filter(x=>!x.ok).map(x=>x.item+': '+x.error).join('; '))+'</div>';
-    else mg.outerHTML='<div class="st se">&#10005; Manager not updated: '+esc(d.error||(d.results||[]).map(x=>x.item+': '+x.error).join('; ')||'failed')+'</div>';
-  }catch(e){ const mg=$(resultId+'_mgr'); if(mg) mg.outerHTML='<div class="st se">&#10005; Manager update error: '+esc(e.message)+'</div>'; }
+    else if(d.success) mg.outerHTML='<div class="st sw">&#9888; Manager: '+d.mirrored+'/'+d.total+' updated. '+esc((d.results||[]).filter(x=>!x.ok).map(x=>x.item+': '+x.error).join('; '))+'<br>'+retryBtn+'</div>';
+    else mg.outerHTML='<div class="st se">&#10005; Manager not updated: '+esc(d.error||(d.results||[]).map(x=>x.item+': '+x.error).join('; ')||'failed')+'<br><span style="font-size:11px;">If the item was just created, re-Sync it to Manager first (sets its code), then:</span><br>'+retryBtn+'</div>';
+  }catch(e){ const mg=$(resultId+'_mgr'); if(mg) mg.outerHTML='<div class="st se">&#10005; Manager update error: '+esc(e.message)+'<br>'+retryBtn+'</div>'; }
+}
+// Manual retry of the last stock movement's Manager mirror (the button the user
+// can press after re-syncing an item whose code was missing).
+function retryStockMirror(){
+  if(!_lastStockMirror){ alert('Nothing to submit — record a stock-in/adjustment first.'); return; }
+  const m=_lastStockMirror;
+  mirrorStockToManager(m.direction,m.items,m.date,m.resultId);
 }
 async function stkSubmitAdj(){
   const items=_stkAdjItems.filter(i=>i.itemCode.trim());
