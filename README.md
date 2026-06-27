@@ -34,7 +34,7 @@ node server.js
 
 1. Push this repo to GitHub
 2. GitHub Actions builds the Docker image and pushes to Azure Container Registry
-3. Azure Container Instances runs the image at `https://goods.twoservants.com`
+3. Azure Container Instances runs the image at `https://efris.twoservants.com`
 4. Set `EFRIS_PRIVATE_KEY_B64` as a GitHub secret (base64 of your URA PEM file).
    The workflow also needs `ACR_USERNAME`, `ACR_PASSWORD` and `AZURE_CREDENTIALS`.
 
@@ -42,5 +42,5 @@ node server.js
 
 1. Settings → Custom Buttons → New Custom Button
 2. Label: `EFRISConnect`
-3. Endpoint: `https://goods.twoservants.com`
+3. Endpoint: `https://efris.twoservants.com`
 4. Placements: `/sales-invoices`, `/receipts`, `/inventory-items`, `/non-inventory-items`, `/inventory-item-form`, `/non-inventory-item-form`, `/receipt-form`, `/sales-invoice-form`
