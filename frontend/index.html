@@ -1094,6 +1094,9 @@
       </div>
       <div id="sEfrisR" class="mt"></div>
     </div>
+    <div class="card"><div class="ct"><span class="ico-emoji">&#127970;</span> Business</div>
+      <div id="bizSwitchWrap"></div>
+    </div>
     <div class="card"><div class="ct"><span class="ico-emoji">&#128279;</span><svg class="ico-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> System</div>
       <div class="fg"><label>Manager.io Endpoint</label><div style="display:flex;gap:6px;align-items:flex-start;"><input id="sMgr" style="flex:1;"/><button type="button" class="btn bo bsm" onclick="detectManagerEndpointSettings()" id="detectBtnSet" style="white-space:nowrap;margin-top:1px;">&#128270; Auto-detect</button></div><div id="detectResultSet" style="font-size:11px;margin-top:3px;"></div><div class="hint">Desktop edition uses a random port each launch — click Auto-detect, or paste <code>http://127.0.0.1:PORT/api2</code>. Server edition: fixed <code>https://your-domain/api2</code>.</div></div>
       <div class="fg"><label>Access Token</label><input id="sTok"/></div>
@@ -1182,7 +1185,20 @@ const TG={vatReg:false,sandbox:true,gRegEfris:false,efrisEnabled:true};
 let obStep=1;
 
 function ld(){ try{ const r=localStorage.getItem(SKEY); return r?JSON.parse(r):null; }catch(e){return null;} }
-function sv2(d){ try{ localStorage.setItem(SKEY,JSON.stringify(d)); }catch(e){} }
+// ── Per-business profiles ─────────────────────────────────────
+// Each business keeps its OWN config (privacy). Storage holds many profiles
+// keyed by a stable per-business id; `active` points at the current one.
+const PKEY='efris_profiles_v1';
+function profId(cfg){ if(!cfg) return ''; return cfg.tin ? ('tin:'+cfg.tin) : (cfg.accessToken ? ('tok:'+cfg.accessToken.slice(-10)) : (cfg.legalName ? ('biz:'+cfg.legalName.toLowerCase()) : '')); }
+function loadProfiles(){ try{ const r=localStorage.getItem(PKEY); const o=r?JSON.parse(r):null; if(o&&o.profiles) return o; }catch(e){} return {active:'', profiles:{}}; }
+function saveProfiles(o){ try{ localStorage.setItem(PKEY,JSON.stringify(o)); }catch(e){} }
+function profLabel(cfg){ return (cfg&&(cfg.tradeName||cfg.legalName))||'(unnamed)'; }
+// Persist the active config AND upsert it into the keyed profile store.
+function sv2(d){
+  try{ localStorage.setItem(SKEY,JSON.stringify(d)); }catch(e){}
+  const id=profId(d); if(!id) return;
+  const store=loadProfiles(); store.profiles[id]=d; store.active=id; saveProfiles(store);
+}
 function $(i){ return document.getElementById(i); }
 function gvi(i){ const e=$(i); return e?e.value.trim():''; }
 function sv(i,v){ const e=$(i); if(e) e.value=v||''; }
@@ -1256,6 +1272,7 @@ function apCFG(){
   ['sTV','t3v'].forEach(id=>utg(id,TG.vatReg));
   ['sTS','t3s'].forEach(id=>utg(id,TG.sandbox));
   ['sEfris','t1e'].forEach(id=>utg(id,TG.efrisEnabled));
+  try{ renderBizSwitch(); }catch(e){}
 }
 function logoUpload(input){
   const file=input.files[0]; if(!file) return;
@@ -1305,7 +1322,43 @@ function saveSt(){
   ht('saveR','<div class="st ss">✅ Settings saved</div>');
   setTimeout(()=>hd('saveR'),3000);
 }
-function resetAll(){ if(!confirm('Reset all settings?'))return; localStorage.removeItem(SKEY); location.reload(); }
+function resetAll(){
+  if(!confirm('Reset settings for the CURRENT business only? Other saved businesses are kept.'))return;
+  const store=loadProfiles(); const id=profId(CFG);
+  if(id&&store.profiles[id]){ delete store.profiles[id]; const rest=Object.keys(store.profiles); store.active=rest[0]||''; saveProfiles(store); }
+  localStorage.removeItem(SKEY);
+  location.reload();
+}
+// Start onboarding for a NEW business without touching saved profiles.
+function addBusiness(){
+  CFG={}; INV=null; DKEY=null; _lastInvKey=null;
+  TG.vatReg=false; TG.sandbox=true; TG.efrisEnabled=true;
+  ['o1a','o1b','o1c','o1d','o1e','o2a','o2b','o2c','o2d','o4a','o4b'].forEach(i=>sv(i,''));
+  obSh(1); showScr('sOB');
+}
+// Switch to a previously-saved business profile.
+function switchBusiness(id){
+  const store=loadProfiles(); if(!store.profiles[id])return;
+  store.active=id; saveProfiles(store);
+  try{ localStorage.setItem(SKEY, JSON.stringify(store.profiles[id])); }catch(e){}
+  location.reload();
+}
+// Render the business switcher (only meaningful when 2+ profiles exist).
+function renderBizSwitch(){
+  const wrap=$('bizSwitchWrap'); if(!wrap) return;
+  const store=loadProfiles(); const ids=Object.keys(store.profiles);
+  const curId=profId(CFG);
+  let h='<div style="font-size:11px;color:var(--gray);margin-bottom:4px;">Active business</div>';
+  if(ids.length>1){
+    h+='<select id="bizSwitchSel" onchange="switchBusiness(this.value)" style="width:100%;margin-bottom:6px;">'
+      +ids.map(id=>'<option value="'+esc(id)+'"'+(id===curId?' selected':'')+'>'+esc(profLabel(store.profiles[id]))+'</option>').join('')
+      +'</select>';
+  } else {
+    h+='<div style="font-size:12px;font-weight:600;margin-bottom:6px;">'+esc(profLabel(CFG))+'</div>';
+  }
+  h+='<button class="btn bo bsm" onclick="addBusiness()">&#10133; Add / switch to another business</button>';
+  wrap.innerHTML=h;
+}
 
 async function detectManagerEndpoint(){
   const btn=document.getElementById('detectBtn');
@@ -3462,8 +3515,19 @@ function init(){
   rDots();
   gLoadItems();
   if(gItems.length) gRefreshList();
-  const saved=ld();
-  // Onboarded = has Manager connection AND (either registered on EFRIS with a TIN, or explicitly not on EFRIS)
+  // ── Resolve which business profile to load ──
+  const store=loadProfiles();
+  // One-time migration: fold a pre-profiles single config into the store.
+  if(!Object.keys(store.profiles).length){ const old=ld(); if(old&&old.managerEndpoint){ const id=profId(old); if(id){ store.profiles[id]=old; store.active=id; saveProfiles(store); } } }
+  const ids=Object.keys(store.profiles);
+  let saved=null;
+  // If the launch URL carries a Manager token, prefer the matching business.
+  try{ const p=new URLSearchParams(window.location.search); const tok=p.get('apiAccessToken'); if(tok){ const hit=ids.map(k=>store.profiles[k]).find(c=>c.accessToken===tok); if(hit) saved=hit; } }catch(e){}
+  if(!saved){
+    if(ids.length===1) saved=store.profiles[ids[0]];               // single business → auto-load
+    else if(ids.length>1) saved=store.profiles[store.active]||store.profiles[ids[0]]; // many → last used
+  }
+  window._profileCount=ids.length;
   const onboarded = saved && saved.managerEndpoint && (saved.tin || saved.efrisEnabled===false);
   if(onboarded){
     CFG=saved;TG.vatReg=!!CFG.vatReg;TG.sandbox=CFG.sandbox!==false;TG.efrisEnabled=CFG.efrisEnabled!==false;apCFG();gApplyEfrisMode();
