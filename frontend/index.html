@@ -599,6 +599,7 @@
               <span id="gEfrisUomDesc" style="font-size:11px;color:var(--gray);"></span>
               <button type="button" class="btn bo bsm" onclick="gOpenUnitPicker()">&#128203; Pick from valid EFRIS units</button>
             </div>
+            <div id="gUnitPickerBox" style="margin-top:6px;"></div>
           </div>
           <div class="fg"><label>&#9881; Item Profile Category</label>
             <select id="gFldType" onchange="gOnTypeChange()">
@@ -3088,24 +3089,35 @@ const _EFRIS_UOM_NAMES = {};
 async function gAutoEfrisUom(val){
   if(!val){return;}
   const key=val.trim().toLowerCase();
-  // 1. Exact map match
-  if(_EFRIS_UOM_MAP[key]){
-    const code=_EFRIS_UOM_MAP[key];
-    sv('gFldEfrisUom',code);
-    gShowEfrisUomDesc(code);
+  // Prefer the LIVE EFRIS dictionary so the code we set is guaranteed valid for
+  // this environment. Match by name (exact, then contains), else fall back to
+  // the static map, then validate whatever we land on against the live list.
+  const live=await gLoadValidUnits();
+  let code='';
+  if(live.length){
+    let m=live.find(u=>(u.name||'').toLowerCase()===key);
+    if(!m) m=live.find(u=>(u.name||'').toLowerCase().includes(key)||key.includes((u.name||'').toLowerCase()));
+    if(m) code=m.code;
+  }
+  if(!code && _EFRIS_UOM_MAP[key]) code=_EFRIS_UOM_MAP[key];
+  if(!code){
+    // try the static /api/units name list
+    try{ const units=await fetch(RELAY+'/api/units').then(r=>r.json()); const match=units.find(u=>(u.name||u.desc||'').toLowerCase()===key); if(match) code=match.code; }catch(_){}
+  }
+  if(!code && val.trim().length<=3) code=val.trim().toUpperCase();
+  const e=$('gEfrisUomDesc'), box=$('gUnitPickerBox');
+  if(!code){ if(e) e.textContent='⚠ Not recognised'; return; }
+  // Validate against the live list when we have it; auto-open the picker if invalid.
+  if(live.length && !live.some(u=>String(u.code).toUpperCase()===String(code).toUpperCase())){
+    if(e) e.textContent='';
+    if(box) box.innerHTML='<div class="st sw">&#9888; "'+esc(code)+'" isn\'t valid in EFRIS for this account. Pick the correct unit below.</div>';
+    sv('gFldEfrisUom','');
+    gOpenUnitPicker();
     return;
   }
-  // 2. Load units and try exact name match
-  try{
-    const units=await fetch(RELAY+'/api/units').then(r=>r.json());
-    const match=units.find(u=>u.name.toLowerCase()===key);
-    if(match){sv('gFldEfrisUom',match.code);gShowEfrisUomDesc(match.code,match.name);return;}
-    // 3. If already ≤3 chars, treat as a code
-    if(val.trim().length<=3){sv('gFldEfrisUom',val.trim().toUpperCase());gShowEfrisUomDesc(val.trim().toUpperCase());return;}
-    // 4. No match — clear and hint
-    const e=$('gEfrisUomDesc');
-    if(e)e.textContent='⚠ Not recognised — type the 1–3 char EFRIS code manually';
-  }catch(_){}
+  sv('gFldEfrisUom',code);
+  gShowEfrisUomDesc(code);
+  if(box) box.innerHTML='';
 }
 
 function gShowEfrisUomDesc(code,name){
@@ -3208,16 +3220,26 @@ async function gSyncToEfris(){
 
 // ── Valid EFRIS measure units (live from T115 dictionary) ──────
 let _validUnits=[];
-async function gOpenUnitPicker(){
-  const statusEl=$('gSyncStatus');
-  if(!CFG.tin||!CFG.deviceNo){ alert('Add your TIN and Device No. in Settings first to load EFRIS units.'); return; }
-  statusEl.innerHTML='<div class="st si"><span class="sp">⏳</span> Loading valid EFRIS units…</div>';
+// Fetch the live EFRIS unit dictionary once and cache it, so auto-detect can
+// validate against what THIS environment actually accepts (the static uom.json
+// list contains codes like PCE that the sandbox rejects).
+async function gLoadValidUnits(){
+  if(_validUnits.length) return _validUnits;
+  if(!CFG.tin||!CFG.deviceNo) return [];
   try{
     const r=await fetch(RELAY+'/api/efris/measure-units',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tin:CFG.tin,deviceNo:CFG.deviceNo,efrisPassword:CFG.efrisPassword,mode:CFG.sandbox?'sandbox':'production'})});
     const d=await r.json();
-    if(!d.success||!d.units||!d.units.length){ statusEl.innerHTML='<div class="al aw">Could not load EFRIS units'+(d.error?': '+esc(d.error):'')+'. Check Settings / connection.</div>'; return; }
-    gRenderUnitHelp(statusEl, {validUnits:d.units, sentUnit:gvi('gFldEfrisUom'), picker:true});
-  }catch(e){ statusEl.innerHTML='<div class="al aw">Network error loading units: '+esc(e.message)+'</div>'; }
+    if(d.success&&d.units&&d.units.length) _validUnits=d.units;
+  }catch(_){}
+  return _validUnits;
+}
+async function gOpenUnitPicker(){
+  const box=$('gUnitPickerBox')||$('gSyncStatus');
+  if(!CFG.tin||!CFG.deviceNo){ alert('Add your TIN and Device No. in Settings first to load EFRIS units.'); return; }
+  box.innerHTML='<div class="st si"><span class="sp">⏳</span> Loading valid EFRIS units…</div>';
+  const units=await gLoadValidUnits();
+  if(!units.length){ box.innerHTML='<div class="al aw">Could not load EFRIS units. Check Settings / connection.</div>'; return; }
+  gRenderUnitHelp(box, {validUnits:units, sentUnit:gvi('gFldEfrisUom'), picker:true});
 }
 
 function gRenderUnitHelp(statusEl, d2){
@@ -3247,7 +3269,9 @@ function gFilterValidUnits(q){
 function gPickValidUnit(code){
   sv('gFldEfrisUom',code);
   gShowEfrisUomDesc(code);
-  const s=$('gSyncStatus'); if(s) s.innerHTML='<div class="al as">✅ EFRIS Unit Code set to <strong>'+esc(code)+'</strong>. Now click <strong>Register on EFRIS</strong>.</div>';
+  // Clear any stale rejection message both here and in the sync status area.
+  const box=$('gUnitPickerBox'); if(box) box.innerHTML='<div class="st ss">&#10003; EFRIS Unit Code set to <strong>'+esc(code)+'</strong>.</div>';
+  const s=$('gSyncStatus'); if(s) s.innerHTML='';
 }
 
 function gRefreshList(){
