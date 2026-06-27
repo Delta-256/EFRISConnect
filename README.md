@@ -15,7 +15,8 @@ efrisconnect/
 │   ├── server.js               (Express API)
 │   └── package.json
 ├── frontend/
-│   └── index.html              (Full UI — calls backend API)
+│   ├── index.html              (Full UI — calls backend API)
+│   └── receipt.html            (Printable receipt / invoice page)
 ├── backend/Dockerfile          (Azure Container Instances deployment)
 └── .github/workflows/          (CI/CD — builds and pushes to Azure ACR)
 ```
@@ -34,7 +35,8 @@ node server.js
 1. Push this repo to GitHub
 2. GitHub Actions builds the Docker image and pushes to Azure Container Registry
 3. Azure Container Instances runs the image at `https://goods.twoservants.com`
-4. Set `EFRIS_PRIVATE_KEY` as a GitHub secret (your URA PEM file contents)
+4. Set `EFRIS_PRIVATE_KEY_B64` as a GitHub secret (base64 of your URA PEM file).
+   The workflow also needs `ACR_USERNAME`, `ACR_PASSWORD` and `AZURE_CREDENTIALS`.
 
 ## Manager.io setup
 
