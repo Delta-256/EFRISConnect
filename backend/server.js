@@ -1267,14 +1267,23 @@ app.post('/api/manager/create-receipt', async (req, res) => {
 // Resolve a Manager inventory-item key from its ItemCode (the code we keep in
 // sync with the EFRIS goodsCode). Returns null if not found.
 async function resolveManagerItemKey(ep, tk, code) {
-  if (!code) return null;
+  if (!code) return { key: null, reason: 'no code' };
+  const want = String(code).trim().toLowerCase();
   try {
-    const r = await managerCall(ep, tk, 'GET', '/inventory-items?fields=ItemCode&pageSize=1000', null);
+    const r = await managerCall(ep, tk, 'GET', '/inventory-items?fields=ItemCode&fields=ItemName&pageSize=1000', null);
     const arr = (r.data && (r.data.inventoryItems || r.data.InventoryItems || [])) || [];
-    const want = String(code).trim().toLowerCase();
     const hit = arr.find(i => String(i.ItemCode || i.code || i.Code || '').trim().toLowerCase() === want);
-    return hit ? (hit.key || hit.Key || null) : null;
-  } catch (_) { return null; }
+    if (hit) return { key: hit.key || hit.Key || null };
+    // Not an inventory item — is it a non-inventory (service) item? Those can't
+    // hold stock in Manager, so tell the user precisely.
+    try {
+      const nr = await managerCall(ep, tk, 'GET', '/non-inventory-items?fields=ItemCode&pageSize=1000', null);
+      const narr = (nr.data && (nr.data.nonInventoryItems || nr.data.NonInventoryItems || [])) || [];
+      const nhit = narr.find(i => String(i.ItemCode || i.code || i.Code || '').trim().toLowerCase() === want);
+      if (nhit) return { key: null, reason: 'non-inventory' };
+    } catch (_) {}
+    return { key: null, reason: 'not found' };
+  } catch (_) { return { key: null, reason: 'lookup failed' }; }
 }
 
 // Mirror EFRIS stock movements into Manager's inventory ledger.
@@ -1310,8 +1319,18 @@ app.post('/api/manager/inventory-adjust', async (req, res) => {
   const results = [];
   for (const it of items) {
     let key = it.itemKey;
-    if (!key && it.itemCode) key = await resolveManagerItemKey(ep, accessToken, it.itemCode);
-    if (!key) { results.push({ item: it.itemCode || it.itemKey, ok: false, error: 'Item not found in Manager (by ItemCode)' }); continue; }
+    if (!key && it.itemCode) {
+      const resolved = await resolveManagerItemKey(ep, accessToken, it.itemCode);
+      key = resolved.key;
+      if (!key) {
+        const msg = resolved.reason === 'non-inventory'
+          ? 'This item is a Non-inventory (Service) item in Manager — Manager only tracks stock for Inventory items. Re-create it as a Goods (Inventory item).'
+          : 'Item not found among Manager inventory items (by ItemCode). Re-Sync it to Manager first.';
+        results.push({ item: it.itemCode || it.itemKey, ok: false, error: msg });
+        continue;
+      }
+    }
+    if (!key) { results.push({ item: it.itemCode || it.itemKey, ok: false, error: 'No item key' }); continue; }
     let done = false, lastErr = '';
     for (const path of formPaths) {
       for (const mkLine of lineShapes) {
