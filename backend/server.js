@@ -1311,27 +1311,6 @@ app.post('/api/manager/inventory-adjust', async (req, res) => {
                .filter(i => i.qty > 0 && (i.itemKey || i.itemCode));
   if (!items.length) return res.json({ success: false, error: 'No items with a positive quantity to mirror.' });
 
-  // Build the candidate (method, path, body) attempts for one item+qty. The
-  // probe showed this Manager build has NO write-up endpoint; increases go
-  // through the per-item Starting Balance, decreases through a Write-off doc.
-  const attemptsFor = (key, qty) => {
-    if (direction === 'in') {
-      const flat = extra => Object.assign({ Item: key, Qty: qty }, extra);
-      return [
-        // Starting balance may be keyed by the item itself (PUT) or created (POST)
-        { m: 'PUT',  p: '/inventory-item-starting-balance-form/' + key, b: { Qty: qty, Date: date } },
-        { m: 'POST', p: '/inventory-item-starting-balance-form', b: flat({ Date: date }) },
-        { m: 'POST', p: '/inventory-item-starting-balance-form', b: { InventoryItem: key, Qty: qty, Date: date } },
-        { m: 'POST', p: '/inventory-item-starting-balance-form', b: flat({ Amount: 0, Date: date }) },
-      ];
-    }
-    // decrease → write-off document with lines
-    return [
-      { m: 'POST', p: '/inventory-write-off-form', b: { Date: date, Description: description, Lines: [{ Item: key, Qty: qty }] } },
-      { m: 'POST', p: '/inventory-write-off-form', b: { Date: date, Description: description, Lines: [{ InventoryItem: key, Qty: qty }] } },
-    ];
-  };
-
   const results = [];
   for (const it of items) {
     let key = it.itemKey;
@@ -1347,15 +1326,32 @@ app.post('/api/manager/inventory-adjust', async (req, res) => {
       }
     }
     if (!key) { results.push({ item: it.itemCode || it.itemKey, ok: false, error: 'No item key' }); continue; }
-    let done = false, lastErr = '';
-    for (const a of attemptsFor(key, it.qty)) {
-      const r = await managerCall(ep, accessToken, a.m, a.p, a.b);
-      console.log(`   inventory-adjust(${direction}) ${a.m} ${a.p}: HTTP ${r.status} item=${key} qty=${it.qty} body=${JSON.stringify(r.data||'').slice(0,160)}`);
-      if (r.status >= 200 && r.status < 400) { results.push({ item: it.itemCode || key, ok: true, path: a.p }); done = true; break; }
-      // Keep the most informative error (a 400/422 body reveals required fields).
-      lastErr = `${a.m} ${a.p} → HTTP ${r.status}: ${JSON.stringify(r.data || '').slice(0, 200)}`;
-    }
-    if (!done) results.push({ item: it.itemCode || key, ok: false, error: lastErr || 'Manager rejected the adjustment' });
+    try {
+      if (direction === 'in') {
+        // SAFE read-modify-write: GET the item's starting-balance form, set the
+        // quantity field that actually exists in it, PUT it back. No blind POSTs.
+        const g = await managerCall(ep, accessToken, 'GET', '/inventory-item-starting-balance-form/' + key, null);
+        if (g.status !== 200 || !g.data || typeof g.data !== 'object') {
+          results.push({ item: it.itemCode || key, ok: false, error: `Could not read starting-balance form (HTTP ${g.status}). ${JSON.stringify(g.data||'').slice(0,120)}` });
+          continue;
+        }
+        const form = Object.assign({}, g.data);
+        // Set whichever quantity field the form uses (Qty / Quantity), and a value.
+        const qtyField = ('Qty' in form) ? 'Qty' : ('Quantity' in form) ? 'Quantity' : 'Qty';
+        form[qtyField] = it.qty;
+        const r = await managerCall(ep, accessToken, 'PUT', '/inventory-item-starting-balance-form/' + key, form);
+        console.log(`   SB PUT ${key}: HTTP ${r.status} qtyField=${qtyField} formKeys=${Object.keys(form).join(',')}`);
+        if (r.status >= 200 && r.status < 400) results.push({ item: it.itemCode || key, ok: true, path: 'starting-balance', qtyField, formKeys: Object.keys(form) });
+        else results.push({ item: it.itemCode || key, ok: false, error: `Starting-balance PUT HTTP ${r.status}: ${JSON.stringify(r.data||'').slice(0,160)}`, formKeys: Object.keys(form) });
+      } else {
+        // decrease → write-off document
+        let r = await managerCall(ep, accessToken, 'POST', '/inventory-write-off-form', { Date: date, Description: description, Lines: [{ Item: key, Qty: it.qty }] });
+        if (!(r.status >= 200 && r.status < 400)) r = await managerCall(ep, accessToken, 'POST', '/inventory-write-off-form', { Date: date, Description: description, Lines: [{ InventoryItem: key, Qty: it.qty }] });
+        console.log(`   write-off POST: HTTP ${r.status} item=${key} qty=${it.qty} body=${JSON.stringify(r.data||'').slice(0,120)}`);
+        if (r.status >= 200 && r.status < 400) results.push({ item: it.itemCode || key, ok: true, path: 'write-off' });
+        else results.push({ item: it.itemCode || key, ok: false, error: `Write-off HTTP ${r.status}: ${JSON.stringify(r.data||'').slice(0,160)}` });
+      }
+    } catch (e) { results.push({ item: it.itemCode || key, ok: false, error: e.message }); }
   }
   const okCount = results.filter(r => r.ok).length;
   res.json({ success: okCount > 0, mirrored: okCount, total: results.length, results });
